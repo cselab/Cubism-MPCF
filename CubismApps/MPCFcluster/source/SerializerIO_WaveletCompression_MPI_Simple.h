@@ -312,7 +312,7 @@ protected:
 		tsum /= mycomm.Get_size() * workload.size();
 		
 		if (isroot)
-			printf("TLP %-10s min:%.0e s avg:%.0e s max:%.0e s imb:%.0f%%\n", 
+			printf("TLP %-10s min:%.3e s avg:%.3e s max:%.3e s imb:%.0f%%\n", 
 				   workload_name, tmin, tsum, tmax, (tmax - tmin) / tsum * 100);
 		
 		return tsum;

@@ -22,8 +22,6 @@ using namespace std;
 #endif
 
 #include "Test_SteadyState.h"
-#include "SerializerIO_WaveletCompression.h"
-#include "WaveletCompressor.h"
 
 Test_SteadyState::Test_SteadyState(const int argc, const char ** argv):
 parser(argc, argv), t(0), step_id(0), grid(NULL), stepper(NULL) { }
@@ -143,6 +141,7 @@ void Test_SteadyState::_vp(FluidGrid& grid)
 
 void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
 {
+	/* this code is not part of the github branch
     if (bVP)
     {
 		static const bool quantization = false;
@@ -156,14 +155,11 @@ void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
 		
 		if (quantization)
 			wavelet_serializer.float16();
-		//wavelet_serializer.singlethreaded();
-		//wavelet_serializer.nozlib();
-		wavelet_serializer.Write(grid, filename);
 		
-		//for consistency checking, uncomment the following line
+		wavelet_serializer.Write(grid, filename);
 		wavelet_serializer.Read(grid, filename);
-		//exit(0);
-    }
+	}
+	*/
 }
 
 void Test_SteadyState::run()

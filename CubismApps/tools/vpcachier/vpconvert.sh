@@ -1,7 +1,7 @@
-MYSRCDIR=/tmp/CUBISM-DATA
-MYDSTDIR=/tmp/CUBISM-DATA/VPCACHE
+MYSRCDIR=~/CUBISM-DATA
+MYDSTDIR=~/CUBISM-DATA/VP
 QUALITYCHECK=0
-EXTRAARGS=" -f16 "
+#EXTRAARGS=" -f16 "
 
 #check existence of src/dst folders
 [ -d $MYSRCDIR ] || { printf "Cant find any source folder under <%b>\n" "$MYSRCDIR" ; exit 2; }
@@ -59,16 +59,16 @@ function generatechannel()
 T_CHECK_MSEC=0
 TSTART="$(date +%s)"
 
-generatechannel 0 0.6 1e3
+#generatechannel 0 0.6 1e3
 
 #it does not make sense to process velocity, so i skip this
 #generatechannel 1 -0.1 0.1
 #generatechannel 2 -0.1 0.1
 #generatechannel 3 -0.1 0.1
 
-generatechannel 4 0.02 100.0
+#generatechannel 4 0.02 100.0
 generatechannel 5 0.17 2.5; 
-generatechannel 6 3.47 4773.44
+#generatechannel 6 3.47 4773.44
 
 TOTALTIME="$(($(date +%s)-TSTART))"
 T_CHECK=$(( T_CHECK_MSEC / 1000 ))
