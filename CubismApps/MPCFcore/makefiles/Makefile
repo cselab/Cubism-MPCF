@@ -89,9 +89,9 @@ ifeq "$(avx)" "1"
 endif
 
 VPATH := ../source/
-.DEFAULT_GOAL := mpcfkernels
+.DEFAULT_GOAL := mpcf-core
 
-mpcfkernels: $(OBJECTS)
+mpcf-core: $(OBJECTS)
 	$(CC) $^ -o $@ $(LIBS)
 
 FlowStep_AVX_diego.o: FlowStep_AVX_diego.cpp
@@ -101,4 +101,4 @@ FlowStep_AVX_diego.o: FlowStep_AVX_diego.cpp
 	$(CC)  $(CPPFLAGS) -c $^ -o $@
 
 clean:
-	rm -f *.o mpcfkernels
+	rm -f *.o mpcf-core

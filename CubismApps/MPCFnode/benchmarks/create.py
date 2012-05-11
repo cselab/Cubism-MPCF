@@ -8,7 +8,7 @@ def mymerge(extra, n):
 
 def create_executables(commands_precompilation, compileopt, prefix_exe, extra, finalfolder):
 	print '======================================================================================='
-	print '===========  CREATE.PY: CREATING EXECUTABLES FOR BENCHMARKING MPCFCORE ============='
+	print '===========  CREATE.PY: CREATING EXECUTABLES FOR BENCHMARKING MPCFNODE  ==============='
 	print '======================================================================================='
 	start = datetime.datetime.now()
 
@@ -23,7 +23,7 @@ def create_executables(commands_precompilation, compileopt, prefix_exe, extra, f
 		useavx="-avx"
 			
 	#generate executables
-	blocksizes = [16, 24, 32];#[16, 24, 28, 32, 36, 40]
+	blocksizes = [32];
 
 	build_dir = "../makefiles"
 	cwd = os.getcwd()
@@ -37,7 +37,7 @@ def create_executables(commands_precompilation, compileopt, prefix_exe, extra, f
 				os.system(command1)
 				newname = prefix_exe + "bench-" + "b" + str(blocksizes[ibs]) + "-e" + str(ie) + useavx
 				
-				command2 = "mv mpcf-core " + cwd + "/" + finalfolder + "/" + newname
+				command2 = "mv mpcf-node " + cwd + "/" + finalfolder + "/" + newname
 				print 'COMMAND2 is %s' % (command2)
 				os.system(command2)
 	finally:

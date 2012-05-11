@@ -37,7 +37,7 @@ def _runall(niters, args, prerun, execfolder, outputfolder, footprint_megabytes)
 
 def run(runargs, tdesired_seconds, core_pp_gfs, core_pb_gbs, footprint_megabytes, prerun, execfolder, outputfolder, execprefix):
 	print '======================================================================================='
-	print '==========================  RUN.PY: BENCHMARKING MPCFKERNELS =========================='
+	print '==========================  RUN.PY: BENCHMARKING MPCFCORE =========================='
 	print '======================================================================================='
 	
 	#create finalfolder if necessary
