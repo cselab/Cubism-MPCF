@@ -96,7 +96,7 @@ public:
 		std::cout << "done. " << std::endl;
 	}
 	
-	unsigned int getBlocksPerDimension(int idim) const
+	virtual int getBlocksPerDimension(int idim) const
 	{
 		assert(idim>=0 && idim<3);
 		
