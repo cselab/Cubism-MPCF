@@ -75,7 +75,7 @@ ifneq "$(CC)" "icc"
 endif
 
 CPPFLAGS += -D_ALIGNBYTES_=$(align) -D_BLOCKSIZE_=$(bs) -DWENOEPS=$(weps)
-CPPFLAGS += -I../../../Cubism/v2/source
+CPPFLAGS += -I../../../Cubism/source
 
 LIBS += -lm -lstdc++
 
