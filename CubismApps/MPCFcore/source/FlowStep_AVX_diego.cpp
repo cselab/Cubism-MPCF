@@ -180,8 +180,8 @@ inline __m256 worse_sqrt(const __m256 a)
 {
 	const __m256 invz =  _mm256_rsqrt_ps(a);
 	const __m256 z = _mm256_rcp_ps(invz);
-	//return z-(z*z-a)*invz*_mm256_set1_ps(0.5f);
 	const __m256 tmp = z-(z*z-a)*invz*_mm256_set1_ps(0.5f);
+	
 	return  _mm256_and_ps(tmp, _mm256_cmp_ps(a, _mm256_setzero_ps(), _CMP_GT_OS));
 }
 
@@ -209,9 +209,7 @@ inline __m256 FlowStep_AVX_diego::_getgamma(const __m256 phi, const __m256 inv_s
 
 void FlowStep_AVX_diego::_avx_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts,
 											  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
-{
-	//printf("aligned! \n"); exit(0);
-	
+{	
 	const __m256 F_1_2 = _mm256_set1_ps(0.5f);
 	const __m256 M_1_2 = _mm256_set1_ps(-0.5f);
 	const __m256 F_1 = _mm256_set1_ps(1);
@@ -329,7 +327,7 @@ void FlowStep_AVX_diego::_avx_xweno_minus(const float * const in, float * const 
 #define SL2(L,R) _mm256_shuffle_ps(L, R, _MM_SHUFFLE(1,0,3,2))
 #define SL3(L,R) _mm256_shuffle_ps(_mm256_shuffle_ps(L,R, _MM_SHUFFLE(0,0,3,3)), R, _MM_SHUFFLE(2,1,3,0))
 			
-			//i rather prefer some cache latency than register spills			
+			//i rather prefer some access latency than register spills			
 #define W _mm_load_ps(&in[dx + 4 + SX*dy])
 #define C _mm256_load_ps(&in[dx + 8 + SX*dy])
 #define E _mm_load_ps(&in[dx + 16 + SX*dy])

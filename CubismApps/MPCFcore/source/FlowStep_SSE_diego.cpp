@@ -170,16 +170,10 @@ inline __m128 better_rcp(const __m128 a)
 }
 
 inline __m128 worse_sqrt(const __m128 a)
-{
-	//const __m128 invz =  _mm_rsqrt_ps(a);
-	//const __m128 z = _mm_rcp_ps(invz);
-	//return z-(z*z-a)*invz*_mm_set_ps1(0.5f);
-	//return _mm_sqrt_ps(a);
-	
+{	
  	const __m128 invz =  _mm_rsqrt_ps(a);
 	const __m128 z = _mm_rcp_ps(invz);
 	const __m128 tmp =  z-(z*z-a)*invz*_mm_set_ps1(0.5f);
-	//const __m128 tmp = _mm_sqrt_ps(a);
 	return  _mm_and_ps(tmp, _mm_cmpgt_ps(a, _mm_setzero_ps()));
 }
 

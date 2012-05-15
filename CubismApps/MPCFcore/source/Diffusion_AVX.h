@@ -6,6 +6,7 @@
  *  Copyright 2012 ETH Zurich. All rights reserved.
  *
  */
+
 #pragma once
 
 #include <xmmintrin.h>

@@ -6,6 +6,7 @@
  *  Copyright 2012 ETH Zurich. All rights reserved.
  *
  */
+
 #pragma once
 #include <typeinfo>
 #include <vector>
@@ -59,9 +60,7 @@ class SurfaceTension_Test
 					lab(ix, iy, iz).dsdt.w = val;
 					lab(ix, iy, iz).dsdt.levelset = val;
 					lab(ix, iy, iz).dsdt.s = val;
-				}
-		
-		//cout << "initialized block!\n";
+				}		
 	}
 	
 	void _initialize_lab(TestLab_S2& lab, const double h, const double eps, const double radius, const double gamma1, const double gamma2)
@@ -84,15 +83,6 @@ class SurfaceTension_Test
 					lab(ix, iy, iz).s.levelset = 1./(_getGamma(gamma1, gamma2, r-radius, eps)-1);
 					lab(ix, iy, iz).s.s = 10*lab(ix, iy, iz).s.levelset;
 				}
-		
-		//cout << "initialized lab!\n";
-		
-		/*printf("===================\n");
-		for(int i=0; i<_BLOCKSIZE_; ++i)
-		{
-			printf("%f %f\n", (i+0.5)*h, lab(i, _BLOCKSIZE_/2, _BLOCKSIZE_/2).s.r);
-		}
-		printf("===================\n");	*/
 	}
 	
 	void _gold(TestLab_S2& lab, Block& block, const Real a, const Real _dtinvh, const Real G1, const Real G2, const Real _h, const Real _sigma=1);
@@ -105,7 +95,6 @@ class SurfaceTension_Test
 		Block * block = new Block[NBLOCKS];
 		
 		for(int i=0; i<NBLOCKS; i++)
-			//TestLab_S2& lab, const double h, const double eps, const double radius, const double gamma1, const double gamma2
 			_initialize_lab(lab[i], 1./_BLOCKSIZE_, 1, 0.1, 1/fs.G1+1, 1/fs.G2+1);
 		
 		for(int i=0; i<NBLOCKS; i++)
@@ -116,9 +105,7 @@ class SurfaceTension_Test
 		//measure performance
 		{
 			Timer timer;
-			
-			//timer.start();
-			
+						
 			//run FS
 			const int srcfloats  = sizeof(GP)/sizeof(Real);
 			const int rowsrcs = _BLOCKSIZE_+2;
@@ -157,7 +144,6 @@ class SurfaceTension_Test
 		Block * blockgold = new Block[NBLOCKS];
 		
 		for(int i=0; i<NBLOCKS; i++)
-			//TestLab_S2& lab, const double h, const double eps, const double radius, const double gamma1, const double gamma2
 			_initialize_lab(lab[i], 1./_BLOCKSIZE_, 1., radius, gamma1, gamma2);
 		
 		for(int i=0; i<NBLOCKS; i++)
@@ -191,9 +177,7 @@ public:
 	{
 		TestLab_S2 * lab = new TestLab_S2;
 		_initialize_lab(*lab, 1./_BLOCKSIZE_, 1., 0.1, 1/fs.G1+1, 1/fs.G2+1);
-		
-//		printf("g1 is %f g2 is %f\n", fs.g1,fs.g2); exit(0);
-		
+				
 		Block * blockgold = new Block;
 		_initialize(*blockgold);
 		

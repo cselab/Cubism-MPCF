@@ -56,7 +56,7 @@ void DivTensor_CPP::_corners(const InputSOA_ST& ls0, const InputSOA_ST& ls1, Tem
 		}
 }
 
-//implemented as I*|n|/3 - nn^t
+//base tensor implementation is I*|n|/3 - nn^t
 void DivTensor_CPP::_tensor_xface(const TempSOA_ST& nx0, const TempSOA_ST& nx1, 
 								  const TempSOA_ST& ny0, const TempSOA_ST& ny1, 
 								  const TempSOA_ST& nz0, const TempSOA_ST& nz1)

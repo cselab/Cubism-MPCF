@@ -20,7 +20,6 @@
 
 #ifdef _AVX_
 #if defined(__INTEL_COMPILER)
-//|| __GNUC__ == 4 && __GNUC_MINOR__ < 5
 inline __m256 operator+(__m256 a, __m256 b){ return _mm256_add_ps(a, b); }
 inline __m256 operator&(__m256 a, __m256 b){ return _mm256_and_ps(a, b); }
 inline __m256 operator|(__m256 a, __m256 b){ return _mm256_or_ps(a, b); }

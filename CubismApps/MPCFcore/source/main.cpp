@@ -46,8 +46,6 @@ using namespace std;
 
 int main (int argc, const char ** argv) 
 {	
-	//HELLO ROSSO
-	//HELLO BULLDOZER
 	ArgumentParser parser(argc, argv);
 	
 	int N = parser("-n").asInt(1000);
@@ -188,7 +186,6 @@ int main (int argc, const char ** argv)
 #endif //_SSE_
 	
 	FlowStep_Test test;
-	//FlowStep_Test_Babak test; //somehow it always crashes
 	
 #ifdef _AVX_
 #if _ALIGNBYTES_ % 32 == 0
@@ -196,7 +193,6 @@ int main (int argc, const char ** argv)
 	{
 		FlowStep_AVX_diego flowstep_avxdiego;
 		//test.profile(flowstep_avxdiego, PP*1e9, PB*1e9, N); 
-		//exit(0);
 		printKernelName("FlowStep_AVX_diego:");
 		test.accuracy(flowstep_avxdiego, accuracy, bAwk);
 		test.performance(flowstep_avxdiego, PP*1e9, PB*1e9, NB, N, bAwk);
@@ -211,10 +207,8 @@ int main (int argc, const char ** argv)
 	{
 		FlowStep_SSE_diego flowstep_diego;
 		//test.profile(flowstep_diego, PP*1e9, PB*1e9, N); 
-		//exit(0);
 		printKernelName("FlowStep_SSE_diego:");
 		//test.profile(flowstep_diego, PP*1e9, PB*1e9, N); 
-		//exit(0);
 		test.accuracy(flowstep_diego, accuracy, bAwk);
 		test.performance(flowstep_diego, PP*1e9, PB*1e9, NB, N, bAwk);
 		printEndKernelTest();
@@ -222,7 +216,6 @@ int main (int argc, const char ** argv)
 #endif //_ALIGNBYTES_
 	
 #endif //_SSE_
-	
 	
 	if (kernel == "FS_CPP" || kernel == "all")
 	{

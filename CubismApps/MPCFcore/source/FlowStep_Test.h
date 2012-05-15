@@ -123,8 +123,6 @@ public:
 			if (typeid(fs) == typeid(FlowStep_CPP))
 				kernelname = "FlowStep_CPP";
 #ifdef _SSE_
-		//	else if (typeid(fs) == typeid(FlowStep_SSE_babak))
-		//		kernelname = "FlowStep_SSE_babak";
 			else if (typeid(fs) == typeid(FlowStep_SSE_diego))
 				kernelname = "FlowStep_SSE_diego";
 #endif
@@ -251,8 +249,6 @@ public:
 			if (typeid(fs) == typeid(FlowStep_CPP))
 				implname = "FlowStep_CPP";
 #ifdef _SSE_
-		//	else if (typeid(fs) == typeid(FlowStep_SSE_babak))
-		//		implname = "FlowStep_SSE_babak";
 			else if (typeid(fs) == typeid(FlowStep_SSE_diego))
 				implname = "FlowStep_SSE_diego";
 #endif

@@ -5,8 +5,12 @@
 //  Created by Babak Hejazialhosseini on 9/16/11.
 //  Copyright 2011 ETH Zurich. All rights reserved.
 //
+
 #include <cstring>
 #include "Diffusion_Test.h"
+
+//This code is NOT optimized and is a second-order accurate
+//shear-stress tensor naive implementation.
 
 typedef double RealTemp;
 
@@ -102,8 +106,6 @@ void Diffusion_Test::_compare(Block& _a, Block& _b, double accuracy, string kern
 					relsume[i] += fabs(e[i])/max(accuracy, fabs(s[i]));
 			}
 	
-	//printf("Diffusion kernel is: %s.\n", kernelname.c_str());
-
 	printf("\tLinf discrepancy:\t");
 	for(int i=0; i<6; i++)
 		printf("%.2e ", maxe[i]);
@@ -125,12 +127,10 @@ void Diffusion_Test::_compare(Block& _a, Block& _b, double accuracy, string kern
 	cout<<endl;
 }
 
-
-
+//Assumed Input GridPoint for Diffusion (AIGPD)
 struct AIGP_D { RealTemp r, u, v, w, s, l; }; 
 
 typedef Diffusion_CPP_M1::VectorElement VectorElement;
-
 
 VectorElement Diffusion_CPP_M1::_toPrimitive(StateVector & p)
 {
@@ -198,17 +198,6 @@ void Diffusion_CPP_M1::compute_conservative(TestLab_S2& lab, const BlockInfo& in
                     (2*c100+c110+2*c101+c111) + (-2*cm100-cm110-2*cm101-cm111) + (-cm1m10-cm1m11) + (c1m10+c1m11),                    
                     (2*c100+c110+2*c10m1+c11m1) + (-2*cm100-cm110-2*cm10m1-cm11m1) + (-cm1m10-cm1m1m1) + (c1m10+c1m1m1)					
                 };
-				
-				if (iz==0)
-				{
-				//	printf("REF: %f\n", deriv_u_OnBoundaryX[5]);
-				}
-				
-			/*	{
-					FILE * f = fopen("m1.txt", "w");
-					fprintf("%f %f %f\n", deriv_u_OnBoundaryX
-							fclose(f);
-				}*/
                 
                 const RealTemp deriv_u_OnBoundaryY[6] =
                 {
@@ -359,7 +348,6 @@ void Diffusion_CPP_M1::compute_conservative(TestLab_S2& lab, const BlockInfo& in
                 cm1m1m1 = _toPrimitive(lab(ix-1,iy-1,iz-1).s)[w];
                 c1m1m1 = _toPrimitive(lab(ix+1,iy-1,iz-1).s)[w];
                 
-                
                 const RealTemp deriv_w_OnBoundaryX[6] =
                 {
                     (4*c100-4*c000+2*c1m10-2*c0m10+2*c101-2*c001+c1m11-c0m11) + (2*c110-2*c010+c111-c011) + (2*c10m1-2*c00m1+c1m1m1-c0m1m1) + (c11m1-c01m1),
@@ -447,11 +435,7 @@ void Diffusion_CPP_M1::compute_conservative(TestLab_S2& lab, const BlockInfo& in
                 
                 //add to rhs of momenta
                 {
-					//rhs.u  = a*rhs.r - factor*rhsu(ix, iy);
-				//	printf("factor is %f div tau is %f\n", dtinvh/(16*h), divTau[0]);
-				//	printf("muOnBoundary is %f %f %f %f %f %f\n", muOnBoundary[0], muOnBoundary[1], muOnBoundary[2], muOnBoundary[3], muOnBoundary[4], muOnBoundary[5]);			
-
-                    o(ix, iy, iz).dsdt.u = a*o(ix, iy, iz).dsdt.u + divTau[0]*dtinvh/(16*h);//a*o(ix, iy, iz).dsdt.u - dtinvh/(16*h);//*divTau[0];
+					o(ix, iy, iz).dsdt.u = a*o(ix, iy, iz).dsdt.u + divTau[0]*dtinvh/(16*h);//a*o(ix, iy, iz).dsdt.u - dtinvh/(16*h);//*divTau[0];
                     o(ix, iy, iz).dsdt.v = a*o(ix, iy, iz).dsdt.v + dtinvh/(16*h)*divTau[1];
                     o(ix, iy, iz).dsdt.w = a*o(ix, iy, iz).dsdt.w + dtinvh/(16*h)*divTau[2];
                 }

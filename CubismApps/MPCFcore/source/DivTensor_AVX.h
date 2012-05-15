@@ -26,9 +26,9 @@ inline __m256 operator/(__m256 a, __m256 b){ return _mm256_div_ps(a, b); }
 
 class DivTensor_AVX: public virtual DivTensor_SSE
 {	
-
+	
 protected:
-
+	
 	inline __m256 _LEFT(const __m128 W, const __m256 C) const
 	{
 		const __m256 Cpermuted = _mm256_permute2f128_ps(C, C, 1);
@@ -47,11 +47,8 @@ protected:
 	{
 		const __m256 EAST = _mm256_insertf128_ps(_mm256_permute2f128_ps(C, C, 1), E, 1);
 		return _mm256_shuffle_ps(C, _mm256_shuffle_ps(C, EAST, _MM_SHUFFLE(0,0,3,3)), _MM_SHUFFLE(3,0,2,1));
-		//__m256 EAST = _mm256_insertf128_ps(_mm256_setzero_ps(), _mm256_extractf128_ps(C, 1), 0);
-		//EAST = _mm256_insertf128_ps(EAST, E, 1);
-		//return _mm256_shuffle_ps(C, _mm256_shuffle_ps(C, EAST, _MM_SHUFFLE(0,0,3,3)), _MM_SHUFFLE(3,0,2,1));
 	}
-
+	
 	inline __m256 _RIGHT(const __m256 C, const __m256 E) const
 	{
 		__m256 EAST = _mm256_insertf128_ps(_mm256_setzero_ps(), _mm256_extractf128_ps(C, 1), 0);
@@ -196,9 +193,9 @@ protected:
 				const __m256 E = _mm256_load_ps(src0 + ix + 8);
 				
 				_mm256_store_ps(dest + ix,
-							 _RIGHT(C, E) - C + 
-							 _mm256_load_ps(src1 + ix + PITCHIN1) - _mm256_load_ps(src1 + ix));
-							 
+								_RIGHT(C, E) - C + 
+								_mm256_load_ps(src1 + ix + PITCHIN1) - _mm256_load_ps(src1 + ix));
+				
 				C = E;
 			}
 		}
@@ -213,15 +210,15 @@ protected:
 			const float * const src1 = basesrc1 + iy*PITCHIN;
 			float * const dest = basedest + iy*PITCHOUT;
 			
-			//This is rewritten as follows to avoid WAR hazards
+			//This is rewritten as follows to avoid unintended write-to-load forwarding stalls
 			//for(int ix=0; ix<OutputSOA::NX; ix+=8)
 			//	_mm256_store_ps(dest + ix, _mm256_load_ps(dest + ix) + _mm256_load_ps(src0 + ix) - _mm256_load_ps(src1 + ix)); 
-
+			
 			float __attribute__((aligned(_ALIGNBYTES_))) tmp[PITCHOUT];
-
+			
 			for(int ix=0; ix<OutputSOA::NX; ix+=8)
 				_mm256_store_ps(tmp + ix, _mm256_load_ps(dest + ix) + _mm256_load_ps(src0 + ix) - _mm256_load_ps(src1 + ix)); 
-
+			
 			for(int ix=0; ix<OutputSOA::NX; ix+=8)
 				_mm256_store_ps(dest + ix, _mm256_load_ps(tmp + ix)); 
 		}
@@ -252,8 +249,8 @@ protected:
 		_div_dz_avx<PIN0, POUT>(utz1.ptr(0,0), utz0.ptr(0,0), &rhss.ref(0,0));
 	}
 #endif
-
-void _udot_tx(const InputSOAf_ST& u, const InputSOAf_ST& v, const InputSOAf_ST& w)
+	
+	void _udot_tx(const InputSOAf_ST& u, const InputSOAf_ST& v, const InputSOAf_ST& w)
 	{
 #ifndef _SP_COMP_
 		printf("DivTensor_AVX::_udot_tx: you should not be here in double precision. Aborting.\n");
@@ -295,10 +292,10 @@ void _udot_tx(const InputSOAf_ST& u, const InputSOAf_ST& v, const InputSOAf_ST& 
 				const __m256 CW = _mm256_load_ps(wptr + ix);
 				
 				_mm256_store_ps(utxptr + ix , 
-							 _mm256_load_ps(txxptr + ix)*(CU + _LEFT(WU, CU)) +
-							 _mm256_load_ps(txyptr + ix)*(CV + _LEFT(WV, CV)) +
-							 _mm256_load_ps(txzptr + ix)*(CW + _LEFT(WW, CW)));
-							 
+								_mm256_load_ps(txxptr + ix)*(CU + _LEFT(WU, CU)) +
+								_mm256_load_ps(txyptr + ix)*(CV + _LEFT(WV, CV)) +
+								_mm256_load_ps(txzptr + ix)*(CW + _LEFT(WW, CW)));
+				
 				WU = CU;
 				WV = CV;
 				WW = CW;
@@ -341,19 +338,23 @@ void _udot_tx(const InputSOAf_ST& u, const InputSOAf_ST& v, const InputSOAf_ST& 
 			for(int ix=0; ix<TempPiYSOA_ST::NX; ix +=  8)
 			{
 				_mm256_store_ps(utyptr + ix , 
-							 _mm256_load_ps(tyxptr + ix)*(_mm256_load_ps(uptr + ix) + _mm256_load_ps(uptr + ix - PITCHIN)) +
-							 _mm256_load_ps(tyyptr + ix)*(_mm256_load_ps(vptr + ix) + _mm256_load_ps(vptr + ix - PITCHIN)) +
-							 _mm256_load_ps(tyzptr + ix)*(_mm256_load_ps(wptr + ix) + _mm256_load_ps(wptr + ix - PITCHIN)));
+								_mm256_load_ps(tyxptr + ix)*(_mm256_load_ps(uptr + ix) + _mm256_load_ps(uptr + ix - PITCHIN)) +
+								_mm256_load_ps(tyyptr + ix)*(_mm256_load_ps(vptr + ix) + _mm256_load_ps(vptr + ix - PITCHIN)) +
+								_mm256_load_ps(tyzptr + ix)*(_mm256_load_ps(wptr + ix) + _mm256_load_ps(wptr + ix - PITCHIN)));
 			}
 		}
 #endif
 	}
 	
 	void _udot_tz(const InputSOAf_ST& u0, const InputSOAf_ST& v0, const InputSOAf_ST& w0,
-								 const InputSOAf_ST& u1, const InputSOAf_ST& v1, const InputSOAf_ST& w1,
-								 const TempPiZSOAf_ST& tzx, const TempPiZSOAf_ST& tzy, const TempPiZSOAf_ST& tzz,
-								 TempPiZSOAf_ST& utz)
+				  const InputSOAf_ST& u1, const InputSOAf_ST& v1, const InputSOAf_ST& w1,
+				  const TempPiZSOAf_ST& tzx, const TempPiZSOAf_ST& tzy, const TempPiZSOAf_ST& tzz,
+				  TempPiZSOAf_ST& utz)
 	{
+#ifndef _SP_COMP_
+		printf("DivTensor_SSE::_udot_tz: you should not be here in double precision. Aborting.\n");
+		abort();
+#else
 		static const int PITCHIN = InputSOA_ST::PITCH;
 		static const int PITCHTENSOR = TempPiZSOA_ST::PITCH;
 		
@@ -388,9 +389,9 @@ void _udot_tx(const InputSOAf_ST& u, const InputSOAf_ST& v, const InputSOAf_ST& 
 			for(int ix=0; ix<TempPiZSOA_ST::NX; ix += 8)
 			{
 				_mm256_store_ps(utzptr + ix , 
-							 _mm256_load_ps(tzxptr + ix)*(_mm256_load_ps(uptr0 + ix) + _mm256_load_ps(uptr1 + ix)) +
-							 _mm256_load_ps(tzyptr + ix)*(_mm256_load_ps(vptr0 + ix) + _mm256_load_ps(vptr1 + ix)) +
-							 _mm256_load_ps(tzzptr + ix)*(_mm256_load_ps(wptr0 + ix) + _mm256_load_ps(wptr1 + ix)));
+								_mm256_load_ps(tzxptr + ix)*(_mm256_load_ps(uptr0 + ix) + _mm256_load_ps(uptr1 + ix)) +
+								_mm256_load_ps(tzyptr + ix)*(_mm256_load_ps(vptr0 + ix) + _mm256_load_ps(vptr1 + ix)) +
+								_mm256_load_ps(tzzptr + ix)*(_mm256_load_ps(wptr0 + ix) + _mm256_load_ps(wptr1 + ix)));
 			}
 		}
 	}
@@ -403,31 +404,9 @@ void _udot_tx(const InputSOAf_ST& u, const InputSOAf_ST& v, const InputSOAf_ST& 
 			_mm256_store_ps(dest, src);
 	}
 	
-	/* This is commented out because on sandy bridge was going slower than SSE (ILP-issues + register spills)
-	template<bool accum>
-	void _average_xface(const float factor, const TempSOA_ST& src0, const TempSOA_ST& src1, TempPiXSOA_ST& dest)
-	{
-		static const int PITCHIN = TempSOA_ST::PITCH;
-		static const int PITCHOUT = TempPiXSOA_ST::PITCH;
-		
-		const float * const src0base = src0.ptr(0,0); 
-		const float * const src1base = src1.ptr(0,0); 
-		float * const destbase = &dest.ref(0,0); 
-		
-		const __m256 F = _mm256_set1_ps(factor);
-		
-		for(int iy=0; iy<TempPiXSOA_ST::NY; iy++)
-		{
-			const float * const src0ptr = src0base + iy*PITCHIN; 
-			const float * const src1ptr = src1base + iy*PITCHIN; 
-			float * const destptr = destbase + iy*PITCHOUT;
-			
-			for(int ix=0; ix<TempPiXSOA_ST::NX; ix+=8)
-				write256<accum>(destptr + ix, F*(_mm256_load_ps(src0ptr + ix) + _mm256_load_ps(src0ptr + ix + PITCHIN) + 
-								 _mm256_load_ps(src1ptr + ix) + _mm256_load_ps(src1ptr + ix + PITCHIN)));
-		}
-	}
-	*/
+	/* The method _average_xface(.)
+	 is left unoveridden as it was observed to be slower than the base implementation (ILP-issues).
+	 */
 	
 	template<bool accum>
 	void _average_yface(const float factor, const TempSOA_ST& src0, const TempSOA_ST& src1, TempPiYSOA_ST& dest)
@@ -446,14 +425,14 @@ void _udot_tx(const InputSOAf_ST& u, const InputSOAf_ST& v, const InputSOAf_ST& 
 			const float * const src0ptr = src0base + iy*PITCHIN; 
 			const float * const src1ptr = src1base + iy*PITCHIN; 
 			float * const destptr = destbase + iy*PITCHOUT;
-						
+			
 			for(int ix=0; ix<TempPiYSOA_ST::NX; ix+=8)
 			{
 				const __m256 C0 = _mm256_load_ps(src0ptr + ix);
 				const __m256 C1 = _mm256_load_ps(src1ptr + ix);
 				const __m128 E0 = _mm_load_ps(src0ptr + ix + 8);
 				const __m128 E1 = _mm_load_ps(src1ptr + ix + 8);
-
+				
 				write256<accum>(destptr + ix, F*(C0 + _RIGHT(C0, E0) + C1 + _RIGHT(C1, E1)));
 			}
 		}

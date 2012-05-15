@@ -19,7 +19,7 @@ using namespace std;
 
 void FlowStep_Test::_initialize(TestLab& lab, Block& block)
 {
-	//srand48(61651);
+	srand48(61651);
 
 	for(int iz = -3; iz<_BLOCKSIZE_+3; iz++)
 		for(int iy = -3; iy<_BLOCKSIZE_+3; iy++)

@@ -22,29 +22,30 @@ class Diffusion_Test
 {
 	void _initialize(TestLab_S2& lab, const double h)
 	{
-		/*
-		FILE * f = fopen("test0", "r");
-		
-		int c = 0;
-		while (!feof(f)) {
-			float r,u,v,w,s,l;
-			fscanf(f, "%e %e %e %e %e %e\n", &r, &u, &v, &w, &s, &l);
-			
-			const int ix = (c % 18) -1;
-			const int iy = (c/18 % 18) - 1;
-			const int iz = (c/18/18) -1;
-			
-			lab(ix, iy, iz).s.r = r;
-			lab(ix, iy, iz).s.u = u;
-			lab(ix, iy, iz).s.v = v;
-			lab(ix, iy, iz).s.w = w;
-			lab(ix, iy, iz).s.levelset = s;
-			lab(ix, iy, iz).s.s = l;
-						
-			c++;
-		}
-		
-		fclose(f);
+		/* Alternatively, we load the test initial condition from a file:
+		 
+		 FILE * f = fopen("test0", "r");
+		 
+		 int c = 0;
+		 while (!feof(f)) {
+		 float r,u,v,w,s,l;
+		 fscanf(f, "%e %e %e %e %e %e\n", &r, &u, &v, &w, &s, &l);
+		 
+		 const int ix = (c % 18) -1;
+		 const int iy = (c/18 % 18) - 1;
+		 const int iz = (c/18/18) -1;
+		 
+		 lab(ix, iy, iz).s.r = r;
+		 lab(ix, iy, iz).s.u = u;
+		 lab(ix, iy, iz).s.v = v;
+		 lab(ix, iy, iz).s.w = w;
+		 lab(ix, iy, iz).s.levelset = s;
+		 lab(ix, iy, iz).s.s = l;
+		 
+		 c++;
+		 }
+		 
+		 fclose(f);
 		 */
 		
 		for(int iz = -1; iz<_BLOCKSIZE_+1; iz++)
@@ -65,7 +66,7 @@ class Diffusion_Test
 					lab(ix, iy, iz).s.s = x-0.4;
 				}
 	}
-
+	
 	void _initialize(Block& block)
 	{
 		for(int iz = 0; iz<_BLOCKSIZE_; iz++)
@@ -119,7 +120,7 @@ class Diffusion_Test
 	void _gold(TestLab_S2& lab, Block& block, const Real _nu1, const Real _nu2, const Real _g1, const Real _g2, const Real a, const Real _dtinvh, const Real _h);
 	
 	void _compare(Block& _a, Block& _b, double accuracy, string kernelname);
-
+	
 	template<typename FS> double _benchmark(FS fs, const int NBLOCKS, const int NTIMES)
 	{
 		TestLab_S2 * lab = new TestLab_S2[NBLOCKS];
@@ -178,7 +179,7 @@ public:
 		TestLab_S2 * lab = new TestLab_S2;
 		const double EPSILON = 1e-6;
 		_initialize(*lab, fs.h);
-				
+		
 		Block * blockgold = new Block;
 		_initialize(*blockgold);
 		
@@ -236,9 +237,7 @@ public:
 		
 		
 		//measure performance
-		{
-			//Timer timer;
-			
+		{			
 			//run gold
 #pragma omp parallel
 			{
@@ -266,14 +265,15 @@ public:
 			tCOMPUTE /= COUNT;
 		}
 		
+		//report performance
 		string implname = typeid(fs).name();
 		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE, false);
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
 	}
-
+	
 	template<typename FS> void profile(FS& fs, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
 	{		
-int COUNT = 0;
+		int COUNT = 0;
 		
 #pragma omp parallel 
 		{
@@ -282,22 +282,21 @@ int COUNT = 0;
 				COUNT++;
 			}
 		}
-
-printf("NTHREADS is %d\n", COUNT);
-		double tCOMPUTE = 0;// _benchmark(fs, NBLOCKS, NTIMES);
-		//
+		
+		printf("NTHREADS is %d\n", COUNT);
+		double tCOMPUTE = 0;
+		
 #pragma omp parallel
-			{
-				const double t =  _benchmark(fs, NBLOCKS, NTIMES);
-				
-#pragma omp critical
-				{
-					tCOMPUTE += t;
-				}
-			}
+		{
+			const double t =  _benchmark(fs, NBLOCKS, NTIMES);
 			
-			tCOMPUTE /= COUNT;
+#pragma omp critical
+			{
+				tCOMPUTE += t;
+			}
+		}
+		
+		tCOMPUTE /= COUNT;
 		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE, false);
 	}
 };
-

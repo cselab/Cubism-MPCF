@@ -28,7 +28,7 @@ class FlowStep_AVX_diego : public FlowStep_SSE_diego
 							const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2) const;
 	
 	void _avx_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts,
-					  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l);
+							  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l);
 	void _avx_convert(const float * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts,
 					  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l);
 	
@@ -84,12 +84,12 @@ class FlowStep_AVX_diego : public FlowStep_SSE_diego
 		
 		if (bAligned && b8Multiple)
 			_avx_convert_aligned(gptfirst, gptfloats, rowgpts, slicegpts, 
-						 & ringrho.ref().ref(-8,-3),
-						 & ringu.ref().ref(-8,-3),
-						 & ringv.ref().ref(-8,-3),
-						 & ringw.ref().ref(-8,-3),
-						 & ringp.ref().ref(-8,-3),
-						 & ringls.ref().ref(-8,-3));
+								 & ringrho.ref().ref(-8,-3),
+								 & ringu.ref().ref(-8,-3),
+								 & ringv.ref().ref(-8,-3),
+								 & ringw.ref().ref(-8,-3),
+								 & ringp.ref().ref(-8,-3),
+								 & ringls.ref().ref(-8,-3));
 		else
 			_avx_convert(gptfirst, gptfloats, rowgpts, slicegpts, 
 						 & ringrho.ref().ref(-8,-3),
@@ -312,6 +312,6 @@ public:
 		}
 	}
 	
- FlowStep_AVX_diego(Real a=0, Real dtinvh=1, Real gamma1=2.5, Real gamma2=2.1, Real smoothlength=1, Real pc1=0, Real pc2=0):
+	FlowStep_AVX_diego(Real a=0, Real dtinvh=1, Real gamma1=2.5, Real gamma2=2.1, Real smoothlength=1, Real pc1=0, Real pc2=0):
 	FlowStep_SSE_diego(a, dtinvh, gamma1, gamma2, smoothlength, pc1, pc2) { }
 };

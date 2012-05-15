@@ -33,6 +33,7 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 _mm_shuffle_ps(C, _mm_shuffle_ps(C,E, _MM_SHUFFLE(0,0,3,3)), _MM_SHUFFLE(3,0,2,1))
 	
 protected:
+	
 	//virtual method of DivTensor_CPP overridden here
     void _corners(const InputSOAf_ST& _ls0, const InputSOAf_ST& _ls1, TempSOAf_ST& _nx, TempSOAf_ST& _ny, TempSOAf_ST& _nz)
 	{	
@@ -151,12 +152,12 @@ protected:
 				_mm_store_ps(dest + ix,
 							 RIGHT(C, E) - C + 
 							 _mm_load_ps(src1 + ix + PITCHIN1) - _mm_load_ps(src1 + ix));
-							 
+				
 				C = E;
 			}
 		}
 	}
-
+	
 	template<int PITCHIN, int PITCHOUT>
 	void _div_dz_sse(const float * const basesrc0, const float * const basesrc1, float * const basedest)
 	{
@@ -233,11 +234,11 @@ protected:
 				const __m128 C0 = _mm_load_ps(uptr + ix);
 				const __m128 C1 = _mm_load_ps(vptr + ix);
 				const __m128 C2 = _mm_load_ps(wptr + ix);
-
+				
 				const __m128 W0 = _mm_load_ps(uptr + ix - 4);
 				const __m128 W1 = _mm_load_ps(vptr + ix - 4);
 				const __m128 W2 = _mm_load_ps(wptr + ix - 4);
-
+				
 				_mm_store_ps(utxptr + ix , 
 							 _mm_load_ps(txxptr + ix)*(C0 + LEFT(W0, C0)) +
 							 _mm_load_ps(txyptr + ix)*(C1 + LEFT(W1, C1)) +
@@ -290,9 +291,9 @@ protected:
 	}
 	
 	void _udot_tz(const InputSOAf_ST& u0, const InputSOAf_ST& v0, const InputSOAf_ST& w0,
-								 const InputSOAf_ST& u1, const InputSOAf_ST& v1, const InputSOAf_ST& w1,
-								 const TempPiZSOAf_ST& tzx, const TempPiZSOAf_ST& tzy, const TempPiZSOAf_ST& tzz,
-								 TempPiZSOAf_ST& utz)
+				  const InputSOAf_ST& u1, const InputSOAf_ST& v1, const InputSOAf_ST& w1,
+				  const TempPiZSOAf_ST& tzx, const TempPiZSOAf_ST& tzy, const TempPiZSOAf_ST& tzz,
+				  TempPiZSOAf_ST& utz)
 	{
 		static const int PITCHIN = InputSOA_ST::PITCH;
 		static const int PITCHTENSOR = TempPiZSOA_ST::PITCH;
@@ -365,7 +366,7 @@ protected:
 			
 			for(int ix=0; ix<TempPiXSOA_ST::NX; ix+=4)
 				write128<accum>(destptr + ix, F*(_mm_load_ps(src0ptr + ix) + _mm_load_ps(src0ptr + ix + PITCHIN) + 
-												_mm_load_ps(src1ptr + ix) + _mm_load_ps(src1ptr + ix + PITCHIN)));
+												 _mm_load_ps(src1ptr + ix) + _mm_load_ps(src1ptr + ix + PITCHIN)));
 		}
 	}
 	
@@ -386,7 +387,7 @@ protected:
 			const float * const src0ptr = src0base + iy*PITCHIN; 
 			const float * const src1ptr = src1base + iy*PITCHIN; 
 			float * const destptr = destbase + iy*PITCHOUT;
-						
+			
 			__m128 C0 = _mm_load_ps(src0ptr);
 			__m128 C1 = _mm_load_ps(src1ptr);
 			
@@ -394,7 +395,7 @@ protected:
 			{
 				const __m128 E0 = _mm_load_ps(src0ptr + ix + 4);
 				const __m128 E1 = _mm_load_ps(src1ptr + ix + 4);
-
+				
 				write128<accum>(destptr + ix, F*(C0 + RIGHT(C0, E0) + 
 												 C1 + RIGHT(C1, E1)));
 				C0 = E0;
@@ -434,7 +435,7 @@ protected:
 			}
 		}
 	}
-		
+	
 public:
 	
 	DivTensor_SSE(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
@@ -444,5 +445,4 @@ public:
 	
 #undef LEFT
 #undef RIGHT	
-
 };

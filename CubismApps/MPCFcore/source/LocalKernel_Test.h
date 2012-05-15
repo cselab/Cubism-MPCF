@@ -141,7 +141,6 @@ public:
 					
 		printAccuracyTitle();
 		printf("ERROR: %e (relative: %e)\n", v1-v2, (v1-v2)/max(fabs(v1), max(fabs(v2), (Real)accuracy)));
-		//_compare(*block, *blockgold, accuracy, bAwk, "MaxSOS_SSE");
 		printEndLine();
 		
 		delete block;
@@ -269,7 +268,6 @@ public:
 		
 		TSOS::printflops(PEAKPERF, PEAKBAND, 1, 1, NTIMES, tCOMPUTE, false);
 		cout << setprecision(4) << "\tMEMORY FOOTPRINT: "<< (block->kB())/1024 << " MB" << endl;
-		//printf("\tGOLD IS %.2f GFLOP/s\n", GFLOP/tGOLD);	
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
 		if (bAwk) awkShortPerf("MaxSOS_SSE", PEAKPERF, PEAKBAND, GFLOP, tGOLD, tCOMPUTE, EPERF, TEXPECTED, NTIMES, block->kB(), OI);
 		printEndLine();
@@ -305,12 +303,7 @@ public:
 				COUNT++;
 			}
 		}
-		
-/*		printf("NTHREADS is %d\n", COUNT);
-		cout << "GFLOP is " << GFLOP << endl;
-		cout << "NTIMES is " << NTIMES << endl;
-		cout << "_BLOCKSIZE_ is " << _BLOCKSIZE_ << endl;
-*/			
+				
 		//measure performance
 		{
 			Timer timer;
@@ -337,7 +330,7 @@ public:
 		
 		TUPDATE::printflops(PEAKPERF, PEAKBAND, 1, 1, NTIMES, tCOMPUTE, false);
 		cout << setprecision(4) << "\tMEMORY FOOTPRINT: "<< (block->kB())/1024<< " MB" << endl;
-		//printf("\tGOLD IS %.2f GFLOP/s\n", GFLOP/tGOLD);	
+
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
 		if (bAwk) awkShortPerf("Update_SSE", PEAKPERF, PEAKBAND, GFLOP, tGOLD, tCOMPUTE, EPERF, TEXPECTED, NTIMES, block->kB(), OI);
 		printEndLine();

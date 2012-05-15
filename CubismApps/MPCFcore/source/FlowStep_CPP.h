@@ -305,7 +305,6 @@ public:
 		const float AIPRHS      = .125f;
 		const float AICopyBack  = .161f;
 		const float OITotal     = 1e9*(GFLOP/NBLOCKS)/((_BLOCKSIZE_+6)*(_BLOCKSIZE_+6)*(_BLOCKSIZE_+6)*sizeof(Real)*6 + 2*_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*sizeof(Real)*6);
-		//printf("OITOTAL IS %f\n", OITotal); exit(0);
 
 		const double EPERFCONVERT  = min(AIConvert*  PEAKBAND, PEAKPERF);
 		const double EPERWENO      = min(AIWENO*     PEAKBAND, PEAKPERF);
@@ -319,17 +318,6 @@ public:
 		const double EPERFCOPYBACK = min(AICopyBack* PEAKBAND, PEAKPERF);
 		const double EPERFTotal    = min(OITotal*    PEAKBAND, PEAKPERF);
 		
-	/*	cout << "EPERFCONVERT: " << EPERFCONVERT*1e-9 << endl;
-		cout << "EPERWENO: " << EPERWENO*1e-9 << endl;
-		cout << "EPERXTRATERM: " << EPERXTRATERM*1e-9 << endl;
-		cout << "EPERCHARVEL: " << EPERCHARVEL*1e-9 << endl;
-		cout << "EPERHLLERHO: " << EPERHLLERHO*1e-9 << endl;
-		cout << "EPERHLLEVEL: " << EPERHLLEVEL*1e-9 << endl;
-		cout << "EPERHLLEPVEL: " << EPERHLLEPVEL*1e-9 << endl;
-		cout << "EPERHLLEE: " << EPERHLLEE*1e-9 << endl;
-		cout << "EPERFPRHS: " << EPERFPRHS*1e-9 << endl;
-		cout << "EPERFCOPYBACK: " << EPERFCOPYBACK*1e-9 << endl;
-	*/	
 		//execution time estimation
 		const double TCONVERT= FLOPCONVERT/EPERFCONVERT;
 		const double TFLUX = _BLOCKSIZE_*(_BLOCKSIZE_+1)*(60*12./EPERWENO + 8./EPERXTRATERM + 52./EPERCHARVEL + 16*2./EPERHLLERHO + 21./EPERHLLEPVEL + 2*14./EPERHLLEVEL + 77./EPERHLLEE);//GFLOPFLUX/EPERFFLUX;
@@ -338,9 +326,8 @@ public:
 		const double TEXPECTED = GFLOP*1e9/EPERFTotal;
 		const double TEXPECTEDAI = NBLOCKS*1.*(TCONVERT + TFLUX + _BLOCKSIZE_*(TFLUX*3 + TRHS + TCOPYBACK));
 		
-		//printf("=================  PERFORMANCE   =================\n");
 		printPerformanceTitle();
-		//cout << setprecision(4) << "MEMORY FOOTPRINT: "<< (lab->kB() +  block->kB() + fs.kB(false))/1024<< " MB" << endl;
+
 		cout << "\tFS TOTAL GFLOPS " << GFLOP <<endl ;
 		printf("\tFS ASSUMING PP: %.2f GFLOP/s (PER CORE), %.2f GFLOP/s (OVERALL)\n\tPB: %.2f GB/s (OVERALL)\n", PEAKPERF_CORE*1e-9, PEAKPERF*1e-9, PEAKBAND*1e-9);
 		printf("\tFS RIDGE AT %.2f FLOP/B\n", PEAKPERF/PEAKBAND);
