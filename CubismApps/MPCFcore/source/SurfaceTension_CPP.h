@@ -15,15 +15,17 @@ class SurfaceTension_CPP: public virtual DivTensor_CPP
 	struct AssumedType { Real r, u, v, w, s, l; };
 	
 public:
-	const Real G1, G2; //these are constants of the form GN = 1/(gammaN -1) h;
-	
+	const Real G1, G2;
+	const Real smoothing_length;
+
 	SurfaceTension_CPP(const Real a = 1,
 					   const Real dtinvh = 1, 
-					   const Real G1 = 1/(2.5-1),
-					   const Real G2 = 1/(2.1-1),
+			   const Real G1 = 1,
+			   const Real G2 = 1,
 					   const Real h = 1,
+			   const Real smoothing_length = 1,
 					   const Real sigma=1):
-	DivTensor_CPP(a, dtinvh, h, sigma), G1(G1), G2(G2)
+	DivTensor_CPP(a, dtinvh, h, sigma), G1(G1), G2(G2), smoothing_length(smoothing_length)
 	{ 
 	}
 	

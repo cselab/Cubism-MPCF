@@ -429,7 +429,7 @@ protected:
 	
 public:
 	
-	DivTensor_SSE(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
+ DivTensor_SSE(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
 	DivTensor_CPP(a, dtinvh, h, sigma)
 	{
 	}

@@ -134,7 +134,7 @@ namespace LSRK3data {
         
         inline void operator()(Lab& lab, const BlockInfo& info, FluidBlock& o) const
         {
-            Kernel kernel(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), info.h_gridpoint, sigma);
+	  Kernel kernel(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), info.h_gridpoint, LSRK3data::smoothlength, sigma);
             
             const Real * const srcfirst = &lab(-1,-1,-1).rho;
             const int labSizeRow = lab.template getActualSize<0>();

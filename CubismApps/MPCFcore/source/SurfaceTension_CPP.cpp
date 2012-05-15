@@ -14,8 +14,6 @@ void SurfaceTension_CPP::_convert(const Real * const gptfirst, const int gptfloa
 {	
 	InputSOA_ST& u=ringu.ref(), &v=ringv.ref(), &w=ringw.ref(), &l = ringls.ref();
 	
-	const Real ls_factor = G1 == G2 ? 1 : (Real)1/(G1 - G2);
-	
 	for(int sy=0; sy<_BLOCKSIZE_+2; sy++)
 		for(int sx=0; sx<_BLOCKSIZE_+2; sx++)
 		{
@@ -27,6 +25,11 @@ void SurfaceTension_CPP::_convert(const Real * const gptfirst, const int gptfloa
 			u.ref(dx, dy) = pt.u/pt.r;
 			v.ref(dx, dy) = pt.v/pt.r;
 			w.ref(dx, dy) = pt.w/pt.r;
-			l.ref(dx, dy) = (Real)1-min(max((pt.l-G2)*ls_factor,(Real)0),(Real)1);
+
+			//project the levelset to volume fraction, same as FlowStep
+			const Real x = min((Real)1, max((Real)-1, pt.l*(((Real)1)/smoothing_length)));
+			const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
+			const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
+			l.ref(dx, dy) = 1 - (x<0 ? val_xneg : val_xpos);
 		}
 }

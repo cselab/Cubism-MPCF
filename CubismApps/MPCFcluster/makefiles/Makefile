@@ -114,8 +114,8 @@ ifneq "$(findstring silvio,$(shell hostname))" ""
 	else
 		tbb-lib = /home/hbabak/tbb30_196oss/build/linux_intel64_gcc_cc4.6.1_libc2.13_kernel3.0.0_release/
 	endif
-	mpi-inc = /usr/local/include/
-	mpi-lib = /usr/local/lib/
+	mpi-inc = /home/menahel/openmpi-1.5.5/include/
+	mpi-lib = /home/menahel/openmpi-1.5.5/lib/
 	ifeq "$(CC)" "icc"
 		hdf-inc = /home/hbabak/hdf5-1.8.8/hdf5/include/
 		hdf-lib = /home/hbabak/hdf5-1.8.8/hdf5/lib/

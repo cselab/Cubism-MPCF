@@ -137,7 +137,7 @@ void _process_surface_tension(const Real sigma, const Real dtinvh, vector<BlockI
 	const int mynode = omp_get_thread_num() / cores_per_node;
         numa_run_on_node(mynode);
 #endif
-	Kernel kernel(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), myInfo.front().h_gridpoint, sigma);
+	Kernel kernel(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), myInfo.front().h_gridpoint, LSRK3data::smoothlength, sigma);
         
         Lab mylab;
         mylab.prepare(grid, stencil_start, stencil_end, tensorial);

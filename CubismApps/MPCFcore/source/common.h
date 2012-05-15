@@ -200,7 +200,7 @@ inline __m256d operator&(__m256d a, __m256d b){ return _mm256_and_pd(a, b); }
 inline __m256d operator|(__m256d a, __m256d b){ return _mm256_or_pd(a, b); }
 #endif
 
-inline __m256 heaviside(const __m256 phi, const __m256 inv_h, const __m256 one, const __m256 phalf, const __m256 mhalf) const
+inline __m256 heaviside(const __m256 phi, const __m256 inv_h, const __m256 one, const __m256 phalf, const __m256 mhalf)
 {
 	const __m256 x = _mm256_min_ps(one, _mm256_max_ps(_mm256_setzero_ps() - one, phi*inv_h));
 	

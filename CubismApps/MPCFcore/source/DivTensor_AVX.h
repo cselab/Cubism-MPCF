@@ -14,9 +14,9 @@
 class DivTensor_AVX: public virtual DivTensor_SSE
 {	
 public:
-	
-	DivTensor_AVX(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
-	DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
+
+ DivTensor_AVX(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
+  DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
 	{
 	}
 	
