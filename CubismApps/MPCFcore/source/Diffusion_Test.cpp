@@ -155,7 +155,6 @@ void Diffusion_CPP_M1::compute_conservative(TestLab_S2& lab, const BlockInfo& in
     const int w = 3;
     
     const RealTemp h = info.h_gridpoint;
-	//printf("h is %f\n", h); exit(0);
     
     for(int iz=0; iz<_BLOCKSIZE_; iz++)
         for(int iy=0; iy<_BLOCKSIZE_; iy++)

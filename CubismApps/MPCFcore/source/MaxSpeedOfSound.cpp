@@ -14,23 +14,7 @@
 #include <algorithm>
 #include <iostream>
 
-#ifdef __INTEL_COMPILER
-inline __m128 operator+(__m128 a, __m128 b){ return _mm_add_ps(a, b); }
-inline __m128 operator|(__m128 a, __m128 b){ return _mm_or_ps(a, b); }
-inline __m128 operator*(__m128 a, __m128 b){ return _mm_mul_ps(a, b); }
-inline __m128 operator-(__m128 a,  __m128 b){ return _mm_sub_ps(a, b); }
-inline __m128 operator/(__m128 a,  __m128 b){ return _mm_div_ps(a, b); }
-#endif
-
 using namespace std;
-
-template<typename X> inline X mysqrt(X x){ abort(); return sqrt(x);}
-template<>  inline float mysqrt<float>(float x){ return sqrtf(x);}
-template<>  inline double mysqrt<double>(double x){ return sqrt(x);}
-
-template<typename X> inline X myabs(X x){ abort(); return sqrt(x);}
-template<>  inline float myabs<float>(float x){ return fabsf(x);}
-template<>  inline double myabs<double>(double x){ return fabs(x);}
 
 Real MaxSpeedOfSound_CPP::_getgamma(const Real phi)
 {
@@ -80,19 +64,6 @@ Real MaxSpeedOfSound_CPP::compute(const Real * const src, const int gptfloats)
 }
 
 #ifdef _SSE_
-inline __m128 better_rcp(const __m128 a)
-{
-	const __m128 Ra0 = _mm_rcp_ps(a);
-	return _mm_sub_ps(_mm_add_ps(Ra0, Ra0), _mm_mul_ps(_mm_mul_ps(Ra0, a), Ra0));
-}
-
-inline __m128 worse_sqrt(const __m128 a)
-{
-	const __m128 invz =  _mm_rsqrt_ps(a);
-	const __m128 z = _mm_rcp_ps(invz);
-	return z-(z*z-a)*invz*_mm_set_ps1(0.5f);
-}
-
 inline __m128 MaxSpeedOfSound_SSE::_heaviside(const __m128 phi, const __m128 inv_h, const __m128 one, const __m128 phalf, const __m128 mhalf) const
 {
 	const __m128 x = _mm_min_ps(one, _mm_max_ps(_mm_setzero_ps() - one, phi*inv_h));

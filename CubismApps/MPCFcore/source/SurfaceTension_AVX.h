@@ -9,32 +9,22 @@
 
 #pragma once
 
+#include "common.h"
 #include "SurfaceTension_SSE.h"
 #include "DivTensor_AVX.h"
 
 class SurfaceTension_AVX: public virtual SurfaceTension_SSE, public virtual DivTensor_AVX
-{
-	__m256 myrsqrt(const __m256 v) const
-	{
-#ifdef _PREC_DIV_
-		return _mm256_div_ps(_mm256_set1_ps(1.), _mm_sqrt_ps(v));
-#else
-		const __m256 approx = _mm256_rsqrt_ps( v );
-		const __m256 muls = _mm256_mul_ps(_mm256_mul_ps(v, approx), approx);
-		return _mm256_mul_ps(_mm256_mul_ps(_mm256_set1_ps(0.5f), approx), _mm256_sub_ps(_mm256_set1_ps(3.f), muls) );
-#endif
-	}
-	
+{	
 	void _tensor_xface(const TempSOAf_ST& nx0, const TempSOAf_ST& nx1, 
-				  const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
-				  const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
+					   const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
+					   const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
 	{
 #ifndef _SP_COMP_
 		printf("Diffusion_SSE::_tensor_xface: you should not be here in double precision. Aborting.\n");
 		abort();
 #else
 		const __m256 F_1_3 = _mm256_set1_ps((Real)(1./3));
-				
+		
 		_average_xface<false>(1, nx0, nx1, txx);
 		_average_xface<false>(1, ny0, ny1, txy);
 		_average_xface<false>(1, nz0, nz1, txz);
@@ -51,7 +41,7 @@ class SurfaceTension_AVX: public virtual SurfaceTension_SSE, public virtual DivT
 			float * const txxptr = txxbase + iy*PITCHOUT;
 			float * const txyptr = txybase + iy*PITCHOUT;
 			float * const txzptr = txzbase + iy*PITCHOUT;
-						
+			
 			for(int ix=0; ix<TempPiXSOA_ST::NX; ix+=8)
 			{
 				const __m256 nx = _mm256_load_ps(txxptr + ix);
@@ -70,10 +60,9 @@ class SurfaceTension_AVX: public virtual SurfaceTension_SSE, public virtual DivT
 #endif
 	}
 	
-	
 	void _tensor_yface(const TempSOAf_ST& nx0, const TempSOAf_ST& nx1, 
-							   const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
-							   const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
+					   const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
+					   const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
 	{
 #ifndef _SP_COMP_
 		printf("Diffusion_SSE::_tensor_yface: you should not be here in double precision. Aborting.\n");
@@ -117,7 +106,7 @@ class SurfaceTension_AVX: public virtual SurfaceTension_SSE, public virtual DivT
 	}
 	
 	void _tensor_zface(const TempSOAf_ST& nx, const TempSOAf_ST& ny, const TempSOAf_ST& nz,
-							   TempPiZSOAf_ST& tzx, TempPiZSOAf_ST& tzy, TempPiZSOAf_ST& tzz)
+					   TempPiZSOAf_ST& tzx, TempPiZSOAf_ST& tzy, TempPiZSOAf_ST& tzz)
 	{
 #ifndef _SP_COMP_
 		printf("Diffusion_SSE::_tensor_zface: you should not be here in double precision. Aborting.\n");
@@ -163,7 +152,8 @@ class SurfaceTension_AVX: public virtual SurfaceTension_SSE, public virtual DivT
 public:
 	
 	SurfaceTension_AVX(const Real a = 1, const Real dtinvh = 1,
-					   const Real G1 = 1/(2.5-1), const Real G2 = 1/(2.1-1), const Real h = 1, const Real sigma=1):
+					   const Real G1 = 1/(2.5-1), const Real G2 = 1/(2.1-1), 
+					   const Real h = 1, const Real sigma=1):
 	SurfaceTension_SSE(a, dtinvh, G1, G2, h, sigma),
 	SurfaceTension_CPP(a, dtinvh, G1, G2, h, sigma),
 	DivTensor_AVX(a, dtinvh, h, sigma),

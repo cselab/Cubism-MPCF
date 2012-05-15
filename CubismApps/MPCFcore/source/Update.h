@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <iostream>
 #include <cstdlib>
-#include "output.h"
 using namespace std;
 
 #ifdef _FLOAT_PRECISION_
@@ -55,20 +54,13 @@ public:
 		const double TUPDATEAI = 1.e9*GFLOPUPDATE/EPERFUPDATEAI;
 		
 		printPerformanceTitle();
-		cout << "\tUP TOTAL GFLOPS: " << GFLOPUPDATE <<endl ;
+		printf("\tUP TOTAL GFLOPS: %.2f\n", GFLOPUPDATE);
 		printf("\tUP ASSUMING PP: %.2f GFLOP/s (PER CORE), %.2f GFLOP/s (OVERALL)\n\tPB: %.2f GB/s (OVERALL)\n", PEAKPERF_CORE*1e-9, PEAKPERF*1e-9, PEAKBAND*1e-9);
 		printf("\tUP RIDGE AT %.2f FLOP/B\n", PEAKPERF/PEAKBAND);
 		printf("\tUP THIS ONE IS %.2f GFLOP/s,\t\"PER Update\" %.2f FLOP/B\n", GFLOPUPDATE/MEASUREDTIME, OIUpdate);
 		printf("\tUP TIME PER BLOCK: %.5f ms (expected %.5f ms)\n",  1e3*MEASUREDTIME/NBLOCKS, 1e3*TUPDATE/NBLOCKS);
-		cout << "\tUP Expected Performance is: "<< GFLOPUPDATE/TUPDATEAI << " GFLOP/s [AI], " << GFLOPUPDATE/TUPDATE << " GFLOP/s [OI]" << endl;
+		printf("\tUP Expected Performance is: %.2f GFLOP/s [AI], %.2f GFLOP/s [OI]\n", GFLOPUPDATE/TUPDATEAI, GFLOPUPDATE/TUPDATE);
 		printf("\tUP EFFICIENCY: %.2f%% [AI] - %.2f%% [OI], HW-UTILIZATION: %.2f%%\n", 100.*TUPDATEAI/MEASUREDTIME, 100.*TUPDATE/MEASUREDTIME, 100*(GFLOPUPDATE/MEASUREDTIME*1e9)/PEAKPERF);
-		if (bAwk)
-		{
-			string kernelname = "Update";
-			
-			awkMCorePredictions(kernelname, OIUpdate, EPERFUPDATE);
-			awkMCore(kernelname, GFLOPUPDATE, PEAKPERF_CORE, PEAKPERF, PEAKBAND, MEASUREDTIME, TUPDATE, NBLOCKS/*, NCORES*/, NT);
-		}
 		printEndLine();
 	}
 };

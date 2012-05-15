@@ -6,145 +6,33 @@
  *  Copyright 2011 ETH Zurich. All rights reserved.
  *
  */
-#pragma once
 
-#define _ALIGNBYTES 16
+#pragma once
 
 #include <cassert>
 #include <fstream>
 #include <algorithm>
 #include <iostream>
 #include <typeinfo>
-#include "output.h"
+
+#include "common.h"
+#include "SOA2D.h"
 
 using namespace std;
-
-#ifndef WENOEPS
-#define WENOEPS 1.0e-6
-#endif
-
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
-
-template < int _SX, int _EX, int _SY, int _EY, typename TReal=Real > 
-struct SOA2D
-{
-	static const int _CPERALIGNBYTES = _ALIGNBYTES_/sizeof(TReal);
-	
-	static const int SX = _CPERALIGNBYTES*((_SX - (_CPERALIGNBYTES-1))/_CPERALIGNBYTES);
-	static const int EX = _CPERALIGNBYTES*((_EX + (_CPERALIGNBYTES-1))/_CPERALIGNBYTES);
-	static const int NX = _EX - _SX;
-	static const int NY = _EY - _SY;
-	
-	static const int PITCH = EX - SX;
-	
-	TReal __attribute__((aligned(_ALIGNBYTES_))) data[NY][PITCH];
-	
-	SOA2D()
-	{
-		assert(((size_t)(&data[0][0]) % _ALIGNBYTES_) == 0);
-	}
-	
-	inline TReal operator()(const int ix, const int iy) const
-	{
-		assert(ix >= _SX); assert(ix < _EX);
-		assert(iy >= _SY); assert(iy < _EY);
-		
-		return data[iy-_SY][ix-SX];
-	}
-	
-	inline const TReal * ptr(const int ix, const int iy) const
-	{
-		assert(ix >= SX); assert(ix < EX);
-		assert(iy >= _SY); assert(iy < _EY);
-		
-		return &data[iy-_SY][ix-SX];
-	}
-	
-	inline TReal& ref(const int ix, const int iy)
-	{
-		assert(ix >= SX); assert(ix < EX);
-		assert(iy >= _SY); assert(iy < _EY);
-		
-		return data[iy-_SY][ix-SX];
-	}
-	
-	static float kB(int nobjects=1)
-	{
-		return nobjects*sizeof(SOA2D)/1024.;
-	}
-	
-	inline SOA2D& operator= (const SOA2D& c)
-	{
-		for(int y=0; y<NY; ++y)
-			for(int x=0; x<PITCH; ++x)
-				data[y][x] = c.data[y][x];
-		
-		return *this;
-	}
-};
-
-template< int _SX, int _EX, int _SY, int _EY, int _NSLICES, typename TReal=Real>
-struct RingSOA2D
-{
-	int currslice;
-	
-	SOA2D<_SX, _EX, _SY, _EY, TReal> slices[_NSLICES];
-	
-	RingSOA2D(): currslice(0){ }
-	
-	inline const SOA2D<_SX, _EX, _SY, _EY, TReal>& operator()(const int relativeid=0) const
-	{
-		return slices[(relativeid + currslice + _NSLICES) % _NSLICES];
-	}
-	
-	inline SOA2D<_SX, _EX, _SY, _EY, TReal>& ref(const int relativeid=0)
-	{
-		return slices[(relativeid + currslice + _NSLICES) % _NSLICES];
-	}
-	
-	void next(){ currslice = (currslice + 1) % _NSLICES; } 
-	
-	static float kB(int nobjects=1)
-	{
-		return nobjects*sizeof(RingSOA2D)/1024.;
-	}
-};
-
-typedef RingSOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3, 6> RingInputSOA;
-typedef SOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3> InputSOA;
-typedef SOA2D<0,_BLOCKSIZE_+1, 0,_BLOCKSIZE_> TempSOA;
-typedef RingSOA2D<0, _BLOCKSIZE_+1, 0,_BLOCKSIZE_, 2> RingTempSOA;
-typedef RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 3> RingTempSOA3;
-typedef SOA2D<0, _BLOCKSIZE_, 0, _BLOCKSIZE_> OutputSOA;
-
-template< class SOAtype > void _check(const SOAtype& a, const SOAtype& b)
-{
-	for(int iy=0; iy<SOAtype::NY; iy++)
-        for(int ix=0; ix<SOAtype::NX; ix++)
-		{
-			const double va = a(ix, iy);
-			const double vb = b(ix, iy);
-			
-			const double err = va-vb;
-			const double tol = 1e-5;
-			const double relerr = err/max(max(tol, va), vb);
-			
-			if (relerr >= tol && err > tol)
-				printf("ix:%d iy:%d a:%.15f b:%.15f\t\ttol:%e err:%e rel.err:%e \n", ix, iy, a(ix, iy), b(ix, iy), tol, err, relerr);
-			
-			assert(relerr < tol || err < tol);
-		}
-}
 
 class FlowStep_CPP
 {	
 protected:
+
+	typedef RingSOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3, 6> RingInputSOA;
+	typedef SOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3> InputSOA;
+	typedef SOA2D<0,_BLOCKSIZE_+1, 0,_BLOCKSIZE_> TempSOA;
+	typedef RingSOA2D<0, _BLOCKSIZE_+1, 0,_BLOCKSIZE_, 2> RingTempSOA;
+	typedef RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 3> RingTempSOA3;
 	
-	//soa input
+	struct AssumedType { Real r, u, v, w, s, l; }; //Assumed input/output grid point type
+	
+	//working dataset
 	RingInputSOA ringrho, ringu, ringv, ringw, ringp, ringls;
 	RingTempSOA wenorho, wenou, wenov, wenop, charvel;
 	RingTempSOA3 wenow, wenols;
@@ -338,13 +226,6 @@ public:
 		printf("\tFS EFFICIENCY: %.2f%%, HW-UTILIZATION: %.2f%% [OI]\n", 100.*1.e9*GFLOP/EPERFTotal/MEASUREDTIME, 100*(GFLOP/MEASUREDTIME*1e9)/PEAKPERF);
 		printf("\tFS EFFICIENCY: %.2f%%, HW-UTILIZATION: %.2f%% [AI]\n", 100.*TEXPECTEDAI/MEASUREDTIME, 100*(GFLOP/MEASUREDTIME*1e9)/PEAKPERF);
 		
-		if (bAwk)
-		{			
-			awkMCorePredictions(implname,
-								AIConvert, AIWENO, AIExtraTerm, AICharVel, AIHLLERho, AIHLLEVel, AIHLLEPVel, AIHLLEE, AIPRHS, AICopyBack, OITotal,
-								EPERFCONVERT, EPERWENO, EPERXTRATERM, EPERCHARVEL, EPERHLLERHO, EPERHLLEVEL, EPERHLLEPVEL, EPERHLLEE, EPERFPRHS, EPERFCOPYBACK, EPERFTotal, GFLOP/TEXPECTED);
-			awkMCore(implname, GFLOP, PEAKPERF_CORE, PEAKPERF, PEAKBAND, MEASUREDTIME, 1.e9*GFLOP/EPERFTotal, NBLOCKS, /*NCORES,*/ NT);
-		}
 		printEndLine();
 		
 		{
@@ -355,7 +236,7 @@ public:
 			if(counter == 0)
 				report<<"STEPID\tGFLOP/s\tEXPECTED GFLOP/s"<<endl;
 			
-			report<<counter<<"\t"<<GFLOP/MEASUREDTIME<<"\t"<<GFLOP/TEXPECTED << endl;
+			report << counter << "\t"<<GFLOP/MEASUREDTIME<<"\t"<<GFLOP/TEXPECTED << endl;
 			
 			counter++;
 		}

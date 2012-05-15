@@ -17,10 +17,6 @@ using namespace std;
 
 #include "FlowStep_CPP.h"
 
-template<typename X> inline X mysqrt(X x){ abort(); return sqrt(x);}
-template<>  inline float mysqrt<float>(float x){ return sqrtf(x);}
-template<>  inline double mysqrt<double>(double x){ return sqrt(x);}
-
 float FlowStep_CPP::kB(const bool bVerbose) const
 {
 	const float size = sizeof(*this)/1024.;
@@ -51,8 +47,6 @@ Real FlowStep_CPP::_getPC(const Real phi)
 	return m_pc1*hs + m_pc2*(((Real)1)-hs);
 }
 
-struct AIGP { Real r, u, v, w, s, l; }; //Assumed Interleaved Grid Point type
-
 void FlowStep_CPP::_convert(const Real * const gptfirst, const int gptfloats, const int rowgpts)
 {	
 	InputSOA& rho = ringrho.ref(), &u=ringu.ref(), &v=ringv.ref(), &w=ringw.ref(), &p=ringp.ref(), &l = ringls.ref();
@@ -60,7 +54,7 @@ void FlowStep_CPP::_convert(const Real * const gptfirst, const int gptfloats, co
 	for(int sy=0; sy<_BLOCKSIZE_+6; sy++)
 		for(int sx=0; sx<_BLOCKSIZE_+6; sx++)
 		{
-			AIGP pt = *(AIGP*)(gptfirst + gptfloats*(sx + sy*rowgpts));
+			AssumedType pt = *(AssumedType*)(gptfirst + gptfloats*(sx + sy*rowgpts));
 			
 			const int dx = sx-3;
 			const int dy = sy-3;
@@ -421,7 +415,7 @@ void FlowStep_CPP::_copyback(Real * const gptfirst, const int gptfloats, const i
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
 		{
-			AIGP& rhs = *(AIGP*)(gptfirst + gptfloats*(ix + iy*rowgpts));
+			AssumedType& rhs = *(AssumedType*)(gptfirst + gptfloats*(ix + iy*rowgpts));
 			
 			rhs.r = m_a*rhs.r - m_dtinvh*rhsrho(ix, iy);
 			rhs.u = m_a*rhs.u - m_dtinvh*rhsu(ix, iy);

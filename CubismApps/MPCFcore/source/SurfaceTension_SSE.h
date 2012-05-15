@@ -8,50 +8,14 @@
  */
 #pragma once
 
+#include "common.h"
 #include "SurfaceTension_CPP.h"
 #include "DivTensor_SSE.h"
 
 class SurfaceTension_SSE: public virtual DivTensor_SSE, public virtual SurfaceTension_CPP
 {
 protected:
-	
-	inline __m128 better_rcp(const __m128 a) const
-	{
-		const __m128 Ra0 = _mm_rcp_ps(a);
-		return _mm_sub_ps(_mm_add_ps(Ra0, Ra0), _mm_mul_ps(_mm_mul_ps(Ra0, a), Ra0));
-	}
-	
-	__m128 myrcp(const __m128 a) const
-	{
-#ifdef _PREC_DIV_
-		return _mm_set1_ps(1.f)/a;
-#else
-		return better_rcp(a);
-#endif
-	}
-	
-	__m128 mysqrt(const __m128 a) const
-	{
-#ifdef _PREC_DIV_
-		return _mm_sqrt_ps(a);
-#else
-		const __m128 invz =  _mm_rsqrt_ps(a);
-		const __m128 z = _mm_rcp_ps(invz);
-		return z-(z*z-a)*invz*_mm_set_ps1(0.5f);
-#endif
-	}
-	
-	__m128 myrsqrt(const __m128 v) const
-	{
-#ifdef _PREC_DIV_
-		return _mm_div_ps(_mm_set1_ps(1.), _mm_sqrt_ps(v));
-#else
-		const __m128 approx = _mm_rsqrt_ps( v );
-		const __m128 muls = _mm_mul_ps(_mm_mul_ps(v, approx), approx);
-		return _mm_mul_ps(_mm_mul_ps(_mm_set1_ps(0.5f), approx), _mm_sub_ps(_mm_set1_ps(3.f), muls) );
-#endif
-	}
-	
+		
 	//used only for biphase
 	inline __m128 _compute_ls(const __m128 G,  const __m128 G2, 
 							  const __m128 ls_factor, const __m128 one)

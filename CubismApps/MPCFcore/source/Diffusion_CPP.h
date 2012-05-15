@@ -10,7 +10,6 @@
 #include <cmath>
 
 #include "DivTensor_CPP.h"
-#include "output.h"
 
 class Diffusion_CPP: public virtual DivTensor_CPP
 {
@@ -21,12 +20,9 @@ protected:
 	typedef Real RealTemp;
 	
 public:
+	
 	const RealTemp nu1, nu2;
 	const RealTemp G1, G2;
-	
-	//No idea why, but references for aliasing are not good when OMP is used.
-	//RingInputSOA_ST& ringmu; //alias of ringls, it is reused as "mu" (the viscosity)	
-	//RingTempSOA_ST & gradux,  & graduy, & graduz; //alias of ringnx, ringny, ringnz, "grad u"
 	
 	RingTempSOA_ST gradvx, gradvy, gradvz, gradwx, gradwy, gradwz;
 	
@@ -37,27 +33,25 @@ public:
 				  const Real G2 = 1/(2.1-1),
 				  const Real h = 1,
 				  const Real dtinvh = 1):
-	DivTensor_CPP(a, dtinvh, h, 0.5), nu1(nu1), nu2(nu2), G1(G1), G2(G2)//, ringmu(ringls)//, gradux(ringnx), graduy(ringny), graduz(ringnz)
-	{ 
-	}
+	DivTensor_CPP(a, dtinvh, h, 0.5), nu1(nu1), nu2(nu2), G1(G1), G2(G2) { }
 	
 	void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);	
 	
 	virtual void _xface(const InputSOA_ST& _mu,
-				const TempSOA_ST& ux0, const TempSOA_ST& uy0, const TempSOA_ST& uz0, const TempSOA_ST& ux1, const TempSOA_ST& uy1, const TempSOA_ST& uz1, 
-				const TempSOA_ST& vx0, const TempSOA_ST& vy0, const TempSOA_ST& vx1, const TempSOA_ST& vy1,
-				const TempSOA_ST& wx0, const TempSOA_ST& wz0, const TempSOA_ST& wx1, const TempSOA_ST& wz1);	
+						const TempSOA_ST& ux0, const TempSOA_ST& uy0, const TempSOA_ST& uz0, const TempSOA_ST& ux1, const TempSOA_ST& uy1, const TempSOA_ST& uz1, 
+						const TempSOA_ST& vx0, const TempSOA_ST& vy0, const TempSOA_ST& vx1, const TempSOA_ST& vy1,
+						const TempSOA_ST& wx0, const TempSOA_ST& wz0, const TempSOA_ST& wx1, const TempSOA_ST& wz1);	
 	
 	virtual void _yface(const InputSOA_ST& _mu,
-				const TempSOA_ST& ux0, const TempSOA_ST& uy0, const TempSOA_ST& ux1, const TempSOA_ST& uy1, 
-				const TempSOA_ST& vx0, const TempSOA_ST& vy0, const TempSOA_ST& vz0, const TempSOA_ST& vx1, const TempSOA_ST& vy1, const TempSOA_ST& vz1,
-				const TempSOA_ST& wy0, const TempSOA_ST& wz0, const TempSOA_ST& wy1, const TempSOA_ST& wz1);	
+						const TempSOA_ST& ux0, const TempSOA_ST& uy0, const TempSOA_ST& ux1, const TempSOA_ST& uy1, 
+						const TempSOA_ST& vx0, const TempSOA_ST& vy0, const TempSOA_ST& vz0, const TempSOA_ST& vx1, const TempSOA_ST& vy1, const TempSOA_ST& vz1,
+						const TempSOA_ST& wy0, const TempSOA_ST& wz0, const TempSOA_ST& wy1, const TempSOA_ST& wz1);	
 	
 	virtual void _zface(const InputSOA_ST& mu0, const InputSOA_ST& mu1,
-				const TempSOA_ST& ux, const TempSOA_ST& uz, 
-				const TempSOA_ST& vy, const TempSOA_ST& vz, 
-				const TempSOA_ST& wx, const TempSOA_ST& wy, const TempSOA_ST& wz,
-				TempPiZSOA_ST& tzx, TempPiZSOA_ST& tzy, TempPiZSOA_ST& tzz);
+						const TempSOA_ST& ux, const TempSOA_ST& uz, 
+						const TempSOA_ST& vy, const TempSOA_ST& vz, 
+						const TempSOA_ST& wx, const TempSOA_ST& wy, const TempSOA_ST& wz,
+						TempPiZSOA_ST& tzx, TempPiZSOA_ST& tzy, TempPiZSOA_ST& tzz);
 	
 	void _grad_next()
 	{
@@ -65,7 +59,7 @@ public:
 		gradvx.next(); gradvy.next(); gradvz.next();
 		gradwx.next(); gradwy.next(); gradwz.next();
 	}
-		
+	
 	void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
                  Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts)
 	{		

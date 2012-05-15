@@ -27,7 +27,7 @@ void Diffusion_CPP::_convert(const Real * const gptfirst, const int gptfloats, c
 			v.ref(dx, dy) = pt.v/pt.r;
 			w.ref(dx, dy) = pt.w/pt.r;
 			
-			const RealTemp lambda = (RealTemp)1-min(max((pt.G-G2)*ls_factor,(RealTemp)0),(RealTemp)1);
+			const RealTemp lambda = (RealTemp)1 - min(max((pt.G-G2)*ls_factor,(RealTemp)0),(RealTemp)1);
 			mu.ref(dx, dy) = pt.r*(nu2*lambda + nu1*((RealTemp)1-lambda));
 		}		
 }

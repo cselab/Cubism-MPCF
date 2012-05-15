@@ -6,15 +6,13 @@
  *  Copyright 2012 ETH Zurich. All rights reserved.
  *
  */
-#include <math.h>
+
+#include <cassert>
+#include <cmath>
+
+#include "common.h"
 
 #include "DivTensor_CPP.h"
-
-template<typename X> inline X mysqrt(X x){ abort(); return sqrt(x);}
-template<>  inline float mysqrt<float>(float x){ return sqrtf(x);}
-template<>  inline double mysqrt<double>(double x){ return sqrt(x);}
-
-struct AIGP_ST { Real r, u, v, w, s, l; }; 
 
 //implemented as "conversion to primitive"
 void DivTensor_CPP::_convert(const Real * const gptfirst, const int gptfloats, const int rowgpts)
@@ -24,7 +22,7 @@ void DivTensor_CPP::_convert(const Real * const gptfirst, const int gptfloats, c
 	for(int sy=0; sy<_BLOCKSIZE_+2; sy++)
 		for(int sx=0; sx<_BLOCKSIZE_+2; sx++)
 		{
-            AIGP_ST pt = *(AIGP_ST*)(gptfirst + gptfloats*(sx + sy*rowgpts));
+            AssumedType pt = *(AssumedType*)(gptfirst + gptfloats*(sx + sy*rowgpts));
             
             const int dx = sx-1;
             const int dy = sy-1;
@@ -71,7 +69,7 @@ void DivTensor_CPP::_tensor_xface(const TempSOA_ST& nx0, const TempSOA_ST& nx1,
             const Real nz = (nz0(ix,iy)+nz0(ix,iy+1)+nz1(ix,iy)+nz1(ix,iy+1));
 			
 			const Real mag = mysqrt(nx*nx + ny*ny + nz*nz);
-			const Real inv_mag = mag > 0 ? 1/mag : 0;
+			const Real inv_mag = mag > 0 ? ((Real)1)/mag : 0;
 			
             txx.ref(ix, iy) = factor*mag - nx*nx*inv_mag;
 			txy.ref(ix, iy) = -nx*ny*inv_mag;
@@ -79,7 +77,7 @@ void DivTensor_CPP::_tensor_xface(const TempSOA_ST& nx0, const TempSOA_ST& nx1,
 		}
 }
 
-//implemented as I*|n|/3 - nn^t
+//base tensor implementation is I*|n|/3 - nn^t
 void DivTensor_CPP::_tensor_yface(const TempSOA_ST& nx0, const TempSOA_ST& nx1, 
 								  const TempSOA_ST& ny0, const TempSOA_ST& ny1, 
 								  const TempSOA_ST& nz0, const TempSOA_ST& nz1)
@@ -94,7 +92,7 @@ void DivTensor_CPP::_tensor_yface(const TempSOA_ST& nx0, const TempSOA_ST& nx1,
             const Real nz = (nz0(ix,iy)+nz0(ix+1,iy)+nz1(ix,iy)+nz1(ix+1,iy));
 			
 			const Real mag = mysqrt(nx*nx + ny*ny + nz*nz);
-			const Real inv_mag = mag > 0 ? 1/mag : 0;
+			const Real inv_mag = mag > 0 ? ((Real)1)/mag : 0;
 			
             tyx.ref(ix, iy) = -ny*nx*inv_mag ;
 			tyy.ref(ix, iy) = factor*mag - ny*ny*inv_mag;
@@ -102,7 +100,7 @@ void DivTensor_CPP::_tensor_yface(const TempSOA_ST& nx0, const TempSOA_ST& nx1,
 		}
 }
 
-//implemented as I*|n|/3 - nn^t
+//base tensor implementation is I*|n|/3 - nn^t
 void DivTensor_CPP::_tensor_zface(const TempSOA_ST& nx0, const TempSOA_ST& ny0, const TempSOA_ST& nz0,
 								  TempPiZSOA_ST& tzx, TempPiZSOA_ST& tzy, TempPiZSOA_ST& tzz)
 {
@@ -116,7 +114,7 @@ void DivTensor_CPP::_tensor_zface(const TempSOA_ST& nx0, const TempSOA_ST& ny0, 
             const Real nz = (nz0(ix,iy)+nz0(ix+1,iy)+nz0(ix,iy+1)+nz0(ix+1,iy+1));
 			
 			const Real mag = mysqrt(nx*nx + ny*ny + nz*nz);
-			const Real inv_mag = mag > 0 ? 1/mag : 0;
+			const Real inv_mag = mag > 0 ? ((Real)1)/mag : 0;
 			
             tzx.ref(ix, iy) = -nz*nx*inv_mag ;
 			tzy.ref(ix, iy) = -nz*ny*inv_mag;
@@ -195,7 +193,7 @@ void DivTensor_CPP::_copyback(Real * const gptfirst, const int gptfloats, const 
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
 		{
-			AIGP_ST& rhs = *(AIGP_ST*)(gptfirst + gptfloats*(ix + iy*rowgpts));
+			AssumedType& rhs = *(AssumedType*)(gptfirst + gptfloats*(ix + iy*rowgpts));
 			rhs.u  = a*rhs.u + factor*rhsu(ix, iy);
 			rhs.v  = a*rhs.v + factor*rhsv(ix, iy);
 			rhs.w  = a*rhs.w + factor*rhsw(ix, iy);         

@@ -8,7 +8,6 @@
  */
 #include "MaxSpeedOfSound.h"
 #include "Update.h"
-#include "output.h"
 
 class LocalKernel_Test
 {
@@ -269,7 +268,7 @@ public:
 		TSOS::printflops(PEAKPERF, PEAKBAND, 1, 1, NTIMES, tCOMPUTE, false);
 		cout << setprecision(4) << "\tMEMORY FOOTPRINT: "<< (block->kB())/1024 << " MB" << endl;
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
-		if (bAwk) awkShortPerf("MaxSOS_SSE", PEAKPERF, PEAKBAND, GFLOP, tGOLD, tCOMPUTE, EPERF, TEXPECTED, NTIMES, block->kB(), OI);
+		//if (bAwk) awkShortPerf("MaxSOS_SSE", PEAKPERF, PEAKBAND, GFLOP, tGOLD, tCOMPUTE, EPERF, TEXPECTED, NTIMES, block->kB(), OI);
 		printEndLine();
 		
 		delete [] block;
@@ -332,7 +331,6 @@ public:
 		cout << setprecision(4) << "\tMEMORY FOOTPRINT: "<< (block->kB())/1024<< " MB" << endl;
 
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
-		if (bAwk) awkShortPerf("Update_SSE", PEAKPERF, PEAKBAND, GFLOP, tGOLD, tCOMPUTE, EPERF, TEXPECTED, NTIMES, block->kB(), OI);
 		printEndLine();
 		
 		delete [] block;

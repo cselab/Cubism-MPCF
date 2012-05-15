@@ -7,42 +7,12 @@
  *
  */
 
-#include "Update.h"
-
 #include <cassert>
 #include <iostream>
 #include <cstdlib>
-#include <xmmintrin.h>
 
-#ifdef _AVX_
-#include <immintrin.h>
-#endif
-
-#ifdef _AVX_
-#if defined(__INTEL_COMPILER)
-inline __m256 operator+(__m256 a, __m256 b){ return _mm256_add_ps(a, b); }
-inline __m256 operator&(__m256 a, __m256 b){ return _mm256_and_ps(a, b); }
-inline __m256 operator|(__m256 a, __m256 b){ return _mm256_or_ps(a, b); }
-inline __m256 operator*(__m256 a, __m256 b){ return _mm256_mul_ps(a, b); }
-inline __m256 operator-(__m256 a, __m256 b){ return _mm256_sub_ps(a, b); }
-inline __m256 operator/(__m256 a, __m256 b){ return _mm256_div_ps(a, b); }
-#endif
-#endif
-
-#ifdef __INTEL_COMPILER
-inline __m128 operator+(__m128 a, __m128 b){ return _mm_add_ps(a, b); }
-inline __m128 operator&(__m128 a, __m128 b){ return _mm_and_ps(a, b); }
-inline __m128 operator|(__m128 a, __m128 b){ return _mm_or_ps(a, b); }
-inline __m128 operator*(__m128 a, __m128 b){ return _mm_mul_ps(a, b); }
-inline __m128 operator-(__m128 a,  __m128 b){ return _mm_sub_ps(a, b); }
-inline __m128 operator/(__m128 a, __m128 b){ return _mm_div_ps(a, b); }
-inline __m128d operator+(__m128d a, __m128d b){ return _mm_add_pd(a, b); }
-inline __m128d operator*(__m128d a, __m128d b){ return _mm_mul_pd(a, b); }
-inline __m128d operator-(__m128d a, __m128d b){ return _mm_sub_pd(a, b); }
-inline __m128d operator/(__m128d a, __m128d b){ return _mm_div_pd(a, b); }
-inline __m128d operator&(__m128d a, __m128d b){ return _mm_and_pd(a, b); }
-inline __m128d operator|(__m128d a, __m128d b){ return _mm_or_pd(a, b); }
-#endif
+#include "common.h"
+#include "Update.h"
 
 void Update_CPP::compute(const Real * const src, Real * const dst, const int gptfloats)
 {

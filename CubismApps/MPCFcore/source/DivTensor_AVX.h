@@ -9,23 +9,16 @@
 
 #pragma once
 
-#include <xmmintrin.h>
-#ifdef _AVX_
-#include <immintrin.h>
-#endif
-
-#if defined(__INTEL_COMPILER)
-// || __GNUC__ == 4 && __GNUC_MINOR__ < 5
-inline __m256 operator+(__m256 a, __m256 b){ return _mm256_add_ps(a, b); }
-inline __m256 operator&(__m256 a, __m256 b){ return _mm256_and_ps(a, b); }
-inline __m256 operator|(__m256 a, __m256 b){ return _mm256_or_ps(a, b); }
-inline __m256 operator*(__m256 a, __m256 b){ return _mm256_mul_ps(a, b); }
-inline __m256 operator-(__m256 a, __m256 b){ return _mm256_sub_ps(a, b); }
-inline __m256 operator/(__m256 a, __m256 b){ return _mm256_div_ps(a, b); }
-#endif
+#include "common.h"
 
 class DivTensor_AVX: public virtual DivTensor_SSE
 {	
+public:
+	
+	DivTensor_AVX(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
+	DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
+	{
+	}
 	
 protected:
 	
@@ -210,9 +203,10 @@ protected:
 			const float * const src1 = basesrc1 + iy*PITCHIN;
 			float * const dest = basedest + iy*PITCHOUT;
 			
-			//This is rewritten as follows to avoid unintended write-to-load forwarding stalls
+			//The following code is re-written to avoid unintended write-to-load forwarding stalls
 			//for(int ix=0; ix<OutputSOA::NX; ix+=8)
 			//	_mm256_store_ps(dest + ix, _mm256_load_ps(dest + ix) + _mm256_load_ps(src0 + ix) - _mm256_load_ps(src1 + ix)); 
+			//VTUNE told me that.
 			
 			float __attribute__((aligned(_ALIGNBYTES_))) tmp[PITCHOUT];
 			
@@ -464,12 +458,5 @@ protected:
 				write256<accum>(destptr + ix, F*(C0 +  _RIGHT(C0, E0) + C1 + _RIGHT(C1, E1)));
 			}
 		}
-	}
-	
-public:
-	
-	DivTensor_AVX(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
-	DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
-	{
 	}
 };

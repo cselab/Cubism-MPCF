@@ -17,7 +17,6 @@
 
 #include <Timer.h>
 #include "TestTypes.h"
-#include "output.h"
 
 #include "FlowStep_CPP.h"
 #ifdef _SSE_
@@ -265,12 +264,6 @@ public:
 		
 		FlowStep_CPP::printflops(PEAKPERF, PEAKBAND, 1, 1, NTIMES, tCOMPUTE, false, implname);
 		cout << setprecision(4) << "\tMEMORY FOOTPRINT: "<< (lab->kB() +  Block::kB() + fs.kB(false))/1024<< " MB" << endl;
-
-		if (bAwk)
-		{
-			awkPerf(implname, PEAKPERF, PEAKBAND, tGOLD, tCOMPUTE, FlowStep_CPP::getGFLOP(1), FlowStep_CPP::getTEXPECTED(PEAKPERF, PEAKBAND), NTIMES, lab->kB(), Block::kB(), fs.kB(false));
-		}
-
 		
 		printf("\tGOLD IS %.2f GFLOP/s\n", FlowStep_CPP::getGFLOP()/tGOLD);	
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);

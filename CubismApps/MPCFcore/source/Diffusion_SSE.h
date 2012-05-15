@@ -8,8 +8,7 @@
  */
 #pragma once
 
-#include <xmmintrin.h>
-
+#include "common.h"
 #include "Diffusion_CPP.h"
 #include "DivTensor_SSE.h"
 
@@ -24,14 +23,7 @@ public:
 	}
 	
 protected:
-	
-	inline __m128 better_rcp(const __m128 a)
-	{
-		const __m128 Ra0 = _mm_rcp_ps(a);
-		return _mm_sub_ps(_mm_add_ps(Ra0, Ra0), _mm_mul_ps(_mm_mul_ps(Ra0, a), Ra0));
-	}
-	
-	//used only for biphase
+		
 	inline __m128 _compute_mu(const __m128 G,  const __m128 G2, 
 							  const __m128 ls_factor, const __m128 nu1, const __m128 nu2, const __m128 one)
 	{
@@ -106,6 +98,7 @@ protected:
 				const float * const gpt2 = leftghost + gptfloats*(ix+2);
 				const float * const gpt3 = leftghost + gptfloats*(ix+3);
 				
+				//a little prefetching shows a 4-6% improvement
 				static const int SL = 4;
 				if (SL + iy <= _BLOCKSIZE_+1)
 				{
@@ -312,7 +305,6 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 #endif
 	}
 
-#ifndef _ALTERNATIVEIMPL_
 	void _xmul(const InputSOAf_ST& _mu)
 	{	
 #ifndef _SP_COMP_
@@ -547,7 +539,6 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 			_copyback(dstfirst + islice*dstfloats*slicedsts, dstfloats, rowdsts);
 		}
 	}
-#endif
 
 #undef LEFT
 };

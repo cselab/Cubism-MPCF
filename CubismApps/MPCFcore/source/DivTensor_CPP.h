@@ -34,11 +34,11 @@ public:
 	
 	const Real a; //factor that affects the rhs, related to low-storage rk3 (see _copyback method)
 	const Real sigma; //amplification factor of the rhs
-	const Real h, dtinvh;
+	const Real h, dtinvh; //grid spacing and "lambda"
 	
 protected:	
 	
-	struct AIGP_ST { Real r, u, v, w, s, l, l2; }; 
+	struct AssumedType { Real r, u, v, w, s, l, l2; }; 
 	
     RingInputSOA_ST ringu, ringv, ringw, ringls; //slices for the primitive values
     RingTempSOA_ST ringnx, ringny, ringnz; //slices for the corner-gradients
@@ -68,13 +68,13 @@ protected:
 	virtual void _udot_ty(const InputSOA_ST& u, const InputSOA_ST& v, const InputSOA_ST& w);
 	
 	virtual void _udot_tz(const InputSOA_ST& u0, const InputSOA_ST& v0, const InputSOA_ST& w0,
-				  const InputSOA_ST& u1, const InputSOA_ST& v1, const InputSOA_ST& w1,
-				  const TempPiZSOA_ST& tzx, const TempPiZSOA_ST& tzy, const TempPiZSOA_ST& tzz,
-				  TempPiZSOA_ST& utz);
+						  const InputSOA_ST& u1, const InputSOA_ST& v1, const InputSOA_ST& w1,
+						  const TempPiZSOA_ST& tzx, const TempPiZSOA_ST& tzy, const TempPiZSOA_ST& tzz,
+						  TempPiZSOA_ST& utz);
 	
 	virtual void _div_dxy();
 	virtual void _div_dz(const TempPiZSOA_ST& tzx0, const TempPiZSOA_ST& tzy0, const TempPiZSOA_ST& tzz0, const TempPiZSOA_ST& utz0,
-				 const TempPiZSOA_ST& tzx1, const TempPiZSOA_ST& tzy1, const TempPiZSOA_ST& tzz1, const TempPiZSOA_ST& utz1);
+						 const TempPiZSOA_ST& tzx1, const TempPiZSOA_ST& tzy1, const TempPiZSOA_ST& tzz1, const TempPiZSOA_ST& utz1);
 	
     virtual void _copyback(Real * const gptfirst, const int gptfloats, const int rowgpts);
     
@@ -91,7 +91,7 @@ public:
 	{ 
 	}
     
-	//main loop, processing the z-slices in sequence. all the logic is here
+	//main loop, processing the z-slices in sequence. all the logic is in here
     void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
                  Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts)
 	{
@@ -99,7 +99,7 @@ public:
 		_input_next();
 		
 		_convert(srcfirst + srcfloats*slicesrcs, srcfloats, rowsrcs);
-
+		
 		_corners(ringls(-1), ringls(0), ringnx.ref(), ringny.ref(), ringnz.ref());
 		_tensor_zface(ringnx(), ringny(), ringnz(), ringtzx.ref(), ringtzy.ref(), ringtzz.ref());
 		_udot_tz(ringu(-1), ringv(-1), ringw(-1),  ringu(0), ringv(0), ringw(0), ringtzx(), ringtzy(), ringtzz(), ringutz.ref());
@@ -207,15 +207,13 @@ public:
 		const double perf_measured = 1e-9*totflop/MEASUREDTIME;
 		
 		printPerformanceTitle();
-		cout << setprecision(4) << "\tINTERMEDIATE MEMORY FOOTPRINT: "<< footprint/1024./1024<< " MB\tTOTAL TRAFFIC: " << (NT * NBLOCKS * footprint + inout_footprint)/1024./1024 <<" MB" << endl;
-		
+		printf("\tINTERMEDIATE MEMORY FOOTPRINT: %.4f MB\tTOTAL TRAFFIC: %.4f MB\n", footprint/1024./1024, (NT * NBLOCKS * footprint + inout_footprint)/1024./1024);
 		printf("\tASSUMING PP: %.2f GFLOP/s (PER CORE), %.2f GFLOP/s (OVERALL)\n\tPB: %.2f GB/s (OVERALL)\n", PEAKPERF_CORE*1e-9, PEAKPERF*1e-9, PEAKBAND*1e-9);
 		printf("\tRIDGE AT %.2f FLOP/B\n", PEAKPERF/PEAKBAND);
 		printf("\tDIVTENSOR THIS ONE IS %.2f GFLOP/s,\t\"per block\" %.2f FLOP/B [AI] - %.2f FLOP/B [OI]\n", perf_measured, ai_overall, oi_overall);
 		printf("\tTIME PER BLOCK: %.5f ms (expected %.5f [AI] - %.5f [OI] ms)\n",  1e3*MEASUREDTIME/(NT * NBLOCKS), 1e3*texpected_ai/(NT * NBLOCKS), 1e3*texpected_oi/(NT * NBLOCKS));
-		cout << setprecision(2) << "\tExpected Performance is: "<< totflop*1e-9/texpected_ai << " GFLOP/s [AI], " << totflop*1e-9/texpected_oi << " GFLOP/s [OI]" << endl;
+		printf("\tExpected Performance is: %.2f  GFLOP/s [AI], %.2f  GFLOP/s [OI]\n", totflop*1e-9/texpected_ai, totflop*1e-9/texpected_oi);
 		printf("\tEFFICIENCY: %.2f%% [AI] - %.2f%% [OI], HW-UTILIZATION: %.2f%%\n", 100.*min(1., texpected_ai/MEASUREDTIME), 100.*texpected_oi/MEASUREDTIME, 100*perf_measured*1e9/PEAKPERF);
-		
 		printEndLine();
 	}
 };

@@ -8,15 +8,9 @@
  */
 #pragma once
 
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
-
-#include <xmmintrin.h>
 #include <algorithm>
 
+#include "common.h"
 #include "FlowStep_CPP.h"
 
 class MaxSpeedOfSound_CPP
@@ -56,20 +50,13 @@ public:
 		const double TSOS = 1.e9*GFLOPSOS/EPERFSOS;
 		
 		printPerformanceTitle();
-		cout << "\tSOS TOTAL GFLOPS " << GFLOPSOS << endl;
+		printf("\tSOS TOTAL GFLOPS: %.2f\n", GFLOPSOS);
 		printf("\tSOS ASSUMING PP: %.2f GFLOP/s (PER CORE), %.2f GFLOP/s (OVERALL)\n\tPB: %.2f GB/s (OVERALL)\n", PEAKPERF_CORE*1e-9, PEAKPERF*1e-9, PEAKBAND*1e-9);
 		printf("\tSOS RIDGE AT %.2f FLOP/B\n", PEAKPERF/PEAKBAND);
 		printf("\tSOS THIS ONE IS %.2f GFLOP/s,\t\"PER SOS\" %.2f FLOP/B\n", GFLOPSOS/MEASUREDTIME, OISOS);
 		printf("\tSOS TIME PER BLOCK: %.5f ms (expected %.5f ms)\n",  1e3*MEASUREDTIME/NBLOCKS, 1e3*TSOS/NBLOCKS);
-		cout << "\tSOS Expected Performance is: " << GFLOPSOS/(1.e9*GFLOPSOS/EPERFSOSAI) << " GFLOP/s [AI], " << GFLOPSOS/TSOS << " GFLOP/s [OI]"  << endl;
-		printf("\tSOS EFFICIENCY: %.2f%% [AI] - %.2f%% [OI], HW-UTILIZATION: %.2f%%\n", 100.*(1.e9*GFLOPSOS/EPERFSOSAI)/MEASUREDTIME, 100.*TSOS/MEASUREDTIME, 100*(GFLOPSOS/MEASUREDTIME*1e9)/PEAKPERF);
-		if (bAwk)
-		{
-			string kernelname = "SOS";
-			
-			awkMCorePredictions(kernelname, OISOS, EPERFSOS);
-			awkMCore(kernelname, GFLOPSOS, PEAKPERF_CORE, PEAKPERF, PEAKBAND, MEASUREDTIME, TSOS, NBLOCKS, NT);
-		}
+		printf("\tSOS Expected Performance is: %.2f GFLOP/s [AI], %.2f GFLOP/s [OI]\n", GFLOPSOS/(1.e9*GFLOPSOS/EPERFSOSAI), GFLOPSOS/TSOS);
+		printf("\tSOS EFFICIENCY: %.2f%% [AI] - %.2f%% [OI], HW-UTILIZATION: %.2f%%\n", 100.*(1.e9*GFLOPSOS/EPERFSOSAI)/MEASUREDTIME, 100.*TSOS/MEASUREDTIME, 100*(GFLOPSOS/MEASUREDTIME*1e9)/PEAKPERF);		
 		printEndLine();
 	}
 };
@@ -117,7 +104,7 @@ public:
 		
 		return  std::max( std::max(sos[0], sos[1]), std::max(sos[2], sos[3]) );
 #else
-		return MaxSpeedOfSound_CPP::compute(src, gptfloats);//C++ fallback for double precision
+		return MaxSpeedOfSound_CPP::compute(src, gptfloats); //C++ fallback for double precision
 #endif
 	}
 };

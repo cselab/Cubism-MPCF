@@ -6,6 +6,9 @@
 //  Copyright 2011 ETH Zurich. All rights reserved.
 //
 
+//This code is NOT optimized and is a second-order accurate
+//shear-stress tensor naive implementation.
+
 #pragma once
 #include <vector>
 #include <iostream>

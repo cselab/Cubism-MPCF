@@ -8,30 +8,11 @@
  */
 #pragma once
 
-#include <xmmintrin.h>
+#include "common.h"
 #include "DivTensor_CPP.h"
 
-#ifdef __INTEL_COMPILER
-inline __m128 operator+(__m128 a, __m128 b){ return _mm_add_ps(a, b); }
-inline __m128 operator|(__m128 a, __m128 b){ return _mm_or_ps(a, b); }
-inline __m128 operator*(__m128 a, __m128 b){ return _mm_mul_ps(a, b); }
-inline __m128 operator-(__m128 a,  __m128 b){ return _mm_sub_ps(a, b); }
-inline __m128 operator/(__m128 a, __m128 b){ return _mm_div_ps(a, b); }
-inline __m128d operator+(__m128d a, __m128d b){ return _mm_add_pd(a, b); }
-inline __m128d operator*(__m128d a, __m128d b){ return _mm_mul_pd(a, b); }
-inline __m128d operator-(__m128d a, __m128d b){ return _mm_sub_pd(a, b); }
-inline __m128d operator/(__m128d a, __m128d b){ return _mm_div_pd(a, b); }
-inline __m128d operator|(__m128d a, __m128d b){ return _mm_or_pd(a, b); }
-#endif
-
 class DivTensor_SSE: public virtual DivTensor_CPP
-{	
-#define	LEFT(W,C) \
-_mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0))
-	
-#define RIGHT(C, E)	\
-_mm_shuffle_ps(C, _mm_shuffle_ps(C,E, _MM_SHUFFLE(0,0,3,3)), _MM_SHUFFLE(3,0,2,1))
-	
+{			
 protected:
 	
 	//virtual method of DivTensor_CPP overridden here
@@ -63,14 +44,14 @@ protected:
 			for(int ix=0; ix<TempSOA_ST::NX; ix+=4)
 			{	
 				const __m128 c00m1 = _mm_load_ps(ls0 + ix);
-				const __m128 cm10m1 = LEFT(WA0, c00m1);
+				const __m128 cm10m1 = _LEFT(WA0, c00m1);
 				const __m128 c0m1m1 = _mm_load_ps(ls0 + ix - PITCHIN);
-				const __m128 cm1m1m1 = LEFT(WB0, c0m1m1);
+				const __m128 cm1m1m1 = _LEFT(WB0, c0m1m1);
 				
 				const __m128 c000 = _mm_load_ps(ls1 + ix);
-				const __m128 cm100 = LEFT(WA1, c000);
+				const __m128 cm100 = _LEFT(WA1, c000);
 				const __m128 c0m10 = _mm_load_ps(ls1 + ix - PITCHIN);
-				const __m128 cm1m10 = LEFT(WB1, c0m10);
+				const __m128 cm1m10 = _LEFT(WB1, c0m10);
 				
 				_mm_store_ps(nx + ix, c000-cm100 + c0m10-cm1m10 + c00m1-cm10m1 + c0m1m1-cm1m1m1);
 				_mm_store_ps(ny + ix, cm100-cm1m10 + c000-c0m10 + cm10m1-cm1m1m1  + c00m1-c0m1m1);
@@ -82,6 +63,16 @@ protected:
 				WB1 = c0m10;
 			}
 		}
+	}
+	
+	inline __m128 _LEFT(const __m128 W, const __m128 C) const
+	{
+		return _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0));
+	}
+	
+	inline __m128 _RIGHT(const __m128 C, const __m128 E) const
+	{
+		return _mm_shuffle_ps(C, _mm_shuffle_ps(C,E, _MM_SHUFFLE(0,0,3,3)), _MM_SHUFFLE(3,0,2,1));
 	}
 	
 	void _copyback(float * const gptfirst, const int gptfloats, const int rowgpts)
@@ -150,7 +141,7 @@ protected:
 				const __m128 E = _mm_load_ps(src0 + ix + 4);
 				
 				_mm_store_ps(dest + ix,
-							 RIGHT(C, E) - C + 
+							 _RIGHT(C, E) - C + 
 							 _mm_load_ps(src1 + ix + PITCHIN1) - _mm_load_ps(src1 + ix));
 				
 				C = E;
@@ -240,9 +231,9 @@ protected:
 				const __m128 W2 = _mm_load_ps(wptr + ix - 4);
 				
 				_mm_store_ps(utxptr + ix , 
-							 _mm_load_ps(txxptr + ix)*(C0 + LEFT(W0, C0)) +
-							 _mm_load_ps(txyptr + ix)*(C1 + LEFT(W1, C1)) +
-							 _mm_load_ps(txzptr + ix)*(C2 + LEFT(W2, C2)));
+							 _mm_load_ps(txxptr + ix)*(C0 + _LEFT(W0, C0)) +
+							 _mm_load_ps(txyptr + ix)*(C1 + _LEFT(W1, C1)) +
+							 _mm_load_ps(txzptr + ix)*(C2 + _LEFT(W2, C2)));
 			}
 		}
 #endif
@@ -396,8 +387,8 @@ protected:
 				const __m128 E0 = _mm_load_ps(src0ptr + ix + 4);
 				const __m128 E1 = _mm_load_ps(src1ptr + ix + 4);
 				
-				write128<accum>(destptr + ix, F*(C0 + RIGHT(C0, E0) + 
-												 C1 + RIGHT(C1, E1)));
+				write128<accum>(destptr + ix, F*(C0 + _RIGHT(C0, E0) + 
+												 C1 + _RIGHT(C1, E1)));
 				C0 = E0;
 				C1 = E1;
 			}
@@ -428,8 +419,8 @@ protected:
 				const __m128 E0 = _mm_load_ps(srcptr + ix + 4);
 				const __m128 E1 = _mm_load_ps(srcptr + ix + PITCHIN + 4);
 				
-				write128<accum>(destptr + ix, F*(C0 + RIGHT(C0, E0) + 
-												 C1 + RIGHT(C1, E1)));
+				write128<accum>(destptr + ix, F*(C0 + _RIGHT(C0, E0) + 
+												 C1 + _RIGHT(C1, E1)));
 				C0 = E0;
 				C1 = E1;
 			}
@@ -442,7 +433,4 @@ public:
 	DivTensor_CPP(a, dtinvh, h, sigma)
 	{
 	}
-	
-#undef LEFT
-#undef RIGHT	
 };

@@ -7,9 +7,16 @@
  *
  */
 
+#if defined(_SSE_) && _BLOCKSIZE_%4!=0
+#error BLOCKSIZE NOT GOOD FOR SSE
+#elif defined(_AVX_) && (_BLOCKSIZE_%8!=0 || !defined(_SP_COMP_))
+#error BLOCKSIZE NOT GOOD FOR AVX
+#endif
+
 #include <iostream>
 
 #include <ArgumentParser.h>
+
 #include "TestTypes.h"
 #include "FlowStep_Test.h"
 #include "SurfaceTension_Test.h"
@@ -31,18 +38,8 @@
 #include "SurfaceTension_AVX.h"
 #include "Diffusion_AVX.h"
 #endif
-#include "output.h"
-
 
 using namespace std;
-
-#if defined(_SSE_) && _BLOCKSIZE_%4!=0
-#error BLOCKSIZE NOT GOOD FOR SSE
-#elif defined(_AVX_) && (_BLOCKSIZE_%8!=0 || !defined(_SP_COMP_))
-#error BLOCKSIZE NOT GOOD FOR AVX
-#endif
-
-#include <xmmintrin.h>
 
 int main (int argc, const char ** argv) 
 {	
@@ -99,7 +96,6 @@ int main (int argc, const char ** argv)
 	}
 
 #if defined(_AVX_) 
-	//&& _ALIGNBYTES_ % 32 == 0
 	if (kernel == "SurfaceTension_AVX" || kernel == "all")
 	{		
 		SurfaceTension_Test surf_test;

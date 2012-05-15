@@ -150,33 +150,6 @@ omega0 *(F_1_3*f + M_7_6*e + F_11_6*d)+   \
 omega1 *(M_1_6*e + F_5_6*d + F_1_3*c) +  \
 omega2 *(F_1_3*d + F_5_6*c + M_1_6*b)	);
 
-#ifdef __INTEL_COMPILER
-inline __m128 operator+(__m128 a, __m128 b){ return _mm_add_ps(a, b); }
-inline __m128 operator|(__m128 a, __m128 b){ return _mm_or_ps(a, b); }
-inline __m128 operator*(__m128 a, __m128 b){ return _mm_mul_ps(a, b); }
-inline __m128 operator-(__m128 a,  __m128 b){ return _mm_sub_ps(a, b); }
-inline __m128 operator/(__m128 a, __m128 b){ return _mm_div_ps(a, b); }
-inline __m128d operator+(__m128d a, __m128d b){ return _mm_add_pd(a, b); }
-inline __m128d operator*(__m128d a, __m128d b){ return _mm_mul_pd(a, b); }
-inline __m128d operator-(__m128d a, __m128d b){ return _mm_sub_pd(a, b); }
-inline __m128d operator/(__m128d a, __m128d b){ return _mm_div_pd(a, b); }
-inline __m128d operator|(__m128d a, __m128d b){ return _mm_or_pd(a, b); }
-#endif
-
-inline __m128 better_rcp(const __m128 a)
-{
-	const __m128 Ra0 = _mm_rcp_ps(a);
-	return _mm_sub_ps(_mm_add_ps(Ra0, Ra0), _mm_mul_ps(_mm_mul_ps(Ra0, a), Ra0));
-}
-
-inline __m128 worse_sqrt(const __m128 a)
-{	
- 	const __m128 invz =  _mm_rsqrt_ps(a);
-	const __m128 z = _mm_rcp_ps(invz);
-	const __m128 tmp =  z-(z*z-a)*invz*_mm_set_ps1(0.5f);
-	return  _mm_and_ps(tmp, _mm_cmpgt_ps(a, _mm_setzero_ps()));
-}
-
 #include "FlowStep_SSE_diego.h"
 
 inline __m128 FlowStep_SSE_diego::_heaviside(const __m128 phi, const __m128 inv_h, const __m128 one, const __m128 phalf, const __m128 mhalf) const
