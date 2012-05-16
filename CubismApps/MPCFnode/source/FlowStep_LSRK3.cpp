@@ -173,7 +173,7 @@ void _process_diffusion(const Real dtinvh, vector<BlockInfo>& myInfo, FluidGrid&
 		const int mynode = omp_get_thread_num() / cores_per_node;
         numa_run_on_node(mynode);
 #endif
-		Kernel kernel(dtinvh, LSRK3data::nu1, LSRK3data::nu2, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), myInfo[0].h_gridpoint, dtinvh);
+		Kernel kernel(dtinvh, LSRK3data::nu1, LSRK3data::nu2, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), myInfo[0].h_gridpoint, LSRK3data::smoothlength, dtinvh);
         
         Lab mylab;
         mylab.prepare(grid, stencil_start, stencil_end, tensorial);

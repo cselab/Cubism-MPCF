@@ -16,25 +16,30 @@ class Diffusion_SSE: public virtual Diffusion_CPP, public virtual DivTensor_SSE
 {
 public:
 	
-	Diffusion_SSE(const Real a=1, const Real nu1 = 1, const Real nu2 = 2, const Real G1 = 1/(2.1-1), const Real G2 = 1/(2.1-1), const Real h = 1, const Real dtinvh = 1):
+	Diffusion_SSE(const Real a=1, const Real nu1 = 1, const Real nu2 = 2, const Real G1 = 1/(2.1-1), const Real G2 = 1/(2.1-1), const Real h = 1, const Real smoothing_length=1, const Real dtinvh = 1):
 	DivTensor_CPP(a, dtinvh, h, 0.5), //this is the base class of Diffusion_CPP and DivTensor_SSE
-	Diffusion_CPP(a, nu1, nu2, G1, G2, h, dtinvh), DivTensor_SSE(a, dtinvh, h, 0.5)
+	Diffusion_CPP(a, nu1, nu2, G1, G2, h, smoothing_length, dtinvh), DivTensor_SSE(a, dtinvh, h, 0.5)
 	{
 	}
 	
 protected:
 		
-	inline __m128 _compute_mu(const __m128 G,  const __m128 G2, 
-							  const __m128 ls_factor, const __m128 nu1, const __m128 nu2, const __m128 one)
+	inline __m128 _compute_mu(const __m128 G, const __m128 nu1, const __m128 nu2, const __m128 F_1_2, const __m128 M_1_2, const __m128 one)
 	{
-		const __m128 x = (G-G2)*ls_factor;
-		const __m128 lambda = _mm_min_ps(_mm_max_ps(x ,_mm_setzero_ps()), one);
+        const __m128 x = _mm_min_ps(one, _mm_max_ps(_mm_setzero_ps() - one, G*one/_mm_set_ps1(smoothing_length)));
+        
+        const __m128 val_xneg = (M_1_2*x - one)*x + F_1_2;
+        const __m128 val_xpos = (F_1_2*x - one)*x + F_1_2;
+        
+        const __m128 flag = _mm_cmplt_ps(x, _mm_setzero_ps());
+        
+		const __m128 lambda = _mm_or_ps(_mm_and_ps(flag, val_xneg),_mm_andnot_ps(flag, val_xpos));
 		
 		return nu2*(one-lambda) + nu1*lambda;
 	}
 	
 	template<bool biphase>
-	inline void _convert(const float * const pt, const float ls_factor, float&u, float&v, float&w, float& mu)
+	inline void _convert(const float * const pt, float&u, float&v, float&w, float& mu)
 	{
 		if (biphase)
 		{
@@ -44,8 +49,10 @@ protected:
 			v = pt[2]*inv_rho;
 			w = pt[3]*inv_rho;
 			
-			const float x = (pt[5]-G2)*ls_factor;
-			const float lambda = min( max(x ,(float)0), (float)1);
+            const float x = min((float)1, max((float)-1, pt[5]*(((float)1)/(float)smoothing_length)));
+			const float val_xneg = (((float)-0.5)*x - ((float)1))*x + ((float)0.5);
+			const float val_xpos = (((float)+0.5)*x - ((float)1))*x + ((float)0.5);
+			const float lambda = x<0 ? val_xneg : val_xpos;
 			
 			mu = pt[0]*(nu2*((float)1-lambda) + nu1*lambda);
 		}
@@ -67,8 +74,8 @@ protected:
 		const float ls_factor = ((float)1/(G1 - G2));
 		
 		const __m128 F_1 = _mm_set_ps1(1);
-		const __m128 F_G2 = _mm_set_ps1(G2);		
-		const __m128 F_LS = _mm_set_ps1(ls_factor);		
+		const __m128 F_1_2 = _mm_set_ps1(0.5);
+		const __m128 M_1_2 = _mm_set_ps1(-0.5);
 		const __m128 F_NU1 = _mm_set_ps1(nu1);		
 		const __m128 F_NU2 = _mm_set_ps1(nu2);
 		
@@ -89,7 +96,7 @@ protected:
 			
 			const float * const leftghost = gptfirst + stride*iy;
 			
-			_convert<biphase>(leftghost, ls_factor, u[0], v[0], w[0], mu[0]);
+			_convert<biphase>(leftghost, u[0], v[0], w[0], mu[0]);
 			
 			for(int ix=1; ix<_BLOCKSIZE_+1; ix+=4)
 			{
@@ -125,12 +132,12 @@ protected:
 				_mm_store_ps(w + ix, data3*inv_rho);
 				
 				if (biphase)
-					_mm_store_ps(mu + ix, data0*_compute_mu(_mm_set_ps(gpt3[5], gpt2[5], gpt1[5], gpt0[5]), F_G2, F_LS, F_NU1, F_NU2, F_1));
+					_mm_store_ps(mu + ix, data0*_compute_mu(_mm_set_ps(gpt3[5], gpt2[5], gpt1[5], gpt0[5]), F_NU1, F_NU2, F_1_2, M_1_2, F_1));
 				else
 					_mm_store_ps(mu + ix, data0*F_NU1);
 			}
 			
-			_convert<biphase>(leftghost + gptfloats*(_BLOCKSIZE_+1), ls_factor, u[_BLOCKSIZE_+1], v[_BLOCKSIZE_+1], w[_BLOCKSIZE_+1], mu[_BLOCKSIZE_+1]);
+			_convert<biphase>(leftghost + gptfloats*(_BLOCKSIZE_+1), u[_BLOCKSIZE_+1], v[_BLOCKSIZE_+1], w[_BLOCKSIZE_+1], mu[_BLOCKSIZE_+1]);
 		}
 	}
 	

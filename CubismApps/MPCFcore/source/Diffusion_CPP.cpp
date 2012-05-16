@@ -13,8 +13,6 @@ void Diffusion_CPP::_convert(const Real * const gptfirst, const int gptfloats, c
 {	
 	InputSOA_ST& u=ringu.ref(), &v=ringv.ref(), &w=ringw.ref(), &mu = ringls.ref();
 	
-	const Real ls_factor = G1 == G2 ? 1 : (Real)1/(G1 - G2);
-	
 	for(int sy=0; sy<_BLOCKSIZE_+2; sy++)
 		for(int sx=0; sx<_BLOCKSIZE_+2; sx++)
 		{
@@ -27,7 +25,12 @@ void Diffusion_CPP::_convert(const Real * const gptfirst, const int gptfloats, c
 			v.ref(dx, dy) = pt.v/pt.r;
 			w.ref(dx, dy) = pt.w/pt.r;
 			
-			const RealTemp lambda = (RealTemp)1 - min(max((pt.G-G2)*ls_factor,(RealTemp)0),(RealTemp)1);
+            //project the levelset to volume fraction, same as FlowStep
+            const Real x = min((Real)1, max((Real)-1, pt.l*(((Real)1)/smoothing_length)));
+            const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
+            const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
+            
+			const RealTemp lambda = (x<0 ? val_xneg : val_xpos);
 			mu.ref(dx, dy) = pt.r*(nu2*lambda + nu1*((RealTemp)1-lambda));
 		}		
 }
