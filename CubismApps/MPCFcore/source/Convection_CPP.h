@@ -32,19 +32,19 @@ public:
 				 Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts);
 	
 	//this provides the amount of flops and memory traffic performed in compute(.)
-	void hpc_info(float& flop_convert, int& traffic_convert,
+	static void hpc_info(float& flop_convert, int& traffic_convert,
 				  float& flop_weno, int& traffic_weno,
 				  float& flop_extraterm, int& traffic_extraterm, 
 				  float& flop_charvel, int& traffic_charvel,
 				  float& flop_hlle, int& traffic_hlle,
 				  float& flop_div, int& traffic_div,
 				  float& flop_copyback, int& traffic_copyback,
-				  size_t& footprint) const;
+				  size_t& footprint);
 	
 	//this report the performance details of compute(.) given the measured time
-	void printflops(const float PEAKPERF_CORE, const float PEAKBAND, 
+	static void printflops(const float PEAKPERF_CORE, const float PEAKBAND, 
 					const int NCORES, const int NTIMES, const int NBLOCKS, 
-					const float MEASUREDTIME) const;
+					const float MEASUREDTIME);
 	
 protected:
 	

@@ -228,14 +228,18 @@ endif
 VPATH := ../source/ ../../MPCFcore/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-node
 
-OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockTube.o Test_ShockBubble.o Test_CVT.o FlowStep_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o
+OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockTube.o Test_ShockBubble.o Test_CVT.o Convection_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o
 
 ifeq "$(sse)" "1"
-	OBJECTS += FlowStep_SSE_diego.o
+	ifeq "$(ap)" "double"
+		OBJECTS += Convection_SSEd.o
+	else
+		OBJECTS += Convection_SSE.o
+	endif
 endif
 
 ifeq "$(avx)" "1"
-	OBJECTS += FlowStep_AVX_diego.o
+	OBJECTS += Convection_AVX.o
 endif
 
 #on brutus flowstep performs better without native arch

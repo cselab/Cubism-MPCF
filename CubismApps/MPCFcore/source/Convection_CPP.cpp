@@ -68,7 +68,7 @@ void Convection_CPP::hpc_info(float& flop_convert, int& traffic_convert,
 							  float& flop_hlle, int& traffic_hlle,
 							  float& flop_div, int& traffic_div,
 							  float& flop_copyback, int& traffic_copyback,
-							  size_t& footprint) const
+							  size_t& footprint)
 {
 	const int ninputs = (int)powf(_BLOCKSIZE_ + 6, 3);
 	const int nfaces = (int)powf(_BLOCKSIZE_, 2) * (_BLOCKSIZE_ + 1);
@@ -90,11 +90,11 @@ void Convection_CPP::hpc_info(float& flop_convert, int& traffic_convert,
 	traffic_div = (2 + 1) * sizeof(Real) * ndirections * ncells;
 	flop_copyback = (6 * 3 + 3) * ncells;
 	traffic_copyback = (8 + 6) * sizeof(Real) * ncells;
-	footprint = sizeof(*this);
+	footprint = sizeof(Convection_CPP);
 }
 
 void Convection_CPP::printflops(const float PEAKPERF_CORE, const float PEAKBAND, const int NCORES, 
-								const int NT, const int NBLOCKS, const float MEASUREDTIME) const
+								const int NT, const int NBLOCKS, const float MEASUREDTIME)
 {		
 	const float PEAKPERF = PEAKPERF_CORE*NCORES;
 	

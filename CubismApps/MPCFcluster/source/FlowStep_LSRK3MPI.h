@@ -13,10 +13,10 @@
 #include <BlockLabMPI.h>
 
 #include <FlowStep_LSRK3.h>
-#include <FlowStep_CPP.h>
-#include <FlowStep_SSE_diego.h>
+#include <Convection_CPP.h>
+#include <Convection_SSE.h>
 #ifdef _AVX_
-#include <FlowStep_AVX_diego.h>
+#include <Convection_AVX.h>
 #include <SurfaceTension_AVX.h>
 #include <Diffusion_AVX.h>
 #endif
@@ -405,12 +405,12 @@ public:
         }
 		
 		if (parser("-kernels").asString("cpp")=="cpp")
-			LSRKstepMPI<FlowStep_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time);
+			LSRKstepMPI<Convection_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time);
 		else if (parser("-kernels").asString("cpp")=="sse")
-			LSRKstepMPI<FlowStep_SSE_diego, Update_SSE, SurfaceTension_SSE, Diffusion_SSE>(grid, dt/h, current_time);
+			LSRKstepMPI<Convection_SSE, Update_SSE, SurfaceTension_SSE, Diffusion_SSE>(grid, dt/h, current_time);
 #ifdef _AVX_
     	else if (parser("-kernels").asString("cpp")=="avx")
-			LSRKstepMPI<FlowStep_AVX_diego, Update_AVX, SurfaceTension_AVX, Diffusion_AVX>(grid, dt/h, current_time);
+			LSRKstepMPI<Convection_AVX, Update_AVX, SurfaceTension_AVX, Diffusion_AVX>(grid, dt/h, current_time);
 #endif
 		else
 		{
