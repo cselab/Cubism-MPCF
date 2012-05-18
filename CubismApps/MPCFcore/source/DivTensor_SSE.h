@@ -340,6 +340,10 @@ protected:
 	template<bool accum>
 	void _average_xface(const float factor, const TempSOA_ST& src0, const TempSOA_ST& src1, TempPiXSOA_ST& dest)
 	{
+#ifndef _SP_COMP_
+		printf("DivTensor_SSE::_average_xface: you should not be here in double precision. Aborting.\n");
+		abort();
+#else
 		static const int PITCHIN = TempSOA_ST::PITCH;
 		static const int PITCHOUT = TempPiXSOA_ST::PITCH;
 		
@@ -359,11 +363,16 @@ protected:
 				write128<accum>(destptr + ix, F*(_mm_load_ps(src0ptr + ix) + _mm_load_ps(src0ptr + ix + PITCHIN) + 
 												 _mm_load_ps(src1ptr + ix) + _mm_load_ps(src1ptr + ix + PITCHIN)));
 		}
+#endif
 	}
 	
 	template<bool accum>
 	void _average_yface(const float factor, const TempSOA_ST& src0, const TempSOA_ST& src1, TempPiYSOA_ST& dest)
 	{
+#ifndef _SP_COMP_
+		printf("DivTensor_SSE::_average_yface: you should not be here in double precision. Aborting.\n");
+		abort();
+#else	
 		static const int PITCHIN = TempSOA_ST::PITCH;
 		static const int PITCHOUT = TempPiYSOA_ST::PITCH;
 		
@@ -393,11 +402,16 @@ protected:
 				C1 = E1;
 			}
 		}
+#endif
 	}
 	
 	template<bool accum>
 	void _average_zface(const float factor, const TempSOA_ST& src, TempPiZSOA_ST& dest)
 	{
+#ifndef _SP_COMP_
+		printf("DivTensor_SSE::_average_zface: you should not be here in double precision. Aborting.\n");
+		abort();
+#else
 		static const int PITCHIN = TempSOA_ST::PITCH;
 		static const int PITCHOUT = TempPiZSOA_ST::PITCH;
 		
@@ -425,6 +439,7 @@ protected:
 				C1 = E1;
 			}
 		}
+#endif
 	}
 	
 public:

@@ -19,8 +19,6 @@
 #include "TestTypes.h"
 #include "Timer.h"
 
-#include "FlowStep_CPP.h"
-
 class Diffusion_Test
 {
 	void _initialize(TestLab_S2& lab, const double h)
@@ -122,7 +120,7 @@ class Diffusion_Test
 	
 	void _gold(TestLab_S2& lab, Block& block, const Real _nu1, const Real _nu2, const Real _g1, const Real _g2, const Real a, const Real _dtinvh, const Real _h);
 	
-	void _compare(Block& _a, Block& _b, double accuracy, string kernelname);
+	void _compare(Block& _a, Block& _b, double accuracy, std::string kernelname);
 	
 	template<typename FS> double _benchmark(FS fs, const int NBLOCKS, const int NTIMES)
 	{
@@ -269,7 +267,7 @@ public:
 		}
 		
 		//report performance
-		string implname = typeid(fs).name();
+		std::string implname = typeid(fs).name();
 		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE, false);
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
 	}

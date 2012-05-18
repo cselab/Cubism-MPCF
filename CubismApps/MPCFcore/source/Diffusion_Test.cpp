@@ -7,6 +7,10 @@
 //
 
 #include <cstring>
+#include <algorithm>
+
+using namespace std;
+
 #include "Diffusion_Test.h"
 
 //This code is NOT optimized and is a second-order accurate

@@ -632,6 +632,9 @@ void FlowStep_Test::_compare(Block& _a, Block& _b, double accuracy, bool bAwk, s
 					b.levelset
 				};
 				
+				for(int i=0; i<6; ++i)
+					assert(!isnan(s[i]));
+				
 				const double e[6]  = {
 					b.r - a.r,
 					b.u - a.u,
@@ -640,6 +643,9 @@ void FlowStep_Test::_compare(Block& _a, Block& _b, double accuracy, bool bAwk, s
 					b.s - a.s,
 					b.levelset - a.levelset
 				};
+				
+				for(int i=0; i<6; ++i)
+					assert(!isnan(e[i]));
 				
 				for(int i=0; i<6; i++)
 					if (fabs(e[i])/fabs(s[i])>accuracy && fabs(e[i])>accuracy) printf("significant error at %d %d %d %d -> e=%e (rel is %e, values are %e %e)\n", ix, iy, iz, i, e[i], e[i]/s[i],s[i],s[i]-e[i]);

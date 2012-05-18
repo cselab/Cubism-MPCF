@@ -23,18 +23,18 @@
 #include "LocalKernel_Test.h"
 #include "Diffusion_Test.h"
 
-#include "FlowStep_CPP.h"
+#include "Convection_CPP.h"
 #include "Update.h"
 #include "MaxSpeedOfSound.h"
 #include "SurfaceTension_CPP.h"
 #include "Diffusion_CPP.h"
 #ifdef _SSE_
-#include "FlowStep_SSE_diego.h"
+#include "Convection_SSE.h"
 #include "Diffusion_SSE.h"
 #include "SurfaceTension_SSE.h"
 #endif
 #ifdef _AVX_
-#include "FlowStep_AVX_diego.h"
+//#include "FlowStep_AVX_diego.h"
 #include "SurfaceTension_AVX.h"
 #include "Diffusion_AVX.h"
 #endif
@@ -187,38 +187,38 @@ int main (int argc, const char ** argv)
 #if _ALIGNBYTES_ % 32 == 0
 	if (kernel == "FS_AVX_diego" || kernel == "all")
 	{
-		FlowStep_AVX_diego flowstep_avxdiego;
+		/*FlowStep_AVX_diego flowstep_avxdiego;
 		//test.profile(flowstep_avxdiego, PP*1e9, PB*1e9, N); 
 		printKernelName("FlowStep_AVX_diego:");
 		test.accuracy(flowstep_avxdiego, accuracy, bAwk);
 		test.performance(flowstep_avxdiego, PP*1e9, PB*1e9, NB, N, bAwk);
-		printEndKernelTest();
+		printEndKernelTest();*/
 	}
 #endif //_ALIGNBYTES_
 #endif // _AVX_
 	
 #ifdef _SSE_
 #if _ALIGNBYTES_ % 16 == 0
-	if (kernel == "FS_SSE_diego" || kernel == "all")
+	if (kernel == "Convection_SSE" || kernel == "all")
 	{
-		FlowStep_SSE_diego flowstep_diego;
+		Convection_SSE convection(0, 1, 2.5, 2.1, 1, 0, 0);
 		//test.profile(flowstep_diego, PP*1e9, PB*1e9, N); 
-		printKernelName("FlowStep_SSE_diego:");
+		printKernelName("Convection_SSE:");
 		//test.profile(flowstep_diego, PP*1e9, PB*1e9, N); 
-		test.accuracy(flowstep_diego, accuracy, bAwk);
-		test.performance(flowstep_diego, PP*1e9, PB*1e9, NB, N, bAwk);
+		test.accuracy(convection, accuracy, bAwk);
+		test.performance(convection, PP*1e9, PB*1e9, NB, N, bAwk);
 		printEndKernelTest();
 	}
 #endif //_ALIGNBYTES_
 	
 #endif //_SSE_
 	
-	if (kernel == "FS_CPP" || kernel == "all")
+	if (kernel == "Convection_CPP" || kernel == "all")
 	{
-		FlowStep_CPP flowstep;
+		Convection_CPP convection(0, 1, 2.5, 2.1, 1, 0, 0);
 		printKernelName("FlowStep_CPP:");
-		test.accuracy(flowstep, accuracy, bAwk);
-		test.performance(flowstep, PP*1e9, PB*1e9, NB, N, bAwk);
+		test.accuracy(convection, accuracy, bAwk);
+		test.performance(convection, PP*1e9, PB*1e9, NB, N, bAwk);
 		printEndKernelTest();
 	}
 	

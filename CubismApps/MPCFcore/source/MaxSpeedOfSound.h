@@ -11,7 +11,7 @@
 #include <algorithm>
 
 #include "common.h"
-#include "FlowStep_CPP.h"
+#include "SOA2D.h"
 
 class MaxSpeedOfSound_CPP
 {

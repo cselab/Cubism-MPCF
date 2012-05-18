@@ -10,7 +10,7 @@
 #include <vector>
 #include <cmath>
 
-#include "FlowStep_CPP.h"
+#include "SOA2D.h"
 
 typedef SOA2D<-1, _BLOCKSIZE_+1, -1, _BLOCKSIZE_+1, float> InputSOAf_ST;
 typedef SOA2D<-1, _BLOCKSIZE_+1, -1, _BLOCKSIZE_+1> InputSOA_ST;

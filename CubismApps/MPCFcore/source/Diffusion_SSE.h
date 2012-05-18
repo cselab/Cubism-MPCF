@@ -424,7 +424,11 @@ public:
 
 void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
                  Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts)
-	{		
+	{	
+#ifndef _SP_COMP_
+		//C++ fallback as Diffusion_SSE currently supports only single precision
+		Diffusion_CPP::compute(srcfirst, srcfloats, rowsrcs, slicesrcs, dstfirst, dstfloats, rowdsts, slicedsts); 
+#else
 		_convert(srcfirst, srcfloats, rowsrcs);
 		_input_next();
 		
@@ -545,7 +549,7 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 			
 			_copyback(dstfirst + islice*dstfloats*slicedsts, dstfloats, rowdsts);
 		}
+#endif
 	}
-
 #undef LEFT
 };

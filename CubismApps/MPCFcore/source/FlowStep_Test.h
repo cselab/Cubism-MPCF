@@ -18,13 +18,13 @@
 #include <Timer.h>
 #include "TestTypes.h"
 
-#include "FlowStep_CPP.h"
-#ifdef _SSE_
-#include "FlowStep_SSE_diego.h"
-#endif
-#if _ALIGNBYTES_ % 32 == 0
-#include "FlowStep_AVX_diego.h"
-#endif
+#include "Convection_CPP.h"
+//#ifdef _SSE_
+//#include "FlowStep_SSE_diego.h"
+//#endif
+//#if _ALIGNBYTES_ % 32 == 0
+//#include "FlowStep_AVX_diego.h"
+//#endif
 
 using namespace std;
 
@@ -87,10 +87,10 @@ public:
 	
 	template<typename FS> void accuracy(FS& fs, double accuracy=1e-4, bool bAwk=false)
 	{
-		gamma1 = fs.gamma1();
-		gamma2 = fs.gamma2();
-		smoothlength = fs.smoothlength();
-		dtinvh = fs.dtinvh();
+		gamma1 = fs.gamma1;
+		gamma2 = fs.gamma2;
+		smoothlength = fs.smoothlength;
+		dtinvh = fs.dtinvh;
 		
 		TestLab * lab = new TestLab;
 		Block * blockgold = new Block;
@@ -116,8 +116,8 @@ public:
 		}
 		
 		printAccuracyTitle();
-		string kernelname = "";
-		if (bAwk)
+		string kernelname = typeid(fs).name();
+		/*if (bAwk)
 		{
 			if (typeid(fs) == typeid(FlowStep_CPP))
 				kernelname = "FlowStep_CPP";
@@ -134,7 +134,8 @@ public:
 				cout << "Kernel name not inserted for awk\n";
 				abort();
 			}
-		}
+		}*/
+		
 		_compare(*block, *blockgold, accuracy, bAwk, kernelname);
 		printEndLine();
 		
@@ -191,10 +192,10 @@ protected:
 public:
 	template<typename FS> void performance(FS& fs, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
 	{
-		gamma1 = fs.gamma1();
-		gamma2 = fs.gamma2();
-		smoothlength = fs.smoothlength();
-		dtinvh = fs.dtinvh();
+		gamma1 = fs.gamma1;
+		gamma2 = fs.gamma2;
+		smoothlength = fs.smoothlength;
+		dtinvh = fs.dtinvh;
 		
 		TestLab * lab = new TestLab[NBLOCKS];
 		Block * blockgold = new Block[NBLOCKS];
@@ -242,8 +243,8 @@ public:
 			tCOMPUTE /= COUNT;
 		}
 				
-		string implname = "";
-
+		string implname = typeid(fs).name();
+/*
 		{
 			if (typeid(fs) == typeid(FlowStep_CPP))
 				implname = "FlowStep_CPP";
@@ -260,12 +261,13 @@ public:
 				cout << "Kernel name not inserted for awk\n";
 				abort();
 			}
-		}
+		}*/
 		
-		FlowStep_CPP::printflops(PEAKPERF, PEAKBAND, 1, 1, NTIMES, tCOMPUTE, false, implname);
-		cout << setprecision(4) << "\tMEMORY FOOTPRINT: "<< (lab->kB() +  Block::kB() + fs.kB(false))/1024<< " MB" << endl;
+		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE);
+		//cout << setprecision(4) << "\tMEMORY FOOTPRINT: "<< (lab->kB() +  Block::kB() + fs.kB(false))/1024<< " MB" << endl;
 		
-		printf("\tGOLD IS %.2f GFLOP/s\n", FlowStep_CPP::getGFLOP()/tGOLD);	
+		//how to solve this??????
+		//printf("\tGOLD IS %.2f GFLOP/s\n", FlowStep_CPP::getGFLOP()/tGOLD);	
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
 		
 		delete [] blockgold;
