@@ -19,7 +19,7 @@ protected:
 	int s[3], e[3];
 	int stencilStart[3], stencilEnd[3];	
 	Matrix3D<TElement, true, allocator> * cacheBlock;	
-	
+    
 	template<int dir, int side>
 	void _setup()
 	{
@@ -67,7 +67,80 @@ public:
 												dir==2? (side==0? 0:TBlock::sizeZ-1):iz);
 				}
 	}
-	
+    
+    template<int dir, int side>
+	void applyBC_absorbing_better_faces()
+	{
+		_setup<dir,side>();
+        
+        //Zeroth order extrapolation for faces. 
+        //This fills up ALL the ghost values although corners and edges will not be right. 
+        //Corners and edges will be overwritten on request by void applyBC_absorbing_better_tensorials<int,int>().
+		for(int iz=s[2]; iz<e[2]; iz++)
+			for(int iy=s[1]; iy<e[1]; iy++)
+				for(int ix=s[0]; ix<e[0]; ix++)
+				{
+					(*this)(ix,iy,iz) = (*this)(dir==0? (side==0? 0:TBlock::sizeX-1):ix,
+												dir==1? (side==0? 0:TBlock::sizeY-1):iy,
+												dir==2? (side==0? 0:TBlock::sizeZ-1):iz);
+				}
+	}
+    
+	void applyBC_absorbing_better_tensorials()
+    {
+        const int bsize[3] = {TBlock::sizeX, TBlock::sizeY, TBlock::sizeZ};
+        int s[3], e[3];
+        
+        //Edges
+        {           
+            for(int d=0; d<3; ++d)
+                for(int b=0; b<2; ++b)
+                    for(int a=0; a<2; ++a)
+                    {
+                        const int d1 = (d + 1) % 3;
+                        const int d2 = (d + 2) % 3;
+                        
+                        s[d]  =	stencilStart[d];
+                        s[d1] =	a*(bsize[d1]-stencilStart[d1])+stencilStart[d1];
+                        s[d2] =	b*(bsize[d2]-stencilStart[d2])+stencilStart[d2];
+                        
+                        e[d]  =	bsize[d]-1+stencilEnd[d];
+                        e[d1] =	a*(bsize[d1]-1+stencilEnd[d1]);
+                        e[d2] =	b*(bsize[d2]-1+stencilEnd[d2]);
+                        
+                        for(int iz=s[2]; iz<e[2]; iz++)
+                            for(int iy=s[1]; iy<e[1]; iy++)
+                                for(int ix=s[0]; ix<e[0]; ix++)
+                                {
+                                    (*this)(ix,iy,iz) = d==0? (*this)(ix,a*(bsize[1]-1),b*(bsize[2]-1)) : (d==1? (*this)(a*(bsize[0]-1),iy,b*(bsize[2]-1)) : (*this)(a*(bsize[0]-1),b*(bsize[1]-1),iz));
+                                }
+                    }         
+        }
+        
+        //Corners
+        {
+            for(int c=0; c<2; ++c)
+                for(int b=0; b<2; ++b)
+                    for(int a=0; a<2; ++a)
+                    {                        
+                        s[0]  =	a*(bsize[0]-stencilStart[0])+stencilStart[0];
+                        s[1] =	b*(bsize[1]-stencilStart[1])+stencilStart[1];
+                        s[2] =	c*(bsize[2]-stencilStart[2])+stencilStart[2];
+                        
+                        e[0]  =	a*(bsize[0]-1+stencilEnd[0]);
+                        e[1] =	b*(bsize[1]-1+stencilEnd[1]);
+                        e[2] =	c*(bsize[2]-1+stencilEnd[2]);
+                        
+                        for(int iz=s[2]; iz<e[2]; iz++)
+                            for(int iy=s[1]; iy<e[1]; iy++)
+                                for(int ix=s[0]; ix<e[0]; ix++)
+                                {
+                                    (*this)(ix,iy,iz) = (*this)(a*(bsize[0]-1),b*(bsize[1]-1),c*(bsize[2]-1));
+                                }
+                    }
+        }
+    }
+    
 	template<int dir, int side>
 	void applyBC_reflecting()
 	{

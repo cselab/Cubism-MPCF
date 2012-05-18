@@ -27,11 +27,14 @@ void Test_ShockTube::_ic(FluidGrid& grid)
 				{
 					Real p[3];
 					info.pos(p, ix, iy, iz);
-					b(ix, iy, iz).rho      = p[0]<0.5? 1:0.125;
+                    
+                    const bool mask = p[0]<0.5 && p[1]<0.5 || p[0]>0.5 && p[1]>0.5;
+                    
+					b(ix, iy, iz).rho      = mask? 1:0.125;
 					b(ix, iy, iz).u        = 0;
 					b(ix, iy, iz).v        = 0;
 					b(ix, iy, iz).w        = 0;
-					b(ix, iy, iz).energy   = p[0]<0.5? 2.5:0.25;
+					b(ix, iy, iz).energy   = mask? 2.5:0.25;
 					b(ix, iy, iz).levelset = 1;
 				}
 	}
@@ -41,22 +44,25 @@ void Test_ShockTube::_ic(FluidGrid& grid)
 
 void Test_ShockTube::run()
 {
-	int counter=0;
-	
-	while (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1)
+	int step_id=0;	
+	bool bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
+    
+    while(bLoop)
 	{
 		cout << "time is " << t << endl;
-		
-		if(counter%SAVEPERIOD == 0)
+		cout << "step_id is " << step_id << endl;
+        
+		if(step_id%DUMPPERIOD == 0)
 		{
 			std::stringstream streamer;
-			streamer<<"data-"<<counter<<".vti";
+			streamer<<"data-"<<step_id<<".vti";
 			_dump(streamer.str());
 		}
 		
 		const Real dt = (*stepper)(TEND-t);
 		t+=dt;
-		counter++;
+		step_id++;
+        bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
 	}
 }
 
