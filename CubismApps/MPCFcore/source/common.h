@@ -191,6 +191,13 @@ inline __m256 heaviside(const __m256 phi, const __m256 inv_h, const __m256 one, 
 	return (_mm256_blendv_ps(phalf, mhalf,  _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LT_OS))*x - one)*x + phalf;	
 }
 
+inline __m256 reconstruct(const __m256 y0, const __m256 y1, const __m256 phi, const __m256 inv_h, const __m256 one, const __m256 phalf, const __m256 mhalf) //15 FLOP
+{
+	const __m256 hs = heaviside(phi, inv_h, one, phalf, mhalf);
+	
+	return y0 * hs + y1 * (one - hs);
+}
+
 inline __m256 better_rcp(const __m256 a)
 {
 	const __m256 Ra0 = _mm256_rcp_ps(a);
@@ -206,7 +213,7 @@ inline __m256 worse_sqrt(const __m256 a)
 	return  _mm256_and_ps(tmp, _mm256_cmp_ps(a, _mm256_setzero_ps(), _CMP_GT_OS));
 }
 
-inline __m256 myrsqrt(const __m256 v) const
+inline __m256 myrsqrt(const __m256 v)
 {
 #ifdef _PREC_DIV_
 	return _mm256_div_ps(_mm256_set1_ps(1.), _mm_sqrt_ps(v));

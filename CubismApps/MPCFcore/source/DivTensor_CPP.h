@@ -8,6 +8,7 @@
  */
 #pragma once
 #include <vector>
+#include <cstdio>
 #include <cmath>
 
 #include "SOA2D.h"

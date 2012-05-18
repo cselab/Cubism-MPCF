@@ -89,7 +89,7 @@ ifeq "$(sse)" "1"
 	endif
 endif
 ifeq "$(avx)" "1"
-	#OBJECTS+= FlowStep_AVX_diego.o
+	OBJECTS+= Convection_AVX.o
 endif
 
 VPATH := ../source/

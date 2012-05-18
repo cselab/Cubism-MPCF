@@ -8,6 +8,7 @@
  */
 #pragma once
 
+#include <cstdio>		
 #include <algorithm>
 
 #include "common.h"

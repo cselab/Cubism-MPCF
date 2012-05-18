@@ -388,6 +388,7 @@ protected:
 								_mm256_load_ps(tzzptr + ix)*(_mm256_load_ps(wptr0 + ix) + _mm256_load_ps(wptr1 + ix)));
 			}
 		}
+#endif
 	}
 	
 	template <bool accum> inline void write256(float * const dest, const __m256 src)

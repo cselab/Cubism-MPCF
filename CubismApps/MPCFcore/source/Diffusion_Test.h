@@ -13,7 +13,9 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <cstdio>
 #include <string>
+#include <typeinfo>
 
 #include <BlockInfo.h>
 #include "TestTypes.h"

@@ -34,7 +34,7 @@
 #include "SurfaceTension_SSE.h"
 #endif
 #ifdef _AVX_
-//#include "FlowStep_AVX_diego.h"
+#include "Convection_AVX.h"
 #include "SurfaceTension_AVX.h"
 #include "Diffusion_AVX.h"
 #endif
@@ -185,14 +185,14 @@ int main (int argc, const char ** argv)
 	
 #ifdef _AVX_
 #if _ALIGNBYTES_ % 32 == 0
-	if (kernel == "FS_AVX_diego" || kernel == "all")
+	if (kernel == "Convection_AVX" || kernel == "all")
 	{
-		/*FlowStep_AVX_diego flowstep_avxdiego;
+		Convection_AVX convection(0, 1, 2.5, 2.1, 1, 0, 0);
 		//test.profile(flowstep_avxdiego, PP*1e9, PB*1e9, N); 
-		printKernelName("FlowStep_AVX_diego:");
-		test.accuracy(flowstep_avxdiego, accuracy, bAwk);
-		test.performance(flowstep_avxdiego, PP*1e9, PB*1e9, NB, N, bAwk);
-		printEndKernelTest();*/
+		printKernelName("Convection_AVX:");
+		test.accuracy(convection, accuracy, bAwk);
+		test.performance(convection, PP*1e9, PB*1e9, NB, N, bAwk);
+		printEndKernelTest();
 	}
 #endif //_ALIGNBYTES_
 #endif // _AVX_
