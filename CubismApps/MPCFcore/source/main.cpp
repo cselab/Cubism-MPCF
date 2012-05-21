@@ -162,8 +162,8 @@ int main (int argc, const char ** argv)
 #ifdef _SSE_
 	if (kernel == "MaxSOS_SSE" || kernel == "all")
 	{
-		MaxSpeedOfSound_CPP maxsos_cpp;
-		MaxSpeedOfSound_SSE maxsos_sse;
+		MaxSpeedOfSound_CPP maxsos_cpp(2.5, 2.1, 1, 0, 0);
+		MaxSpeedOfSound_SSE maxsos_sse(2.5, 2.1, 1, 0, 0);
 		printKernelName("MaxSpeedOfSound_SSE:");
 		local_test.accuracy(maxsos_sse, maxsos_cpp, accuracy, bAwk);
 		local_test.performance(maxsos_sse, maxsos_cpp, PP*1e9, PB*1e9, NB, N*10, bAwk);

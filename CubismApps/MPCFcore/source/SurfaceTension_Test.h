@@ -19,12 +19,6 @@ using namespace std;
 #include "TestTypes.h"
 #include "Timer.h"
 
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
-
 class SurfaceTension_Test
 {	
 	Real _heaviside(const Real phi, const Real EPSILON)

@@ -8,16 +8,10 @@
  */
 #pragma once
 #include <cassert>
-#include <cstdio>
-#include <iostream>
 #include <cstdlib>
-using namespace std;
+#include <cstdio>
 
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
+#include "common.h"
 
 class Update_CPP
 {

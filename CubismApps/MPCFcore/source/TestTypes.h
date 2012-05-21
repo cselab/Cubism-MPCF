@@ -7,13 +7,10 @@
  *
  */
 #pragma once
+
 #include <cassert>
 
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
+#include "common.h"
 
 struct StateVector { Real r, u, v, w, s, levelset;};
 

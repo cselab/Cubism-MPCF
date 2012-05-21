@@ -16,26 +16,6 @@
 
 using namespace std;
 
-Real MaxSpeedOfSound_CPP::_getgamma(const Real phi)
-{
-	const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/m_smoothlength)));
-	const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
-	const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
-	const Real hs = x<0 ? val_xneg : val_xpos;
-	
-	return m_gamma1*hs + m_gamma2*(((Real)1)-hs);
-}
-
-Real MaxSpeedOfSound_CPP::_getPC(const Real phi)
-{
-	const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/m_smoothlength)));
-	const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
-	const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
-	const Real hs = x<0 ? val_xneg : val_xpos;
-	
-	return m_pc1*hs + m_pc2*(((Real)1)-hs);
-}
-
 Real MaxSpeedOfSound_CPP::compute(const Real * const src, const int gptfloats)
 {
 	const int N=_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*gptfloats;
@@ -98,11 +78,11 @@ void MaxSpeedOfSound_SSE::_sse_convert(const float * const gptfirst, const int g
 	const __m128 F_1_2 = _mm_set_ps1(0.5f);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5f);
 	const __m128 F_1 = _mm_set_ps1(1);
-	const __m128 invsml = _mm_set_ps1(1.f/m_smoothlength);
-	const __m128 g1 = _mm_set_ps1(m_gamma1);
-	const __m128 g2 = _mm_set_ps1(m_gamma2);
-	const __m128 pc1 = _mm_set_ps1(m_pc1);
-	const __m128 pc2 = _mm_set_ps1(m_pc2);
+	const __m128 invsml = _mm_set_ps1(1.f/smoothlength);
+	const __m128 g1 = _mm_set_ps1(gamma1);
+	const __m128 g2 = _mm_set_ps1(gamma2);
+	const __m128 _pc1 = _mm_set_ps1(pc1);
+	const __m128 _pc2 = _mm_set_ps1(pc2);
 	
 #define ID (dx + _BLOCKSIZE_*dy)
 	
@@ -139,7 +119,7 @@ void MaxSpeedOfSound_SSE::_sse_convert(const float * const gptfirst, const int g
 			_mm_store_ps(p + ID,  
 						 (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho))*
 						 (_getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1) -
-                         _getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*_getPC(dataB1, invsml, pc1, pc2, F_1, F_1_2, M_1_2));
+                         _getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*_getPC(dataB1, invsml, _pc1, _pc2, F_1, F_1_2, M_1_2));
 		}
 	}
 	
@@ -152,11 +132,11 @@ void MaxSpeedOfSound_SSE::_sse_maxsos(const float * const r, const float * const
 	const __m128 F_1_2 = _mm_set_ps1(0.5);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5);
 	const __m128 F_1 = _mm_set_ps1(1);
-	const __m128 invsml = _mm_set_ps1(1.f/m_smoothlength);
-	const __m128 g1 = _mm_set_ps1(m_gamma1);
-	const __m128 g2 = _mm_set_ps1(m_gamma2);
-	const __m128 pc1 = _mm_set_ps1(m_pc1);
-	const __m128 pc2 = _mm_set_ps1(m_pc2);
+	const __m128 invsml = _mm_set_ps1(1.f/smoothlength);
+	const __m128 g1 = _mm_set_ps1(gamma1);
+	const __m128 g2 = _mm_set_ps1(gamma2);
+	const __m128 _pc1 = _mm_set_ps1(pc1);
+	const __m128 _pc2 = _mm_set_ps1(pc2);
     
 	const unsigned int absvalmask1 = 0x7fffffff;
 	const float * const absmaskptr = (float *)&absvalmask1;
@@ -169,7 +149,7 @@ void MaxSpeedOfSound_SSE::_sse_maxsos(const float * const r, const float * const
 	{
 #ifdef _PREC_DIV_
 		const __m128 x = _getgamma(_mm_load_ps(l + i), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-		_mm_max_ps((_mm_load_ps(p + i) +  _getPC(_mm_load_ps(l + i), invsml, pc1, pc2, F_1, F_1_2, M_1_2))*
+		_mm_max_ps((_mm_load_ps(p + i) +  _getPC(_mm_load_ps(l + i), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))*
 				   better_rcp(_mm_load_ps(r + i)), _mm_setzero_ps());
 		
 		const __m128 tmp = worse_sqrt(x);
@@ -177,7 +157,7 @@ void MaxSpeedOfSound_SSE::_sse_maxsos(const float * const r, const float * const
 		const __m128 c = _mm_and_ps(tmp, _mm_cmpgt_ps(x, _mm_setzero_ps()));
 #else
 		const __m128 c = _mm_sqrt_ps(_getgamma(_mm_load_ps(l + i), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-									 _mm_max_ps((_mm_load_ps(p + i)+_getPC(_mm_load_ps(l + i), invsml, pc1, pc2, F_1, F_1_2, M_1_2))/(_mm_load_ps(r + i)), _mm_setzero_ps()));
+									 _mm_max_ps((_mm_load_ps(p + i)+_getPC(_mm_load_ps(l + i), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))/(_mm_load_ps(r + i)), _mm_setzero_ps()));
 #endif
 		
 		const __m128 myu = _mm_load_ps(u + i);

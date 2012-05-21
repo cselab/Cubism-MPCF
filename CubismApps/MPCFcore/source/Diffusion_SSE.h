@@ -24,18 +24,9 @@ public:
 	
 protected:
 		
-	inline __m128 _compute_mu(const __m128 G, const __m128 nu1, const __m128 nu2, const __m128 F_1_2, const __m128 M_1_2, const __m128 one)
-	{
-        const __m128 x = _mm_min_ps(one, _mm_max_ps(_mm_setzero_ps() - one, G*one/_mm_set_ps1(smoothing_length)));
-        
-        const __m128 val_xneg = (M_1_2*x - one)*x + F_1_2;
-        const __m128 val_xpos = (F_1_2*x - one)*x + F_1_2;
-        
-        const __m128 flag = _mm_cmplt_ps(x, _mm_setzero_ps());
-        
-		const __m128 lambda = _mm_or_ps(_mm_and_ps(flag, val_xneg),_mm_andnot_ps(flag, val_xpos));
-		
-		return nu2*(one-lambda) + nu1*lambda;
+	inline __m128 _compute_mu(const __m128 G, const __m128 nu0, const __m128 nu1, const __m128 F_1_2, const __m128 M_1_2, const __m128 one)
+	{		
+		return reconstruct(nu0, nu1, G, _mm_set1_ps(smoothing_length), one, F_1_2, M_1_2);
 	}
 	
 	template<bool biphase>
