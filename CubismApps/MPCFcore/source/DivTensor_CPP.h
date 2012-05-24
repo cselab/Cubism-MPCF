@@ -86,8 +86,8 @@ protected:
     void _tensors_next() { ringtzx.next(); ringtzy.next(); ringtzz.next(); ringutz.next(); }
 	
 public:
-
-DivTensor_CPP(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
+	
+	DivTensor_CPP(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
     a(a), dtinvh(dtinvh), h(h), sigma(sigma)
 	{ 
 	}

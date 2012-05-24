@@ -21,8 +21,8 @@ using namespace std;
 #include "Convection_CPP.h"
 
 Convection_CPP::Convection_CPP(const Real a, const Real dtinvh, 
-			   const Real gamma1, const Real gamma2, const Real smoothlength, 
-			   const Real pc1, const Real pc2):
+							   const Real gamma1, const Real gamma2, const Real smoothlength, 
+							   const Real pc1, const Real pc2):
 a(a), dtinvh(dtinvh), 
 gamma1(gamma1), gamma2(gamma2), smoothlength(smoothlength), 
 pc1(pc1), pc2(pc2) 
@@ -181,7 +181,7 @@ void Convection_CPP::_convert(const Real * const gptfirst, const int gptfloats, 
 			w.ref(dx, dy) = pt.w/pt.r;
 			p.ref(dx, dy) = (pt.s - (pt.u*pt.u + pt.v*pt.v + pt.w*pt.w)*(((Real)0.5)/pt.r))*(_getgamma(pt.l)-1) - _getgamma(pt.l)*_getPC(pt.l);
 			l.ref(dx, dy) = pt.l;
-						
+			
 			assert(!isnan(rho.ref(dx, dy)));
 			assert(!isnan(u.ref(dx, dy)));
 			assert(!isnan(v.ref(dx, dy)));

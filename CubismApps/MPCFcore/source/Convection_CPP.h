@@ -33,18 +33,18 @@ public:
 	
 	//this provides the amount of flops and memory traffic performed in compute(.)
 	static void hpc_info(float& flop_convert, int& traffic_convert,
-				  float& flop_weno, int& traffic_weno,
-				  float& flop_extraterm, int& traffic_extraterm, 
-				  float& flop_charvel, int& traffic_charvel,
-				  float& flop_hlle, int& traffic_hlle,
-				  float& flop_div, int& traffic_div,
-				  float& flop_copyback, int& traffic_copyback,
-				  size_t& footprint);
+						 float& flop_weno, int& traffic_weno,
+						 float& flop_extraterm, int& traffic_extraterm, 
+						 float& flop_charvel, int& traffic_charvel,
+						 float& flop_hlle, int& traffic_hlle,
+						 float& flop_div, int& traffic_div,
+						 float& flop_copyback, int& traffic_copyback,
+						 size_t& footprint);
 	
 	//this report the performance details of compute(.) given the measured time
 	static void printflops(const float PEAKPERF_CORE, const float PEAKBAND, 
-					const int NCORES, const int NTIMES, const int NBLOCKS, 
-					const float MEASUREDTIME);
+						   const int NCORES, const int NTIMES, const int NBLOCKS, 
+						   const float MEASUREDTIME);
 	
 protected:
 	
@@ -78,8 +78,8 @@ protected:
 		wenow.next(); wenols.next();
 	}
 	
-	inline Real _getgamma(const Real phi) const { return reconstruct(gamma1, gamma2, phi, 1/smoothlength); } 
-	inline Real _getPC(const Real phi) const { return reconstruct(pc1, pc2, phi, 1/smoothlength); }
+	inline Real _getgamma(const Real phi) const { return getgamma(phi, smoothlength, gamma1, gamma2); } 
+	inline Real _getPC(const Real phi) const { return getPC(phi, smoothlength, pc1, pc2); }
     
 	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
 	

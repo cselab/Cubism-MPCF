@@ -16,22 +16,22 @@
 
 class Convection_AVX : public Convection_SSE
 {
-
+	
 public:
 	
 	Convection_AVX(Real a, Real dtinvh, Real gamma1, Real gamma2, Real smoothlength, Real pc1, Real pc2):
 	Convection_SSE(a, dtinvh, gamma1, gamma2, smoothlength, pc1, pc2) { }
-
+	
 protected:
-
+	
 	//these methods override the polymorphic ones of Convection_CPP
-	void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts)
+	void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts)
 	{
 		const bool bAligned = ((size_t)gptfirst & 0x1f) == 0;
 		const bool b8Multiple = gptfloats % 8 == 0;
 		
 		if (bAligned && b8Multiple)
-			_avx_convert_aligned(gptfirst, gptfloats, rowgpts, slicegpts, 
+			_avx_convert_aligned(gptfirst, gptfloats, rowgpts, 
 								 & ringrho.ref().ref(-8,-3),
 								 & ringu.ref().ref(-8,-3),
 								 & ringv.ref().ref(-8,-3),
@@ -39,7 +39,7 @@ protected:
 								 & ringp.ref().ref(-8,-3),
 								 & ringls.ref().ref(-8,-3));
 		else
-			_avx_convert(gptfirst, gptfloats, rowgpts, slicegpts, 
+			_avx_convert(gptfirst, gptfloats, rowgpts, 
 						 & ringrho.ref().ref(-8,-3),
 						 & ringu.ref().ref(-8,-3),
 						 & ringv.ref().ref(-8,-3),
@@ -153,9 +153,9 @@ protected:
 	float __attribute__((aligned(32))) tmp[TempSOA::NX][_CPER32BYTES];
 	
 	//these methods are called by the methods declared/defined above
-	void _avx_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts,
+	void _avx_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts,
 							  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l);
-	void _avx_convert(const float * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts,
+	void _avx_convert(const float * const gptfirst, const int gptfloats, const int rowgpts,
 					  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l);
 	
 	void _avx_xweno_minus(const float * const in, float * const out) const;	
@@ -202,18 +202,4 @@ protected:
 	void _avx_xrhsadd(const float * const flux, float * const rhs);	
 	void _avx_yrhsadd(const float * const flux, float * const rhs);
 	void _avx_zrhsadd(const float * const fback, const float * const fforward, float * const rhs);	
-
-	inline __m256 _getgamma(const __m256 phi, const __m256 inv_smoothlength, 
-							const __m256 gamma1, const __m256 gamma2,
-							const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2) const
-	{
-		return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	}
-	
-    inline __m256 _getPC(const __m256 phi, const __m256 inv_smoothlength, 
-						 const __m256 pc1, const __m256 pc2,
-						 const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2) const
-	{
-		return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	}
 };

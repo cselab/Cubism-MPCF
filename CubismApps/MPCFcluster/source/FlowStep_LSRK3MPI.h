@@ -150,13 +150,13 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 					
 					if(LSRK3data::sten_sigma!=0)
 					{
-						Ksten sten;
+						Ksten sten(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), vInfo.front().h_gridpoint, LSRK3data::smoothlength, LSRK3data::sten_sigma);
 						sten.printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size()*MPI::COMM_WORLD.Get_size(), global_t_sten/(double)LSRK3data::ReportFreq/MPI::COMM_WORLD.Get_size());
 					}
 					
 					if(LSRK3data::nu1!=0)
 					{
-						Kdiff diffusion;
+						Kdiff diffusion(dtinvh, LSRK3data::nu1, LSRK3data::nu2, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), vInfo.front().h_gridpoint, LSRK3data::smoothlength, dtinvh);
 						diffusion.printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size()*MPI::COMM_WORLD.Get_size(), global_t_diff/(double)LSRK3data::ReportFreq/MPI::COMM_WORLD.Get_size());
 					}
                 }

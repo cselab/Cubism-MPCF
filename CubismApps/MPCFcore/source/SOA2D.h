@@ -1,5 +1,5 @@
 /*
- *  SliceSOA.h
+ *  SOA2D.h
  *  
  *
  *  Created by Diego Rossinelli on 5/15/12.

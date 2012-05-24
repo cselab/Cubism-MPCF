@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "common.h"
+
 using namespace std;
 
 Real MaxSpeedOfSound_CPP::compute(const Real * const src, const int gptfloats)
@@ -44,33 +46,6 @@ Real MaxSpeedOfSound_CPP::compute(const Real * const src, const int gptfloats)
 }
 
 #ifdef _SSE_
-inline __m128 MaxSpeedOfSound_SSE::_heaviside(const __m128 phi, const __m128 inv_h, const __m128 one, const __m128 phalf, const __m128 mhalf) const
-{
-	const __m128 x = _mm_min_ps(one, _mm_max_ps(_mm_setzero_ps() - one, phi*inv_h));
-	
-	const __m128 val_xneg = (mhalf*x - one)*x + phalf;
-	const __m128 val_xpos = (phalf*x - one)*x + phalf;
-	
-	const __m128 flag = _mm_cmplt_ps(x, _mm_setzero_ps());
-	
-	return _mm_or_ps(_mm_and_ps(flag, val_xneg),_mm_andnot_ps(flag, val_xpos));
-}
-
-inline __m128 MaxSpeedOfSound_SSE::_getgamma(const __m128 phi, const __m128 inv_smoothlength, 
-											 const __m128 gamma1, const __m128 gamma2,
-											 const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) const
-{
-	const __m128 hs = _heaviside(phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	return (gamma1)*hs + (gamma2)*(F_1-hs); 
-}
-
-inline __m128 MaxSpeedOfSound_SSE::_getPC(const __m128 phi, const __m128 inv_smoothlength, 
-										  const __m128 pc1, const __m128 pc2,
-										  const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) const
-{
-	const __m128 hs = _heaviside(phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	return (pc1)*hs + (pc2)*(F_1-hs); 
-}
 
 void MaxSpeedOfSound_SSE::_sse_convert(const float * const gptfirst, const int gptfloats, float * const r, 
 									   float * const u, float * const v, float * const w, float * const p, float * const l)
@@ -118,8 +93,8 @@ void MaxSpeedOfSound_SSE::_sse_convert(const float * const gptfirst, const int g
 			
 			_mm_store_ps(p + ID,  
 						 (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho))*
-						 (_getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1) -
-                         _getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*_getPC(dataB1, invsml, _pc1, _pc2, F_1, F_1_2, M_1_2));
+						 (::getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1) -
+                         ::getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*::getPC(dataB1, invsml, _pc1, _pc2, F_1, F_1_2, M_1_2));
 		}
 	}
 	
@@ -148,16 +123,16 @@ void MaxSpeedOfSound_SSE::_sse_maxsos(const float * const r, const float * const
 	for(int i=0; i<N; i+=4)
 	{
 #ifdef _PREC_DIV_
-		const __m128 x = _getgamma(_mm_load_ps(l + i), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-		_mm_max_ps((_mm_load_ps(p + i) +  _getPC(_mm_load_ps(l + i), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))*
+		const __m128 x = ::getgamma(_mm_load_ps(l + i), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+		_mm_max_ps((_mm_load_ps(p + i) +  ::getPC(_mm_load_ps(l + i), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))*
 				   better_rcp(_mm_load_ps(r + i)), _mm_setzero_ps());
 		
 		const __m128 tmp = worse_sqrt(x);
 		
 		const __m128 c = _mm_and_ps(tmp, _mm_cmpgt_ps(x, _mm_setzero_ps()));
 #else
-		const __m128 c = _mm_sqrt_ps(_getgamma(_mm_load_ps(l + i), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-									 _mm_max_ps((_mm_load_ps(p + i)+_getPC(_mm_load_ps(l + i), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))/(_mm_load_ps(r + i)), _mm_setzero_ps()));
+		const __m128 c = _mm_sqrt_ps(::getgamma(_mm_load_ps(l + i), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+									 _mm_max_ps((_mm_load_ps(p + i)+::getPC(_mm_load_ps(l + i), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))/(_mm_load_ps(r + i)), _mm_setzero_ps()));
 #endif
 		
 		const __m128 myu = _mm_load_ps(u + i);

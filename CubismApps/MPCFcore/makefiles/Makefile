@@ -79,7 +79,7 @@ CPPFLAGS += -I../../../Cubism/source
 
 LIBS += -lm -lstdc++
 
-OBJECTS = main.o Convection_CPP.o MaxSpeedOfSound.o FlowStep_Test.o Update.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o SurfaceTension_Test.o Diffusion_Test.o
+OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o DivTensor_CPP.o Diffusion_CPP.o Test_Diffusion.o SurfaceTension_CPP.o Test_SurfaceTension.o 
 
 ifeq "$(sse)" "1"
 	ifeq "$(ap)" "double"

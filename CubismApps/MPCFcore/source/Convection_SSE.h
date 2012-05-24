@@ -202,32 +202,4 @@ protected:
 	void _sse_xrhsadd(const Real * const flux, Real * const rhs);	
 	void _sse_yrhsadd(const Real * const flux, Real * const rhs);
 	void _sse_zrhsadd(const Real * const fback, const Real * const fforward, Real * const rhs);
-
-	inline __m128 _getgamma(const __m128 phi, const __m128 inv_smoothlength, 
-							const __m128 gamma1, const __m128 gamma2,
-							const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) const
-	{
-		return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	}
-	
-	inline __m128d _getgamma(const __m128d phi, const __m128d inv_smoothlength, 
-							 const __m128d gamma1, const __m128d gamma2,
-							 const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) const
-	{
-		return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	}
-	
-    inline __m128 _getPC(const __m128 phi, const __m128 inv_smoothlength, 
-						 const __m128 pc1, const __m128 pc2,
-						 const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) const
-	{
-		return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	}
-	
-	inline __m128d _getPC(const __m128d phi, const __m128d inv_smoothlength, 
-						  const __m128d pc1, const __m128d pc2,
-						  const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) const
-	{
-		return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	}
 };

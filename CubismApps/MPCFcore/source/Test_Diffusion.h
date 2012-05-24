@@ -1,5 +1,5 @@
 //
-//  Diffusion_Test.h
+//  Test_Diffusion.h
 //  MPCFcore
 //
 //  Created by Babak Hejazialhosseini on 9/16/11.
@@ -21,7 +21,7 @@
 #include "TestTypes.h"
 #include "Timer.h"
 
-class Diffusion_Test
+class Test_Diffusion
 {
 	void _initialize(TestLab_S2& lab, const double h)
 	{
@@ -121,9 +121,7 @@ class Diffusion_Test
 	}
 	
 	void _gold(TestLab_S2& lab, Block& block, const Real _nu1, const Real _nu2, const Real _g1, const Real _g2, const Real a, const Real _dtinvh, const Real _h);
-	
-	void _compare(Block& _a, Block& _b, double accuracy, std::string kernelname);
-	
+		
 	template<typename FS> double _benchmark(FS fs, const int NBLOCKS, const int NTIMES)
 	{
 		TestLab_S2 * lab = new TestLab_S2[NBLOCKS];
@@ -209,7 +207,7 @@ public:
 		
 		delete lab;
 		
-		_compare(*blockgold, *block, accuracy, typeid(fs).name());
+		blockgold->compare(*block, accuracy, typeid(fs).name());
 		
 		delete blockgold;
 		delete block;

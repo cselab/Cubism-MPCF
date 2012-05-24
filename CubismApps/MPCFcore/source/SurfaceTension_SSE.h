@@ -15,18 +15,18 @@
 class SurfaceTension_SSE: public virtual DivTensor_SSE, public virtual SurfaceTension_CPP
 {
 protected:
-		
+	
 	//used only for biphase
 	inline __m128 _compute_ls(const __m128 G,  const __m128 F_1_2, const __m128 M_1_2, const __m128 one)
 	{
-	  const __m128 x = _mm_min_ps(one, _mm_max_ps(_mm_setzero_ps() - one, G*one/_mm_set_ps1(smoothing_length)));
-         
-	  const __m128 val_xneg = (M_1_2*x - one)*x + F_1_2;
-	  const __m128 val_xpos = (F_1_2*x - one)*x + F_1_2;
-         
-	  const __m128 flag = _mm_cmplt_ps(x, _mm_setzero_ps());
-         
-	  return one - _mm_or_ps(_mm_and_ps(flag, val_xneg),_mm_andnot_ps(flag, val_xpos));
+		const __m128 x = _mm_min_ps(one, _mm_max_ps(_mm_setzero_ps() - one, G*one/_mm_set_ps1(smoothing_length)));
+		
+		const __m128 val_xneg = (M_1_2*x - one)*x + F_1_2;
+		const __m128 val_xpos = (F_1_2*x - one)*x + F_1_2;
+		
+		const __m128 flag = _mm_cmplt_ps(x, _mm_setzero_ps());
+		
+		return one - _mm_or_ps(_mm_and_ps(flag, val_xneg),_mm_andnot_ps(flag, val_xpos));
 	}
 	
 	template<bool biphase>
@@ -43,7 +43,7 @@ protected:
 			const float x = min((float)1, max((float)-1, pt[5]*(((float)1)/(float)smoothing_length)));
 			const float val_xneg = (((float)-0.5)*x - ((float)1))*x + ((float)0.5);
 			const float val_xpos = (((float)+0.5)*x - ((float)1))*x + ((float)0.5);
-             
+			
 			ls = 1 - (x<0 ? val_xneg : val_xpos);
 		}
 		else
@@ -64,7 +64,7 @@ protected:
 		const __m128 F_1 = _mm_set_ps1(1);
 		const __m128 F_1_2 = _mm_set_ps1(0.5);
 		const __m128 M_1_2 = _mm_set_ps1(-0.5);
-
+		
 		const int stride = gptfloats*rowgpts;
 		static const int PITCHOUT = _u.PITCH;
 		
@@ -124,7 +124,7 @@ protected:
 		abort();
 #else
 		InputSOA_ST& u=ringu.ref(), &v=ringv.ref(), &w=ringw.ref(), &mu = ringls.ref();
-
+		
 		if (G1 == G2)
 			_convert_sse<false>(gptfirst, gptfloats, rowgpts, u, v, w, mu);
 		else
@@ -133,15 +133,15 @@ protected:
 	}
 	
 	void _tensor_xface(const TempSOAf_ST& nx0, const TempSOAf_ST& nx1, 
-				  const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
-				  const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
+					   const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
+					   const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
 	{
 #ifndef _SP_COMP_
 		printf("Diffusion_SSE::_tensor_xface: you should not be here in double precision. Aborting.\n");
 		abort();
 #else
 		const __m128 F_1_3 = _mm_set1_ps((Real)(1./3));
-				
+		
 		_average_xface<false>(1, nx0, nx1, txx);
 		_average_xface<false>(1, ny0, ny1, txy);
 		_average_xface<false>(1, nz0, nz1, txz);
@@ -158,7 +158,7 @@ protected:
 			float * const txxptr = txxbase + iy*PITCHOUT;
 			float * const txyptr = txybase + iy*PITCHOUT;
 			float * const txzptr = txzbase + iy*PITCHOUT;
-						
+			
 			for(int ix=0; ix<TempPiXSOA_ST::NX; ix+=4)
 			{
 				const __m128 nx = _mm_load_ps(txxptr + ix);
@@ -178,8 +178,8 @@ protected:
 	}
 	
 	void _tensor_yface(const TempSOAf_ST& nx0, const TempSOAf_ST& nx1, 
-							   const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
-							   const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
+					   const TempSOAf_ST& ny0, const TempSOAf_ST& ny1, 
+					   const TempSOAf_ST& nz0, const TempSOAf_ST& nz1)
 	{
 #ifndef _SP_COMP_
 		printf("Diffusion_SSE::_tensor_yface: you should not be here in double precision. Aborting.\n");
@@ -223,7 +223,7 @@ protected:
 	}
 	
 	void _tensor_zface(const TempSOAf_ST& nx, const TempSOAf_ST& ny, const TempSOAf_ST& nz,
-							   TempPiZSOAf_ST& tzx, TempPiZSOAf_ST& tzy, TempPiZSOAf_ST& tzz)
+					   TempPiZSOAf_ST& tzx, TempPiZSOAf_ST& tzy, TempPiZSOAf_ST& tzz)
 	{
 #ifndef _SP_COMP_
 		printf("Diffusion_SSE::_tensor_zface: you should not be here in double precision. Aborting.\n");
@@ -268,9 +268,11 @@ protected:
 	
 public:
 	
- SurfaceTension_SSE(const Real a = 1, const Real dtinvh = 1, const Real G1 = 1/(2.5-1), const Real G2 = 1/(2.1-1), const Real h = 1, const Real smoothing_length=1, const Real sigma=1):
+	SurfaceTension_SSE(const Real a, const Real dtinvh, 
+					   const Real G1, const Real G2, const Real h, 
+					   const Real smoothing_length, const Real sigma):
 	SurfaceTension_CPP(a, dtinvh, G1, G2, h, smoothing_length, sigma),
-	  DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
+	DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
 	{ 
 	}
 };

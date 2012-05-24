@@ -50,6 +50,16 @@ inline Real reconstruct(const Real y0, const Real y1, const Real phi, const Real
 	return y0*hs + y1*(1-hs);
 }
 
+inline Real getgamma(const Real phi, const Real smoothlength, const Real gamma0, const Real gamma1) 
+{ 
+	return reconstruct(gamma0, gamma1, phi, 1/smoothlength); 
+} 
+
+inline Real getPC(const Real phi, const Real smoothlength, const Real pc1, const Real pc2) 
+{ 
+	return reconstruct(pc1, pc2, phi, 1/smoothlength); 
+}
+
 //SSE-related functions
 #include <xmmintrin.h>
 
@@ -158,6 +168,34 @@ inline __m128d reconstruct(const __m128d y0, const __m128d y1, const __m128d phi
 	return y0 * hs + y1 * (one - hs);
 }
 
+inline __m128 getgamma(const __m128 phi, const __m128 inv_smoothlength, 
+						const __m128 gamma1, const __m128 gamma2,
+						const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) 
+{
+	return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
+}
+
+inline __m128d getgamma(const __m128d phi, const __m128d inv_smoothlength, 
+						 const __m128d gamma1, const __m128d gamma2,
+						 const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) 
+{
+	return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
+}
+
+inline __m128 getPC(const __m128 phi, const __m128 inv_smoothlength, 
+					 const __m128 pc1, const __m128 pc2,
+					 const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) 
+{
+	return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
+}
+
+inline __m128d getPC(const __m128d phi, const __m128d inv_smoothlength, 
+					  const __m128d pc1, const __m128d pc2,
+					  const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) 
+{
+	return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
+}
+
 #ifndef _mm_set_pd1
 #define _mm_set_pd1(a) (_mm_set_pd((a),(a)))
 #endif
@@ -196,6 +234,20 @@ inline __m256 reconstruct(const __m256 y0, const __m256 y1, const __m256 phi, co
 	const __m256 hs = heaviside(phi, inv_h, one, phalf, mhalf);
 	
 	return y0 * hs + y1 * (one - hs);
+}
+
+inline __m256 getgamma(const __m256 phi, const __m256 inv_smoothlength, 
+						const __m256 gamma1, const __m256 gamma2,
+						const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2)
+{
+	return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
+}
+
+inline __m256 getPC(const __m256 phi, const __m256 inv_smoothlength, 
+					 const __m256 pc1, const __m256 pc2,
+					 const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2)
+{
+	return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
 }
 
 inline __m256 better_rcp(const __m256 a)
@@ -301,4 +353,3 @@ inline void awkAcc(string kernelname,
 	cout << "\t" << setprecision(4) << l15;
 	cout << endl;
 }
-

@@ -1,5 +1,5 @@
 /*
- *  Convection_Test.cpp
+ *  Test_Convection.cpp
  *  MPCFcore
  *
  *  Created by Diego Rossinelli on 5/17/11.
@@ -16,19 +16,19 @@
 using namespace std;
 
 #include "TestTypes.h"
-#include "Convection_Test.h"
+#include "Test_Convection.h"
 
-void Convection_Test::_initialize(TestLab& lab, Block& block)
+void Test_Convection::_initialize(TestLab& lab, Block& block)
 {
 	srand48(61651);
-
+	
 	for(int iz = -3; iz<_BLOCKSIZE_+3; iz++)
 		for(int iy = -3; iy<_BLOCKSIZE_+3; iy++)
 		{
 			for(int ix = -3; ix<_BLOCKSIZE_+3; ix++)
 			{
 				memset(&lab(ix, iy, iz), 0, sizeof(GP));
-
+				
 				const int a = iy;
 				const int b = iz; 
 				const int c = ix;
@@ -42,7 +42,7 @@ void Convection_Test::_initialize(TestLab& lab, Block& block)
 				lab(ix, iy, iz).s.levelset = (1+c+b*L + a*L*L)/(double)L;
 			}
 		}
-
+	
 	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
 		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
 			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
@@ -58,7 +58,7 @@ void Convection_Test::_initialize(TestLab& lab, Block& block)
 			}
 }
 
-void Convection_Test::_print(Block& block)
+void Test_Convection::_print(Block& block)
 {
 	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
 		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
@@ -272,7 +272,7 @@ struct FluxBuilder_HLLE
 	{
 		return  max(momentum[0]/density[0] + a[0], momentum[1]/density[1] + a[1]);	
 	}
-
+	
 	
 	inline float _soundEOS(const float P, const float density, const float gamma, const bool bisIdealGas, const float corr_gamma) const
 	{
@@ -294,7 +294,7 @@ struct FluxBuilder_HLLE
 		return result;
 	}
 	
-	 Real _heavyside(Real phi, Real h) const
+	Real _heavyside(Real phi, Real h) const
 	{
 		const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/h)));
 		const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
@@ -449,7 +449,7 @@ struct FluxBuilder_HLLE
 #ifndef _WATERBUBBLE_
 			  Vel[iDir][1]*(P[1]+E[1]));
 #else
-			  Vel[iDir][1]*((P[1]+gamma[1]*( LS[1]<0.0? _Pc_:0.0) )*(1.+1./(gamma[1]-1.) ) + 0.5*R[1]*(Vel[0][1]*Vel[0][1] + Vel[1][1]*Vel[1][1] + Vel[2][1]*Vel[2][1] ) ) );
+		Vel[iDir][1]*((P[1]+gamma[1]*( LS[1]<0.0? _Pc_:0.0) )*(1.+1./(gamma[1]-1.) ) + 0.5*R[1]*(Vel[0][1]*Vel[0][1] + Vel[1][1]*Vel[1][1] + Vel[2][1]*Vel[2][1] ) ) );
 #endif
 		
 #ifndef _WATERBUBBLE_
@@ -460,7 +460,7 @@ struct FluxBuilder_HLLE
 		setV5(uRIGHT , R[1], R[1]*Vel[0][1], R[1]*Vel[1][1], R[1]*Vel[2][1], (P[1]+gamma[1]*( LS[1]<0.0? _Pc_:0.0) )/(gamma[1]-1.) + 0.5*R[1]*(Vel[0][1]*Vel[0][1] + Vel[1][1]*Vel[1][1] + Vel[2][1]*Vel[2][1]) );
 #endif
 		setV5(aLEFT ,  CV[0], CV[0], CV[0], CV[0], CV[0]);
-
+		
 		setV5(aRIGHT , CV[1], CV[1], CV[1], CV[1], CV[1]);
 		HLLE5(fLEFT, fRIGHT, uLEFT, uRIGHT, aLEFT, aRIGHT, EUflux);
 		
@@ -480,13 +480,13 @@ struct FluxBuilder_HLLE
 };
 
 
-void Convection_Test::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
+void Test_Convection::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
 {
 	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
 		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
 			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
 				assert(lab(ix, iy, iz).s.r>0);
-
+	
 	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
 		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
 			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
@@ -571,7 +571,7 @@ void Convection_Test::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
 				}
 				
 				Real fluxN[6], fluxS[6], fluxW[6], fluxE[6], fluxB[6], fluxF[6];
-
+				
 				FluxBuilder_HLLE<> flux_builder(h_gridpoint, gamma1, gamma2);
 				flux_builder.buildUsingPrimitives<0>(SIDES_WE_LEFT , fluxW);
 				flux_builder.buildUsingPrimitives<0>(SIDES_WE_RIGHT, fluxE);
@@ -591,7 +591,7 @@ void Convection_Test::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
 				}
 				
 				Real RHS[6];
-
+				
 				for(int i=0; i<6; i++)
 					RHS[i] = minuslambda*(fluxE[i] - fluxW[i] + fluxN[i] - fluxS[i] + fluxF[i] - fluxB[i]);
 				
@@ -603,7 +603,7 @@ void Convection_Test::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
 				
 				for(int i=0; i<6; i++)
 					assert(!isnan(RHS[i]));
-
+				
 				block(ix, iy, iz).dsdt.r = RHS[0];
 				block(ix, iy, iz).dsdt.u = RHS[1];
 				block(ix, iy, iz).dsdt.v = RHS[2];
@@ -611,64 +611,4 @@ void Convection_Test::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
 				block(ix, iy, iz).dsdt.s = RHS[4];
 				block(ix, iy, iz).dsdt.levelset = RHS[5];
 			}
-}
-
-void Convection_Test::_compare(Block& _a, Block& _b, double accuracy, bool bAwk, string kernelname)
-{
-	double maxe[6]={0,0,0,0,0,0};
-	double sume[6]={0,0,0,0,0,0};
-	
-	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
-		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
-			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
-			{
-				StateVector a = _a(ix, iy, iz).dsdt;
-				StateVector b = _b(ix, iy, iz).dsdt;
-				const double s[6]  = {
-					b.r ,
-					b.u ,
-					b.v ,
-					b.w ,
-					b.s ,
-					b.levelset
-				};
-				
-				for(int i=0; i<6; ++i)
-					assert(!isnan(s[i]));
-				
-				const double e[6]  = {
-					b.r - a.r,
-					b.u - a.u,
-					b.v - a.v,
-					b.w - a.w,
-					b.s - a.s,
-					b.levelset - a.levelset
-				};
-				
-				for(int i=0; i<6; ++i)
-					assert(!isnan(e[i]));
-				
-				for(int i=0; i<6; i++)
-					if (fabs(e[i])/fabs(s[i])>accuracy && fabs(e[i])>accuracy) printf("significant error at %d %d %d %d -> e=%e (rel is %e, values are %e %e)\n", ix, iy, iz, i, e[i], e[i]/s[i],s[i],s[i]-e[i]);
-				
-				for(int i=0; i<6; i++)
-					maxe[i] = max(fabs(e[i]), maxe[i]);
-				
-				for(int i=0; i<6; i++)
-					sume[i] += fabs(e[i]);
-			}
-	
-	printf("\tLinf discrepancy:\t");
-	for(int i=0; i<6; i++)
-		printf("%.2e ", maxe[i]);
-
-	printf("\n\tL1 (dh=1):       \t");
-	for(int i=0; i<6; i++)
-		printf("%.2e ", sume[i]);
-	printf("\n");
-	
-	if (bAwk)
-		awkAcc(kernelname,
-			   maxe[0], maxe[1], maxe[2], maxe[3], maxe[4], maxe[5],
-			   sume[0], sume[1], sume[2], sume[3], sume[4], sume[5]);
 }

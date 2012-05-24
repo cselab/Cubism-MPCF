@@ -16,14 +16,16 @@ class Diffusion_SSE: public virtual Diffusion_CPP, public virtual DivTensor_SSE
 {
 public:
 	
-	Diffusion_SSE(const Real a=1, const Real nu1 = 1, const Real nu2 = 2, const Real G1 = 1/(2.1-1), const Real G2 = 1/(2.1-1), const Real h = 1, const Real smoothing_length=1, const Real dtinvh = 1):
+	Diffusion_SSE(const Real a, const Real nu1, const Real nu2, 
+				  const Real G1, const Real G2, 
+				  const Real h, const Real smoothing_length, const Real dtinvh):
 	DivTensor_CPP(a, dtinvh, h, 0.5), //this is the base class of Diffusion_CPP and DivTensor_SSE
 	Diffusion_CPP(a, nu1, nu2, G1, G2, h, smoothing_length, dtinvh), DivTensor_SSE(a, dtinvh, h, 0.5)
 	{
 	}
 	
 protected:
-		
+	
 	inline __m128 _compute_mu(const __m128 G, const __m128 nu0, const __m128 nu1, const __m128 F_1_2, const __m128 M_1_2, const __m128 one)
 	{		
 		return reconstruct(nu0, nu1, G, _mm_set1_ps(smoothing_length), one, F_1_2, M_1_2);
@@ -100,12 +102,12 @@ protected:
 				static const int SL = 4;
 				if (SL + iy <= _BLOCKSIZE_+1)
 				{
-				  _mm_prefetch((char *)(gpt0 + SL*rowgpts*gptfloats), _MM_HINT_T0);
-				  _mm_prefetch((char *)(gpt1 + SL*rowgpts*gptfloats), _MM_HINT_T0);
-				  _mm_prefetch((char *)(gpt2 + SL*rowgpts*gptfloats), _MM_HINT_T0);
-				  _mm_prefetch((char *)(gpt3 + SL*rowgpts*gptfloats), _MM_HINT_T0);
+					_mm_prefetch((char *)(gpt0 + SL*rowgpts*gptfloats), _MM_HINT_T0);
+					_mm_prefetch((char *)(gpt1 + SL*rowgpts*gptfloats), _MM_HINT_T0);
+					_mm_prefetch((char *)(gpt2 + SL*rowgpts*gptfloats), _MM_HINT_T0);
+					_mm_prefetch((char *)(gpt3 + SL*rowgpts*gptfloats), _MM_HINT_T0);
 				}
-
+				
 				__m128 data0 = _mm_loadu_ps(gpt0);
 				__m128 data1 = _mm_loadu_ps(gpt1);
 				__m128 data2 = _mm_loadu_ps(gpt2);
@@ -178,7 +180,7 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		float * const txxbase = &txx.ref(0,0); 
 		float * const txybase = &txy.ref(0,0); 
 		float * const txzbase = &txz.ref(0,0); 
-
+		
 		for(int iy=0; iy<TempPiXSOA_ST::NY; iy++)
 		{
 			const float * const muptr = mubase + iy*PITCHIN; 
@@ -216,7 +218,7 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		
 		_average_yface<false>(1, uy0, uy1, tyx);
 		_average_yface<true>(1, vx0, vx1, tyx);
-
+		
 		_average_yface<false>(-factor, ux0, ux1, tyy);
 		_average_yface<true>(2-factor, vy0, vy1, tyy);
 		_average_yface<true>(-factor, wz0, wz1, tyy);
@@ -250,19 +252,19 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		}
 #endif
 	}
-
+	
 	void _zface(const InputSOAf_ST& mu0, const InputSOAf_ST& mu1,
-							   const TempSOAf_ST& ux, const TempSOAf_ST& uz, 
-							   const TempSOAf_ST& vy, const TempSOAf_ST& vz, 
-							   const TempSOAf_ST& wx, const TempSOAf_ST& wy, const TempSOAf_ST& wz,
-							   TempPiZSOAf_ST& tzx, TempPiZSOAf_ST& tzy, TempPiZSOAf_ST& tzz)
+				const TempSOAf_ST& ux, const TempSOAf_ST& uz, 
+				const TempSOAf_ST& vy, const TempSOAf_ST& vz, 
+				const TempSOAf_ST& wx, const TempSOAf_ST& wy, const TempSOAf_ST& wz,
+				TempPiZSOAf_ST& tzx, TempPiZSOAf_ST& tzy, TempPiZSOAf_ST& tzz)
 	{	
 #ifndef _SP_COMP_
 		printf("Diffusion_SSE::_zface: you should not be here in double precision. Aborting.\n");
 		abort();
 #else
 		const float factor = (float)(2./3);
-				
+		
 		_average_zface<false>(1, uz, tzx);
 		_average_zface<true>(1, wx, tzx);
 		
@@ -302,7 +304,7 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		}
 #endif
 	}
-
+	
 	void _xmul(const InputSOAf_ST& _mu)
 	{	
 #ifndef _SP_COMP_
@@ -316,7 +318,7 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		float * const txxbase = &txx.ref(0,0); 
 		float * const txybase = &txy.ref(0,0); 
 		float * const txzbase = &txz.ref(0,0); 
-
+		
 		for(int iy=0; iy<TempPiXSOA_ST::NY; iy++)
 		{
 			const float * const muptr = mubase + iy*PITCHIN; 
@@ -340,7 +342,7 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		}
 #endif
 	}
-
+	
 	void _ymul(const InputSOAf_ST& _mu)
 	{		 
 #ifndef _SP_COMP_
@@ -374,7 +376,7 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		}
 #endif
 	}
-
+	
 	void _zmul(const InputSOAf_ST& mu0, const InputSOAf_ST& mu1, TempPiZSOAf_ST& tzx, TempPiZSOAf_ST& tzy, TempPiZSOAf_ST& tzz)
 	{	
 #ifndef _SP_COMP_
@@ -410,10 +412,10 @@ _mm_shuffle_ps(_mm_shuffle_ps(W,C, _MM_SHUFFLE(0,0,3,3)), C, _MM_SHUFFLE(2,1,3,0
 		}
 #endif
 	}
-
+	
 public:
-
-void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
+	
+	void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
                  Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts)
 	{	
 #ifndef _SP_COMP_
@@ -424,40 +426,40 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 		_input_next();
 		
 		_convert(srcfirst + srcfloats*slicesrcs, srcfloats, rowsrcs);
-
+		
 		const float factor = (float)(2./3);
-
+		
 		_corners(ringu(-1), ringu(0), ringnx.ref(), ringny.ref(), ringnz.ref());
-
+		
 		{
 			const TempSOAf_ST& ux1 = ringnx.ref();
 			const TempSOAf_ST& uz1 = ringnz.ref();
-
+			
 			_average_zface<false>(1, uz1, ringtzx.ref());
 			_average_zface<false>(-factor, ux1, ringtzz.ref());
 		}
-
+		
 		_corners(ringv(-1), ringv(0), gradvx.ref(), gradvy.ref(), gradvz.ref());
-
+		
 		{
 			const TempSOAf_ST& vy1 = gradvy.ref();
 			const TempSOAf_ST& vz1 = gradvz.ref();
-
+			
 			_average_zface<false>(1, vz1, ringtzy.ref());
 			_average_zface<true>(-factor, vy1, ringtzz.ref());
 		}
-
+		
 		_corners(ringw(-1), ringw(0), gradwx.ref(), gradwy.ref(), gradwz.ref());
 		{
 			const TempSOAf_ST& wx1 = gradwx.ref();
 			const TempSOAf_ST& wy1 = gradwy.ref();
 			const TempSOAf_ST& wz1 = gradwz.ref();
-
+			
 			_average_zface<true>(1, wx1, ringtzx.ref());
 			_average_zface<true>(1, wy1, ringtzy.ref());
 			_average_zface<true>(2-factor, wz1, ringtzz.ref());
 		}
-
+		
 		_zmul(ringls(-1), ringls(), ringtzx.ref(), ringtzy.ref(), ringtzz.ref());
 		
 		_udot_tz(ringu(-1), ringv(-1), ringw(-1),  ringu(), ringv(), ringw(), ringtzx(), ringtzy(), ringtzz(), ringutz.ref());
@@ -469,9 +471,9 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 			_grad_next();
 			
 			_convert(srcfirst + (islice+2)*srcfloats*slicesrcs, srcfloats, rowsrcs);
-
+			
 			_corners(ringu(-1), ringu(0), ringnx.ref(), ringny.ref(), ringnz.ref());
-
+			
 			{
 				const TempSOAf_ST& ux0 = ringnx.ref(-1);
 				const TempSOAf_ST& ux1 = ringnx.ref();
@@ -479,7 +481,7 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 				const TempSOAf_ST& uy1 = ringny.ref();
 				const TempSOAf_ST& uz0 = ringnz.ref(-1);
 				const TempSOAf_ST& uz1 = ringnz.ref();
-
+				
 				_average_xface<false>(2-factor, ux0, ux1, txx);
 				_average_yface<false>(-factor, ux0, ux1, tyy);
 				_average_xface<false>(1, uy0, uy1, txy);
@@ -488,9 +490,9 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 				_average_zface<false>(1, uz1, ringtzx.ref());
 				_average_zface<false>(-factor, ux1, ringtzz.ref());
 			}
-
+			
 			_corners(ringv(-1), ringv(0), gradvx.ref(), gradvy.ref(), gradvz.ref());
-
+			
 			{
 				const TempSOAf_ST& vx0 = gradvx.ref(-1);
 				const TempSOAf_ST& vx1 = gradvx.ref();
@@ -498,7 +500,7 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 				const TempSOAf_ST& vy1 = gradvy.ref();
 				const TempSOAf_ST& vz0 = gradvz.ref(-1);
 				const TempSOAf_ST& vz1 = gradvz.ref();
-
+				
 				_average_xface<true>(-factor, vy0, vy1, txx);
 				_average_xface<true>(1, vx0, vx1, txy);
 				_average_yface<true>(1, vx0, vx1, tyx);
@@ -507,9 +509,9 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 				_average_yface<false>(1, vz0, vz1, tyz);
 				_average_zface<false>(1, vz1, ringtzy.ref());
 			}
-
+			
 			_corners(ringw(-1), ringw(0), gradwx.ref(), gradwy.ref(), gradwz.ref());
-
+			
 			{
 				const TempSOAf_ST& wx0 = gradwx.ref(-1);
 				const TempSOAf_ST& wx1 = gradwx.ref();
@@ -517,7 +519,7 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 				const TempSOAf_ST& wy1 = gradwy.ref();
 				const TempSOAf_ST& wz0 = gradwz.ref(-1);
 				const TempSOAf_ST& wz1 = gradwz.ref();
-
+				
 				_average_xface<true>(1, wx0, wx1, txz);
 				_average_zface<true>(1, wx1, ringtzx.ref());
 				_average_yface<true>(1, wy0, wy1, tyz);
@@ -526,11 +528,11 @@ void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs
 				_average_yface<true>(-factor, wz0, wz1, tyy);
 				_average_zface<true>(2-factor, wz1, ringtzz.ref());
 			}
-
+			
 			_xmul(ringls(-1));
 			_ymul(ringls(-1));
 			_zmul(ringls(-1), ringls(), ringtzx.ref(), ringtzy.ref(), ringtzz.ref());
-
+			
 			_udot_tx(ringu(-1), ringv(-1), ringw(-1));
 			_udot_ty(ringu(-1), ringv(-1), ringw(-1));
 			_udot_tz(ringu(-1), ringv(-1), ringw(-1), ringu(0), ringv(0), ringw(0), ringtzx(), ringtzy(), ringtzz(), ringutz.ref());

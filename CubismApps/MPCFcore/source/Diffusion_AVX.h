@@ -18,7 +18,9 @@ class Diffusion_AVX: public virtual Diffusion_SSE, public virtual DivTensor_AVX
 {
 public:
 	
-	Diffusion_AVX(const Real a=1, const Real nu1 = 1, const Real nu2 = 2, const Real G1 = 1/(2.1-1), const Real G2 = 1/(2.1-1), const Real h = 1, const Real smoothing_length=1, const Real dtinvh = 1):
+	Diffusion_AVX(const Real a, const Real nu1, const Real nu2, 
+				  const Real G1, const Real G2, 
+				  const Real h, const Real smoothing_length, const Real dtinvh):
 	DivTensor_AVX(a, dtinvh, h, 0.5), //this is the base class of Diffusion_CPP and DivTensor_SSE
 	Diffusion_SSE(a, nu1, nu2, G1, G2, h, smoothing_length, dtinvh), 
 	Diffusion_CPP(a, nu1, nu2, G1, G2, h, smoothing_length, dtinvh),

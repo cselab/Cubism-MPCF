@@ -24,17 +24,17 @@ public:
 	const RealTemp nu1, nu2;
 	const RealTemp G1, G2;
     const Real smoothing_length;
-
+	
 	RingTempSOA_ST gradvx, gradvy, gradvz, gradwx, gradwy, gradwz;
 	
-	Diffusion_CPP(const Real a = 1,
-				  const Real nu1 = 1,
-				  const Real nu2 = 2,
-				  const Real G1 = 1/(2.5-1),
-				  const Real G2 = 1/(2.1-1),
-				  const Real h = 1,
-                  const Real smoothing_length=1,
-				  const Real dtinvh = 1):
+	Diffusion_CPP(const Real a,
+				  const Real nu1,
+				  const Real nu2,
+				  const Real G1,
+				  const Real G2,
+				  const Real h,
+                  const Real smoothing_length,
+				  const Real dtinvh):
 	DivTensor_CPP(a, dtinvh, h, 0.5), nu1(nu1), nu2(nu2), G1(G1), G2(G2), smoothing_length(smoothing_length) { }
 	
 	void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);	

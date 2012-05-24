@@ -95,7 +95,7 @@ omega2 *(F_1_3*d + F_5_6*c + M_1_6*b)	);
 #include "Convection_SSE.h"
 
 void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts,
-											  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
+										  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5f);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5f);
@@ -145,8 +145,8 @@ void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const in
 			
 			_mm_store_ps(p + DESTID,  
 						 (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho))*
-						 (_getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1) -
-						 _getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*_getPC(dataB1, invsml, _pc1, _pc2, F_1, F_1_2, M_1_2));
+						 (::getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1) -
+						 ::getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*::getPC(dataB1, invsml, _pc1, _pc2, F_1, F_1_2, M_1_2));
 		}
 	}
 	
@@ -154,7 +154,7 @@ void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const in
 }
 
 void Convection_SSE::_sse_convert(const float * const gptfirst, const int gptfloats, const int rowgpts,
-									  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
+								  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5f);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5f);
@@ -204,8 +204,8 @@ void Convection_SSE::_sse_convert(const float * const gptfirst, const int gptflo
 			
 			_mm_store_ps(p + DESTID,  
 						 (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho))*
-						 (_getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1) -
-						 _getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*_getPC(dataB1, invsml, _pc1, _pc2, F_1, F_1_2, M_1_2));
+						 (::getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1) -
+						 ::getgamma(dataB1, invsml, g1, g2, F_1, F_1_2, M_1_2)*::getPC(dataB1, invsml, _pc1, _pc2, F_1, F_1_2, M_1_2));
 		}
 	}
 	
@@ -358,8 +358,8 @@ void Convection_SSE::_sse_yweno_pluss(const float * const in, float * const out)
 }
 
 void Convection_SSE::_sse_zweno_minus(const float * const a_, const float * const b_, 
-										  const float * const c_, const float * const d_, 
-										  const float * const e_ , float * const out) const
+									  const float * const c_, const float * const d_, 
+									  const float * const e_ , float * const out) const
 {
 	WENO_CONSTANTS
 	
@@ -381,8 +381,8 @@ void Convection_SSE::_sse_zweno_minus(const float * const a_, const float * cons
 }
 
 void Convection_SSE::_sse_zweno_pluss(const float * const b_, const float * const c_, 
-										  const float * const d_, const float * const e_, 
-										  const float * const f_ , float * const out) const
+									  const float * const d_, const float * const e_, 
+									  const float * const f_ , float * const out) const
 {
 	WENO_CONSTANTS
 	
@@ -404,9 +404,9 @@ void Convection_SSE::_sse_zweno_pluss(const float * const b_, const float * cons
 }
 
 void Convection_SSE::_sse_hlle_rho(const float * const rm, const float * const rp,
-									   const float * const vm, const float * const vp,
-									   const float * const am, const float * const ap,
-									   float * const out)
+								   const float * const vm, const float * const vp,
+								   const float * const am, const float * const ap,
+								   float * const out)
 {
 	static const int P = TempSOA::PITCH;
 	
@@ -441,10 +441,10 @@ void Convection_SSE::_sse_hlle_rho(const float * const rm, const float * const r
 }
 
 void Convection_SSE::_sse_hlle_vel(const float * const rm, const float * const rp,
-									   const float * const vm, const float * const vp,
-									   const float * const vdm, const float * const vdp,
-									   const float * const am, const float * const ap,
-									   float * const out)
+								   const float * const vm, const float * const vp,
+								   const float * const vdm, const float * const vdp,
+								   const float * const am, const float * const ap,
+								   float * const out)
 {
 	static const int P = TempSOA::PITCH;
 	
@@ -479,10 +479,10 @@ void Convection_SSE::_sse_hlle_vel(const float * const rm, const float * const r
 }
 
 void Convection_SSE::_sse_hlle_pvel(const float * const rm, const float * const rp,
-										const float * const vm, const float * const vp,
-										const float * const pm, const float * const pp,
-										const float * const am, const float * const ap,
-										float * const out)
+									const float * const vm, const float * const vp,
+									const float * const pm, const float * const pp,
+									const float * const am, const float * const ap,
+									float * const out)
 {
 	static const int P = TempSOA::PITCH;
 #define ID (ix + P*iy)
@@ -524,13 +524,13 @@ void Convection_SSE::_sse_hlle_pvel(const float * const rm, const float * const 
 }
 
 void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
-									 const float * const vdm, const float * const vdp,
-									 const float * const v1m, const float * const v1p,
-									 const float * const v2m, const float * const v2p,
-									 const float * const pm, const float * const pp,
-									 const float * const lm, const float * const lp, 
-									 const float * const am, const float * const ap,
-									 float * const out)
+								 const float * const vdm, const float * const vdp,
+								 const float * const v1m, const float * const v1p,
+								 const float * const v2m, const float * const v2p,
+								 const float * const pm, const float * const pp,
+								 const float * const lm, const float * const lp, 
+								 const float * const am, const float * const ap,
+								 float * const out)
 {
 	static const int P = TempSOA::PITCH;
 #define ID (ix + P*iy)
@@ -550,10 +550,10 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #define v2minus  _mm_load_ps(v2m + ID)
 #define pminus  _mm_load_ps(pm + ID)
 #ifdef _PREC_DIV_
-			const __m128 eminus = pminus*(F_1/(_getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m128 eminus = pminus*(F_1/(::getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm_load_ps(rm + ID)*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus);
 #else
-			const __m128 eminus = pminus*(F_1 * better_rcp(_getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m128 eminus = pminus*(F_1 * better_rcp(::getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm_load_ps(rm + ID)*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus);
 #endif
 #define  vdplus  _mm_load_ps(vdp + ID)
@@ -561,10 +561,10 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #define v2plus  _mm_load_ps(v2p + ID)
 #define pplus  _mm_load_ps(pp + ID)
 #ifdef _PREC_DIV_			
-			const __m128 eplus = pplus*(F_1/(_getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m128 eplus = pplus*(F_1/(::getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm_load_ps(rp + ID)*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus);
 #else
-			const __m128 eplus = pplus*(F_1 * better_rcp(_getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m128 eplus = pplus*(F_1 * better_rcp(::getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm_load_ps(rp + ID)*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus);
 #endif
 			const __m128 fminus = vdminus*(pminus + eminus);
@@ -602,10 +602,10 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 }
 
 void Convection_SSE::_sse_char_vel(const float * const rm, const float * const rp, 
-									   const float * const vm, const float * const vp,
-									   const float * const pm, const float * const pp,
-									   const float * const lm, const float * const lp, 
-									   float * const outm, float * const outp)
+								   const float * const vm, const float * const vp,
+								   const float * const pm, const float * const pp,
+								   const float * const lm, const float * const lp, 
+								   float * const outm, float * const outp)
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5);
@@ -624,15 +624,15 @@ void Convection_SSE::_sse_char_vel(const float * const rm, const float * const r
 		for(int ix=0; ix<TempSOA::NX; ix+=4)
 		{
 #ifdef _PREC_DIV_
-			const __m128 cminus = _mm_sqrt_ps(_getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-											  _mm_max_ps((_mm_load_ps(pm + ID)+_getPC(_mm_load_ps(lm + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))/_mm_load_ps(rm + ID), _mm_setzero_ps()));
-			const __m128 cplus = _mm_sqrt_ps(_getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-											 _mm_max_ps((_mm_load_ps(pp + ID)+_getPC(_mm_load_ps(lp + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))/_mm_load_ps(rp + ID), _mm_setzero_ps()));
+			const __m128 cminus = _mm_sqrt_ps(::getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+											  _mm_max_ps((_mm_load_ps(pm + ID)+::getPC(_mm_load_ps(lm + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))/_mm_load_ps(rm + ID), _mm_setzero_ps()));
+			const __m128 cplus = _mm_sqrt_ps(::getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+											 _mm_max_ps((_mm_load_ps(pp + ID)+::getPC(_mm_load_ps(lp + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))/_mm_load_ps(rp + ID), _mm_setzero_ps()));
 #else
-			const __m128 cminus = worse_sqrt(_getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-											 _mm_max_ps((_mm_load_ps(pm + ID)+_getPC(_mm_load_ps(lm + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))* better_rcp(_mm_load_ps(rm + ID)), _mm_setzero_ps()));
-			const __m128 cplus = worse_sqrt(_getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
-											_mm_max_ps((_mm_load_ps(pp + ID)+_getPC(_mm_load_ps(lp + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))* better_rcp(_mm_load_ps(rp + ID)), _mm_setzero_ps()));
+			const __m128 cminus = worse_sqrt(::getgamma(_mm_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+											 _mm_max_ps((_mm_load_ps(pm + ID)+::getPC(_mm_load_ps(lm + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))* better_rcp(_mm_load_ps(rm + ID)), _mm_setzero_ps()));
+			const __m128 cplus = worse_sqrt(::getgamma(_mm_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+											_mm_max_ps((_mm_load_ps(pp + ID)+::getPC(_mm_load_ps(lp + ID), invsml, _pc1, _pc2, F_1, F_1_2, M_1_2))* better_rcp(_mm_load_ps(rp + ID)), _mm_setzero_ps()));
 #endif
 			_mm_store_ps(outm + ID, _mm_min_ps(_mm_load_ps(vm + ID) - cminus, _mm_load_ps(vm + ID) - cplus));
 			_mm_store_ps(outp + ID, _mm_max_ps(_mm_load_ps(vp + ID) + cminus, _mm_load_ps(vp + ID) + cplus));

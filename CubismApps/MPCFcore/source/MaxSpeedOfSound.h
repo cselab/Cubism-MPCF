@@ -21,13 +21,12 @@ protected:
 	const Real gamma1, gamma2, smoothlength;
     const Real pc1, pc2;
 	
-	inline Real _getgamma(const Real phi) const { return reconstruct(gamma1, gamma2, phi, 1/smoothlength); } 
-	inline Real _getPC(const Real phi) const { return reconstruct(pc1, pc2, phi, 1/smoothlength); }
-	
+	inline Real _getgamma(const Real phi) const { return getgamma(phi, smoothlength, gamma1, gamma2); } 
+	inline Real _getPC(const Real phi) const { return getPC(phi, smoothlength, pc1, pc2); }
 public:
 	
 	MaxSpeedOfSound_CPP(const Real gamma1, const Real gamma2, const Real smoothlength, const Real pc1, const Real pc2):
-		gamma1(gamma1), gamma2(gamma2), smoothlength(smoothlength), pc1(pc1), pc2(pc2) { }
+	gamma1(gamma1), gamma2(gamma2), smoothlength(smoothlength), pc1(pc1), pc2(pc2) { }
 	
 	Real compute(const Real * const src, const int gptfloats);
 	
@@ -43,7 +42,7 @@ public:
 		const float AISOS = 122./(6*sizeof(float)*3);
 		const double EPERFSOS = min(OISOS*PEAKBAND, PEAKPERF);
 		const double EPERFSOSAI = min(AISOS*PEAKBAND, PEAKPERF);
-
+		
 		const double TSOS = 1.e9*GFLOPSOS/EPERFSOS;
 		
 		printPerformanceTitle();
@@ -58,21 +57,10 @@ public:
 	}
 };
 
-#if defined(_SSE_) 
+#ifdef _SSE_
 class MaxSpeedOfSound_SSE: public MaxSpeedOfSound_CPP
 {		
 	SOA2D<0, _BLOCKSIZE_, 0, _BLOCKSIZE_> r, u, v, w, p, l;
-	
-	inline __m128 _heaviside(const __m128 phi, const __m128 invh, const __m128 one, const __m128 phalf, const __m128 mhalf) const;
-
-	
-	inline __m128 _getgamma(const __m128 phi, const __m128 inv_smoothlength, 
-							const __m128 gamma1, const __m128 gamma2,
-							const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) const;
-	
-    inline __m128 _getPC(const __m128 phi, const __m128 inv_smoothlength, 
-							const __m128 pc1, const __m128 pc2,
-							const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) const;
     
 	void _sse_convert(const float * const gptfirst, const int gptfloats, float * const r, 
 					  float * const u, float * const v, float * const w, float * const p, float * const l);
@@ -83,7 +71,7 @@ class MaxSpeedOfSound_SSE: public MaxSpeedOfSound_CPP
 public:
 	
 	MaxSpeedOfSound_SSE(const Real gamma1, const Real gamma2, const Real smoothlength, const Real pc1, const Real pc2):
-		MaxSpeedOfSound_CPP(gamma1, gamma2, smoothlength, pc1, pc2) { }
+	MaxSpeedOfSound_CPP(gamma1, gamma2, smoothlength, pc1, pc2) { }
 	
 	Real compute(const Real * const src, const int gptfloats)
 	{
