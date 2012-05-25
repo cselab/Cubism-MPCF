@@ -17,14 +17,15 @@
 
 #include <Timer.h>
 #include <Profiler.h>
-#include <FlowStep_CPP.h>
-#include <FlowStep_SSE_diego.h>
+#include <Convection_CPP.h>
+#include <Convection_SSE.h>
 
 #ifdef _AVX_
-#include <FlowStep_AVX_diego.h>
+#include <Convection_AVX.h>
 #include <SurfaceTension_AVX.h>
 #include <Diffusion_AVX.h>
 #endif
+
 #include <Update.h>
 #include <MaxSpeedOfSound.h>
 #include <SurfaceTension_CPP.h>
@@ -357,18 +358,19 @@ struct LSRKstep
             cout << "DIFFUSION: " << avg3 << "s (per substep), " << avg3/vInfo.size()*1e3 << " ms (per block)" << endl;
 			cout << "SUTENSION: " << avg4 << "s (per substep), " << avg4/vInfo.size()*1e3 << " ms (per block)" << endl;
             
-            Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, vInfo.size(), avg1, bAwk);
-            Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, vInfo.size(), avg2, bAwk);
+            Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg1);
+            Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg2);
 		
 			if(LSRK3data::sten_sigma!=0)
 		    {
-				Ksten sten;
+				Ksten sten(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), vInfo.front().h_gridpoint, LSRK3data::smoothlength, LSRK3data::sten_sigma);
 				sten.printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg4, bAwk);
 			}
 
 			if(LSRK3data::nu1!=0)
 			{
-				Kdiff diffusion;
+				Kdiff diffusion(dtinvh, LSRK3data::nu1, LSRK3data::nu2, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), vInfo.front().h_gridpoint, LSRK3data::smoothlength, dtinvh);
+
 				diffusion.printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg3, bAwk);
 			}		
         }
@@ -504,12 +506,12 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
     }
     
     if (parser("-kernels").asString("cpp")=="cpp")
-        LSRKstep<FlowStep_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time, bAwk);
+        LSRKstep<Convection_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time, bAwk);
     else if (parser("-kernels").asString("cpp")=="sse")
-        LSRKstep<FlowStep_SSE_diego, Update_SSE, SurfaceTension_SSE, Diffusion_SSE>(grid, dt/h, current_time, bAwk);
+        LSRKstep<Convection_SSE, Update_SSE, SurfaceTension_SSE, Diffusion_SSE>(grid, dt/h, current_time, bAwk);
 #ifdef _AVX_
     else if (parser("-kernels").asString("cpp")=="avx")
-        LSRKstep<FlowStep_AVX_diego, Update_AVX, SurfaceTension_AVX, Diffusion_AVX>(grid, dt/h, current_time, bAwk);
+        LSRKstep<Convection_AVX, Update_AVX, SurfaceTension_AVX, Diffusion_AVX>(grid, dt/h, current_time, bAwk);
 #endif
     else
     {

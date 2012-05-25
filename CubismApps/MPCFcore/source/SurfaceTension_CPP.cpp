@@ -1,5 +1,5 @@
 //
-//  SurfaceTension.cpp
+//  SurfaceTension_CPP.cpp
 //  MPCFcore
 //
 //  Created by Babak Hejazialhosseini on 8/2/11.
@@ -25,11 +25,16 @@ void SurfaceTension_CPP::_convert(const Real * const gptfirst, const int gptfloa
 			u.ref(dx, dy) = pt.u/pt.r;
 			v.ref(dx, dy) = pt.v/pt.r;
 			w.ref(dx, dy) = pt.w/pt.r;
-
+			
 			//project the levelset to volume fraction, same as FlowStep
 			const Real x = min((Real)1, max((Real)-1, pt.l*(((Real)1)/smoothing_length)));
 			const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
 			const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
 			l.ref(dx, dy) = 1 - (x<0 ? val_xneg : val_xpos);
+			
+			assert(!isnan(u.ref(dx, dy)));
+			assert(!isnan(v.ref(dx, dy)));
+			assert(!isnan(w.ref(dx, dy)));
+			assert(!isnan(l.ref(dx, dy)));
 		}
 }

@@ -8,16 +8,10 @@
  */
 #pragma once
 #include <cassert>
-#include <cstdio>
-#include <iostream>
 #include <cstdlib>
-using namespace std;
+#include <cstdio>
 
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
+#include "common.h"
 
 class Update_CPP
 {
@@ -33,7 +27,7 @@ protected:
 public:
 	
 	Update_CPP(Real b=1): m_b(b) {}
-
+	
 	void compute(const Real * const src, Real * const dst, const int gptfloats);
 	
 	static void printflops(const float PEAKPERF_CORE, const float PEAKBAND, const size_t NCORES, const size_t NT, const size_t NBLOCKS, const float MEASUREDTIME, const bool bAwk=false)
@@ -81,7 +75,7 @@ public:
 	{
 #if defined(_SP_COMP_)
 		assert(gptfloats >= 6);
-
+		
 		const bool bAligned = _is_aligned(src, 16) && _is_aligned(dst, 16);
 		const bool b4Multiple = gptfloats % 4 == 0;
 		
@@ -116,9 +110,9 @@ public:
 		assert(gptfloats >= 6);
 		
 		const bool aligned32B = _is_aligned(src, 32) && _is_aligned(dst, 32);
-
+		
 		const bool unitstride = gptfloats == 6;
-
+		
 		if (aligned32B && unitstride)
 			_avx_lockdown32(src, dst, gptfloats);
 		else if (unitstride)

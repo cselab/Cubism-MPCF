@@ -1,11 +1,17 @@
 /*
- *  SliceSOA.h
+ *  SOA2D.h
  *  
  *
  *  Created by Diego Rossinelli on 5/15/12.
  *  Copyright 2012 ETH Zurich. All rights reserved.
  *
  */
+
+#pragma once
+
+#include <cassert>
+
+#include "common.h"
 
 template < int _SX, int _EX, int _SY, int _EY, typename TReal=Real > 
 struct SOA2D

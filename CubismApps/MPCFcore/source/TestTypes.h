@@ -1,5 +1,5 @@
 /*
- *  Types.h
+ *  TestTypes.h
  *  MPCFcore
  *
  *  Created by Diego Rossinelli on 5/19/11.
@@ -7,13 +7,10 @@
  *
  */
 #pragma once
+
 #include <cassert>
 
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
+#include "common.h"
 
 struct StateVector { Real r, u, v, w, s, levelset;};
 
@@ -42,6 +39,69 @@ struct MatrixGP
 	static float kB(int nobjects=1)
 	{
 		return nobjects*sizeof(MatrixGP)/1024.;
+	}
+	
+	void compare(MatrixGP& block, double accuracy, string kernelname, bool compare_dsdt=true)
+	{
+		double maxe[6]={0,0,0,0,0,0};
+		double sume[6]={0,0,0,0,0,0};
+		
+		for(int iz = 0; iz<_BLOCKSIZE_; iz++)
+			for(int iy = 0; iy<_BLOCKSIZE_; iy++)
+				for(int ix = 0; ix<_BLOCKSIZE_; ix++)
+				{
+					StateVector a = (*this)(ix, iy, iz).dsdt;
+					StateVector b = block(ix, iy, iz).dsdt;
+					
+					//if we should not compare "dsdt" then we compare "s"
+					if (!compare_dsdt)
+					{
+						a = (*this)(ix, iy, iz).s;
+						b = block(ix, iy, iz).s;
+					}
+				
+					const double s[6]  = {
+						b.r ,
+						b.u ,
+						b.v ,
+						b.w ,
+						b.s ,
+						b.levelset
+					};
+					
+					for(int i=0; i<6; ++i)
+						assert(!isnan(s[i]));
+					
+					const double e[6]  = {
+						b.r - a.r,
+						b.u - a.u,
+						b.v - a.v,
+						b.w - a.w,
+						b.s - a.s,
+						b.levelset - a.levelset
+					};
+					
+					for(int i=0; i<6; ++i)
+						assert(!isnan(e[i]));
+					
+					for(int i=0; i<6; i++)
+						if (fabs(e[i])/fabs(s[i])>accuracy && fabs(e[i])>accuracy) printf("significant error at %d %d %d %d -> e=%e (rel is %e, values are %e %e)\n", ix, iy, iz, i, e[i], e[i]/s[i],s[i],s[i]-e[i]);
+					
+					for(int i=0; i<6; i++)
+						maxe[i] = max(fabs(e[i]), maxe[i]);
+					
+					for(int i=0; i<6; i++)
+						sume[i] += fabs(e[i]);
+				}
+		
+		printf("\tLinf discrepancy:\t");
+		for(int i=0; i<6; i++)
+			printf("%.2e ", maxe[i]);
+		
+		printf("\n\tL1 (dh=1):       \t");
+		for(int i=0; i<6; i++)
+			printf("%.2e ", sume[i]);
+		printf("\n");
 	}
 };
 

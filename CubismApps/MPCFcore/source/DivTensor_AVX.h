@@ -14,9 +14,9 @@
 class DivTensor_AVX: public virtual DivTensor_SSE
 {	
 public:
-
- DivTensor_AVX(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
-  DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
+	
+	DivTensor_AVX(const Real a = 1, const Real dtinvh = 1, const Real h = 1, const Real sigma=1):
+	DivTensor_SSE(a, dtinvh, h, sigma), DivTensor_CPP(a, dtinvh, h, sigma)
 	{
 	}
 	
@@ -388,6 +388,7 @@ protected:
 								_mm256_load_ps(tzzptr + ix)*(_mm256_load_ps(wptr0 + ix) + _mm256_load_ps(wptr1 + ix)));
 			}
 		}
+#endif
 	}
 	
 	template <bool accum> inline void write256(float * const dest, const __m256 src)

@@ -7,7 +7,7 @@
  *
  */
 
-#include "FlowStep_AVX_diego.h"
+#include "Convection_AVX.h"
 
 #define WENO_CONSTANTS \
 const __m256 one = _mm256_set1_ps(1.); \
@@ -154,31 +154,15 @@ inline void _MM_TRANSPOSE8x6_PS(__m256& row0, __m256& row1, __m256& row2, __m256
 	row5 = _mm256_insertf128_ps(row5, __f1, 0);
 }
 
-inline __m256 FlowStep_AVX_diego::_heaviside(const __m256 phi, const __m256 inv_h, const __m256 one, const __m256 phalf, const __m256 mhalf) const
-{
-	const __m256 x = _mm256_min_ps(one, _mm256_max_ps(_mm256_setzero_ps() - one, phi*inv_h));
-	
-	return (_mm256_blendv_ps(phalf, mhalf,  _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LT_OS))*x - one)*x + phalf;	
-}
-
-inline __m256 FlowStep_AVX_diego::_getgamma(const __m256 phi, const __m256 inv_smoothlength, 
-											const __m256 gamma1, const __m256 gamma2,
-											const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2) const
-{
-	const __m256 hs = _heaviside(phi, inv_smoothlength, F_1, F_1_2, M_1_2);
-	return (gamma1)*hs + (gamma2)*(F_1-hs); 
-}
-
-
-void FlowStep_AVX_diego::_avx_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts,
-											  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
+void Convection_AVX::_avx_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts,
+										  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
 {	
 	const __m256 F_1_2 = _mm256_set1_ps(0.5f);
 	const __m256 M_1_2 = _mm256_set1_ps(-0.5f);
 	const __m256 F_1 = _mm256_set1_ps(1);
-	const __m256 invsml = _mm256_set1_ps(1.f/m_smoothlength);
-	const __m256 g1 = _mm256_set1_ps(m_gamma1);
-	const __m256 g2 = _mm256_set1_ps(m_gamma2);
+	const __m256 invsml = _mm256_set1_ps(1.f/smoothlength);
+	const __m256 g1 = _mm256_set1_ps(gamma1);
+	const __m256 g2 = _mm256_set1_ps(gamma2);
 	
 #define DESTID (dx + (InputSOA::PITCH)*dy)
 #define SRCID dx*gptfloats
@@ -215,7 +199,7 @@ void FlowStep_AVX_diego::_avx_convert_aligned(const float * const gptfirst, cons
 			
 			_mm256_store_ps(p + DESTID,  
 							(E - (B*B + C*C + D*D)*(F_1_2*inv_rho))*
-							(_getgamma(F, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1));
+							(::getgamma(F, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1));
 		}
 	}
 	
@@ -223,15 +207,15 @@ void FlowStep_AVX_diego::_avx_convert_aligned(const float * const gptfirst, cons
 #undef SRCID
 }
 
-void FlowStep_AVX_diego::_avx_convert(const float * const gptfirst, const int gptfloats, const int rowgpts, const int slicegpts,
-									  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
+void Convection_AVX::_avx_convert(const float * const gptfirst, const int gptfloats, const int rowgpts,
+								  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const l)
 {
 	const __m256 F_1_2 = _mm256_set1_ps(0.5f);
 	const __m256 M_1_2 = _mm256_set1_ps(-0.5f);
 	const __m256 F_1 = _mm256_set1_ps(1);
-	const __m256 invsml = _mm256_set1_ps(1.f/m_smoothlength);
-	const __m256 g1 = _mm256_set1_ps(m_gamma1);
-	const __m256 g2 = _mm256_set1_ps(m_gamma2);
+	const __m256 invsml = _mm256_set1_ps(1.f/smoothlength);
+	const __m256 g1 = _mm256_set1_ps(gamma1);
+	const __m256 g2 = _mm256_set1_ps(gamma2);
 	
 #define DESTID (dx + (InputSOA::PITCH)*dy)
 #define SRCID dx*gptfloats
@@ -268,7 +252,7 @@ void FlowStep_AVX_diego::_avx_convert(const float * const gptfirst, const int gp
 			
 			_mm256_store_ps(p + DESTID,  
 							(E - (B*B + C*C + D*D)*(F_1_2*inv_rho))*
-							(_getgamma(F, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1));
+							(::getgamma(F, invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1));
 		}
 	}
 	
@@ -276,7 +260,7 @@ void FlowStep_AVX_diego::_avx_convert(const float * const gptfirst, const int gp
 #undef SRCID
 }
 
-void FlowStep_AVX_diego::_avx_xweno_minus(const float * const in, float * const out) const
+void Convection_AVX::_avx_xweno_minus(const float * const in, float * const out) const
 {	
 	WENO_CONSTANTS
 	
@@ -331,7 +315,7 @@ void FlowStep_AVX_diego::_avx_xweno_minus(const float * const in, float * const 
 		}
 }
 
-void FlowStep_AVX_diego::_avx_xweno_pluss(const float * const in, float * const out) const
+void Convection_AVX::_avx_xweno_pluss(const float * const in, float * const out) const
 {
 	WENO_CONSTANTS
 	
@@ -384,7 +368,7 @@ void FlowStep_AVX_diego::_avx_xweno_pluss(const float * const in, float * const 
 		}
 }
 
-void FlowStep_AVX_diego::_avx_yweno_minus(const float * const in, float * const out)
+void Convection_AVX::_avx_yweno_minus(const float * const in, float * const out)
 {	
 	WENO_CONSTANTS
 	
@@ -448,7 +432,7 @@ void FlowStep_AVX_diego::_avx_yweno_minus(const float * const in, float * const 
 	}
 }
 
-void FlowStep_AVX_diego::_avx_yweno_pluss(const float * const in, float * const out)
+void Convection_AVX::_avx_yweno_pluss(const float * const in, float * const out)
 {	
 	WENO_CONSTANTS
 	
@@ -512,9 +496,9 @@ void FlowStep_AVX_diego::_avx_yweno_pluss(const float * const in, float * const 
 	}
 }
 
-void FlowStep_AVX_diego::_avx_zweno_minus(const float * const a_, const float * const b_, 
-										  const float * const c_, const float * const d_, 
-										  const float * const e_ , float * const out) const
+void Convection_AVX::_avx_zweno_minus(const float * const a_, const float * const b_, 
+									  const float * const c_, const float * const d_, 
+									  const float * const e_ , float * const out) const
 {
 	WENO_CONSTANTS
 	
@@ -543,9 +527,9 @@ void FlowStep_AVX_diego::_avx_zweno_minus(const float * const a_, const float * 
 		}	
 }
 
-void FlowStep_AVX_diego::_avx_zweno_pluss(const float * const b_, const float * const c_, 
-										  const float * const d_, const float * const e_, 
-										  const float * const f_ , float * const out) const
+void Convection_AVX::_avx_zweno_pluss(const float * const b_, const float * const c_, 
+									  const float * const d_, const float * const e_, 
+									  const float * const f_ , float * const out) const
 {
 	WENO_CONSTANTS
 	
@@ -574,10 +558,10 @@ void FlowStep_AVX_diego::_avx_zweno_pluss(const float * const b_, const float * 
 		}	
 }
 
-void FlowStep_AVX_diego::_avx_hlle_rho(const float * const rm, const float * const rp,
-									   const float * const vm, const float * const vp,
-									   const float * const am, const float * const ap,
-									   float * const out)
+void Convection_AVX::_avx_hlle_rho(const float * const rm, const float * const rp,
+								   const float * const vm, const float * const vp,
+								   const float * const am, const float * const ap,
+								   float * const out)
 {
 	static const int P = TempSOA::PITCH;
 	
@@ -614,11 +598,11 @@ void FlowStep_AVX_diego::_avx_hlle_rho(const float * const rm, const float * con
 #undef ID
 }
 
-void FlowStep_AVX_diego::_avx_hlle_vel(const float * const rm, const float * const rp,
-									   const float * const vm, const float * const vp,
-									   const float * const vdm, const float * const vdp,
-									   const float * const am, const float * const ap,
-									   float * const out)
+void Convection_AVX::_avx_hlle_vel(const float * const rm, const float * const rp,
+								   const float * const vm, const float * const vp,
+								   const float * const vdm, const float * const vdp,
+								   const float * const am, const float * const ap,
+								   float * const out)
 {
 	static const int P = TempSOA::PITCH;
 	
@@ -654,11 +638,11 @@ void FlowStep_AVX_diego::_avx_hlle_vel(const float * const rm, const float * con
 #undef ID
 }
 
-void FlowStep_AVX_diego::_avx_hlle_pvel(const float * const rm, const float * const rp,
-										const float * const vm, const float * const vp,
-										const float * const pm, const float * const pp,
-										const float * const am, const float * const ap,
-										float * const out)
+void Convection_AVX::_avx_hlle_pvel(const float * const rm, const float * const rp,
+									const float * const vm, const float * const vp,
+									const float * const pm, const float * const pp,
+									const float * const am, const float * const ap,
+									float * const out)
 {
 	static const int P = TempSOA::PITCH;
 #define ID (ix + P*iy)
@@ -696,14 +680,14 @@ void FlowStep_AVX_diego::_avx_hlle_pvel(const float * const rm, const float * co
 #undef ID
 }
 
-void FlowStep_AVX_diego::_avx_hlle_e(const float * const rm, const float * const rp,
-									 const float * const vdm, const float * const vdp,
-									 const float * const v1m, const float * const v1p,
-									 const float * const v2m, const float * const v2p,
-									 const float * const pm, const float * const pp,
-									 const float * const lm, const float * const lp, 
-									 const float * const am, const float * const ap,
-									 float * const out)
+void Convection_AVX::_avx_hlle_e(const float * const rm, const float * const rp,
+								 const float * const vdm, const float * const vdp,
+								 const float * const v1m, const float * const v1p,
+								 const float * const v2m, const float * const v2p,
+								 const float * const pm, const float * const pp,
+								 const float * const lm, const float * const lp, 
+								 const float * const am, const float * const ap,
+								 float * const out)
 {
 	static const int P = TempSOA::PITCH;
 #define ID (ix + P*iy)
@@ -711,9 +695,9 @@ void FlowStep_AVX_diego::_avx_hlle_e(const float * const rm, const float * const
 	const __m256 F_1_2 = _mm256_set1_ps(0.5);
 	const __m256 M_1_2 = _mm256_set1_ps(-0.5);
 	const __m256 F_1 = _mm256_set1_ps(1);
-	const __m256 invsml = _mm256_set1_ps(1.f/m_smoothlength);
-	const __m256 g1 = _mm256_set1_ps(m_gamma1);
-	const __m256 g2 = _mm256_set1_ps(m_gamma2);
+	const __m256 invsml = _mm256_set1_ps(1.f/smoothlength);
+	const __m256 g1 = _mm256_set1_ps(gamma1);
+	const __m256 g2 = _mm256_set1_ps(gamma2);
 	
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix+=8)
@@ -725,10 +709,10 @@ void FlowStep_AVX_diego::_avx_hlle_e(const float * const rm, const float * const
 #define pminus   _mm256_load_ps(pm + ID)
 			
 #ifdef _PREC_DIV_
-			const __m256 eminus = pminus*(F_1/(_getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m256 eminus = pminus*(F_1/(::getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm256_load_ps(rm + ID)*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus);
 #else
-			const __m256 eminus = pminus*(F_1 * better_rcp(_getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m256 eminus = pminus*(F_1 * better_rcp(::getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm256_load_ps(rm + ID)*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus);
 #endif
 			//i rather prefer some cache latency than register spills
@@ -738,10 +722,10 @@ void FlowStep_AVX_diego::_avx_hlle_e(const float * const rm, const float * const
 #define pplus  _mm256_load_ps(pp + ID)
 			
 #ifdef _PREC_DIV_			
-			const __m256 eplus = pplus*(F_1/(_getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m256 eplus = pplus*(F_1/(::getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm256_load_ps(rp + ID)*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus);
 #else
-			const __m256 eplus = pplus*(F_1 * better_rcp(_getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
+			const __m256 eplus = pplus*(F_1 * better_rcp(::getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)-F_1)) +
 			F_1_2*_mm256_load_ps(rp + ID)*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus);
 #endif
 			const __m256 fminus = vdminus*(pminus + eminus);
@@ -776,18 +760,18 @@ void FlowStep_AVX_diego::_avx_hlle_e(const float * const rm, const float * const
 #undef ID
 }
 
-void FlowStep_AVX_diego::_avx_char_vel(const float * const rm, const float * const rp, 
-									   const float * const vm, const float * const vp,
-									   const float * const pm, const float * const pp,
-									   const float * const lm, const float * const lp, 
-									   float * const outm, float * const outp)
+void Convection_AVX::_avx_char_vel(const float * const rm, const float * const rp, 
+								   const float * const vm, const float * const vp,
+								   const float * const pm, const float * const pp,
+								   const float * const lm, const float * const lp, 
+								   float * const outm, float * const outp)
 {
 	const __m256 F_1_2 = _mm256_set1_ps(0.5);
 	const __m256 M_1_2 = _mm256_set1_ps(-0.5);
 	const __m256 F_1 = _mm256_set1_ps(1);
-	const __m256 invsml = better_rcp(_mm256_set1_ps(m_smoothlength));
-	const __m256 g1 = _mm256_set1_ps(m_gamma1);
-	const __m256 g2 = _mm256_set1_ps(m_gamma2);
+	const __m256 invsml = better_rcp(_mm256_set1_ps(smoothlength));
+	const __m256 g1 = _mm256_set1_ps(gamma1);
+	const __m256 g2 = _mm256_set1_ps(gamma2);
 	
 	static const int P = TempSOA::PITCH;
 	
@@ -798,14 +782,14 @@ void FlowStep_AVX_diego::_avx_char_vel(const float * const rm, const float * con
 		for(int ix=0; ix<TempSOA::NX; ix+=8)
 		{
 #ifdef _PREC_DIV_
-			const __m256 cminus = _mm256_sqrt_ps(_getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+			const __m256 cminus = _mm256_sqrt_ps(::getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
 												 _mm256_max_ps(_mm256_load_ps(pm + ID)/_mm256_load_ps(rm + ID), _mm256_setzero_ps()));
-			const __m256 cplus = _mm256_sqrt_ps(_getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+			const __m256 cplus = _mm256_sqrt_ps(::getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
 												_mm256_max_ps(_mm256_load_ps(pp + ID)/_mm256_load_ps(rp + ID), _mm256_setzero_ps()));
 #else
-			const __m256 cminus = worse_sqrt(_getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+			const __m256 cminus = worse_sqrt(::getgamma(_mm256_load_ps(lm + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
 											 _mm256_max_ps(_mm256_load_ps(pm + ID)* better_rcp(_mm256_load_ps(rm + ID)), _mm256_setzero_ps()));
-			const __m256 cplus = worse_sqrt(_getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
+			const __m256 cplus = worse_sqrt(::getgamma(_mm256_load_ps(lp + ID), invsml, g1, g2, F_1, F_1_2, M_1_2)* 
 											_mm256_max_ps(_mm256_load_ps(pp + ID)* better_rcp(_mm256_load_ps(rp + ID)), _mm256_setzero_ps()));
 #endif
 			_mm256_store_ps(outm + ID, _mm256_min_ps(_mm256_load_ps(vm + ID) - cminus, _mm256_load_ps(vm + ID) - cplus));
@@ -814,7 +798,7 @@ void FlowStep_AVX_diego::_avx_char_vel(const float * const rm, const float * con
 #undef ID
 }
 
-void FlowStep_AVX_diego::_avx_xrhsadd(const float * const f, float * const r)
+void Convection_AVX::_avx_xrhsadd(const float * const f, float * const r)
 {
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix+=8)
@@ -822,7 +806,7 @@ void FlowStep_AVX_diego::_avx_xrhsadd(const float * const f, float * const r)
 							_mm256_loadu_ps(f + ix + 1 + TempSOA::PITCH*iy) - _mm256_load_ps(f + ix + TempSOA::PITCH*iy));
 }
 
-void FlowStep_AVX_diego::_avx_yrhsadd(const float * const f, float * const r)
+void Convection_AVX::_avx_yrhsadd(const float * const f, float * const r)
 {
 	static const int SP = TempSOA::PITCH;
 	static const int DP = OutputSOA::PITCH;
@@ -852,7 +836,7 @@ void FlowStep_AVX_diego::_avx_yrhsadd(const float * const f, float * const r)
 		}
 }
 
-void FlowStep_AVX_diego::_avx_zrhsadd(const float * const fb, const float * const ff, float * const r)
+void Convection_AVX::_avx_zrhsadd(const float * const fb, const float * const ff, float * const r)
 {	
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix+=8)

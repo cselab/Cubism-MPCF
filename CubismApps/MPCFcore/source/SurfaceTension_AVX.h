@@ -151,12 +151,14 @@ class SurfaceTension_AVX: public virtual SurfaceTension_SSE, public virtual DivT
 	
 public:
 	
-	SurfaceTension_AVX(const Real a = 1, const Real dtinvh = 1, const Real G1 = 1/(2.5-1), const Real G2 = 1/(2.1-1), const Real h = 1, const Real smoothing_length = 1, const Real sigma=1):
+	SurfaceTension_AVX(const Real a, const Real dtinvh, 
+					   const Real G1, const Real G2, 
+					   const Real h, const Real smoothing_length, const Real sigma):
 	SurfaceTension_SSE(a, dtinvh, G1, G2, h, smoothing_length, sigma),
-	     SurfaceTension_CPP(a, dtinvh, G1, G2, h, smoothing_length, sigma),
-	     DivTensor_AVX(a, dtinvh, h, sigma),
-	     DivTensor_SSE(a, dtinvh, h, sigma),
-	     DivTensor_CPP(a, dtinvh, h, sigma)
+	SurfaceTension_CPP(a, dtinvh, G1, G2, h, smoothing_length, sigma),
+	DivTensor_AVX(a, dtinvh, h, sigma),
+	DivTensor_SSE(a, dtinvh, h, sigma),
+	DivTensor_CPP(a, dtinvh, h, sigma)
 	{ 
 	}
 };

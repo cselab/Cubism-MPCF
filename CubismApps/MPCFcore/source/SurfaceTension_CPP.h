@@ -1,5 +1,5 @@
 //
-//  SurfaceTension.h
+//  SurfaceTension_CPP.h
 //  MPCFcore
 //
 //  Created by Babak Hejazialhosseini on 8/2/11.
@@ -17,17 +17,11 @@ class SurfaceTension_CPP: public virtual DivTensor_CPP
 public:
 	const Real G1, G2;
 	const Real smoothing_length;
-
-	SurfaceTension_CPP(const Real a = 1,
-					   const Real dtinvh = 1, 
-			   const Real G1 = 1,
-			   const Real G2 = 1,
-					   const Real h = 1,
-			   const Real smoothing_length = 1,
-					   const Real sigma=1):
-	DivTensor_CPP(a, dtinvh, h, sigma), G1(G1), G2(G2), smoothing_length(smoothing_length)
-	{ 
-	}
+	
+	SurfaceTension_CPP(const Real a, const Real dtinvh, 
+					   const Real G1, const Real G2,
+					   const Real h, const Real smoothing_length, const Real sigma):
+	DivTensor_CPP(a, dtinvh, h, sigma), G1(G1), G2(G2), smoothing_length(smoothing_length){ }
 	
 	//here we will "project" the phases
 	void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);

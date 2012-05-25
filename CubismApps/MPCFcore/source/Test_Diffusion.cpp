@@ -1,5 +1,5 @@
 //
-//  Diffusion_Test.cpp
+//  Test_Diffusion.cpp
 //  MPCFcore
 //
 //  Created by Babak Hejazialhosseini on 9/16/11.
@@ -7,7 +7,11 @@
 //
 
 #include <cstring>
-#include "Diffusion_Test.h"
+#include <algorithm>
+
+using namespace std;
+
+#include "Test_Diffusion.h"
 
 //This code is NOT optimized and is a second-order accurate
 //shear-stress tensor naive implementation.
@@ -48,7 +52,7 @@ public:
     void compute_conservative(TestLab_S2& lab, const BlockInfo& info, Block& o, const RealTemp a);
 };
 
-void Diffusion_Test::_gold(TestLab_S2& lab, Block& block, const Real _nu1, const Real _nu2, const Real _g1, const Real _g2, const Real a, const Real _dtinvh, const Real _h)
+void Test_Diffusion::_gold(TestLab_S2& lab, Block& block, const Real _nu1, const Real _nu2, const Real _g1, const Real _g2, const Real a, const Real _dtinvh, const Real _h)
 {	
 	Diffusion_CPP_M1 gold(_dtinvh, _nu1, _nu2, _g1, _g2);
 	
@@ -56,75 +60,6 @@ void Diffusion_Test::_gold(TestLab_S2& lab, Block& block, const Real _nu1, const
 	const double pos[3] = {0, 0, 0};
 	BlockInfo info(0, idx, pos, 1.,  _h, NULL);
 	gold.compute_conservative(lab, info, block, a);
-}
-
-void Diffusion_Test::_compare(Block& _a, Block& _b, double accuracy, string kernelname)
-{
-	double maxe[6] = {0,0,0,0,0,0};
-	double sume[6] = {0,0,0,0,0,0};
-	
-	double relmaxe[6] = {0,0,0,0,0,0};
-	double relsume[6] = {0,0,0,0,0,0};
-	
-	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
-		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
-			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
-			{
-				StateVector a = _a(ix, iy, iz).dsdt;
-				StateVector b = _b(ix, iy, iz).dsdt;
-				const double s[6]  = {
-					b.r ,
-					b.u ,
-					b.v ,
-					b.w ,
-					b.s ,
-					b.levelset
-				};
-				
-				const double e[6]  = {
-					b.r - a.r,
-					b.u - a.u,
-					b.v - a.v,
-					b.w - a.w,
-					b.s - a.s,
-					b.levelset - a.levelset
-				};
-				
-				for(int i=0; i<6; i++)
-					if (fabs(e[i])/fabs(s[i])>accuracy && fabs(e[i])>accuracy) printf("significant error at %d %d %d %d -> e=%e (rel is %e, values are %e %e)\n", ix, iy, iz, i, e[i], e[i]/s[i],s[i],s[i]-e[i]);
-				
-				for(int i=0; i<6; i++)
-					maxe[i] = max(fabs(e[i]), maxe[i]);
-				
-				for(int i=0; i<6; i++)
-					relmaxe[i] = max(fabs(e[i])/max(accuracy, fabs(s[i])), relmaxe[i]);
-				
-				for(int i=0; i<6; i++)
-					sume[i] += fabs(e[i]);
-				
-				for(int i=0; i<6; i++)
-					relsume[i] += fabs(e[i])/max(accuracy, fabs(s[i]));
-			}
-	
-	printf("\tLinf discrepancy:\t");
-	for(int i=0; i<6; i++)
-		printf("%.2e ", maxe[i]);
-	
-	cout << endl;
-	printf("\tL1 (dh=1):       \t");
-	for(int i=0; i<6;i++)
-		printf("%.2e ", sume[i]);
-	cout<<endl;
-	
-	printf("\tLinf RELATIVE discrepancy:\t");
-	for(int i=0; i<6; i++)
-		printf("%.2e ", relmaxe[i]);
-	
-	cout << endl;
-	printf("\tL1 RELATIVE (dh=1):       \t");
-	for(int i=0; i<6;i++)
-		printf("%.2e ", relsume[i]);
-	cout<<endl;
 }
 
 //Assumed Input GridPoint for Diffusion (AIGPD)
@@ -144,7 +79,7 @@ RealTemp Diffusion_CPP_M1::_project(const RealTemp phi, const RealTemp rho)
 {
     const RealTemp hs = 1-min(max((phi-g2)/(g1-g2),(RealTemp)0),(RealTemp)1);
     const RealTemp nu = (nu1==nu2)? nu1 : nu2*hs + nu1*(1-hs);
-    return rho*nu;//
+    return rho*nu;
 }
 
 void Diffusion_CPP_M1::compute_conservative(TestLab_S2& lab, const BlockInfo& info, Block& o, const RealTemp a)

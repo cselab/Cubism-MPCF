@@ -1,5 +1,5 @@
 /*
- *  SurfaceTension_Test.cpp
+ *  Test_SurfaceTension.cpp
  *  MPCFcore
  *
  *  Created by Babak Hejazialhosseini on 2/20/12.
@@ -8,12 +8,14 @@
  */
 #include <cstdio>
 #include <cstring>
-#include "SurfaceTension_Test.h"
+
+#include "common.h"
+#include "Test_SurfaceTension.h"
 
 class SurfaceTension_CPP_M1
 {
 protected:	
-
+	
     const Real dtinvh, sigma, G1, G2, h, a;
     
     Real project(const Real phi);
@@ -23,15 +25,15 @@ protected:
     Real delta_hs(const Real HSstencil[3][2]);  
     
 public:	
-
+	
     SurfaceTension_CPP_M1(const Real a, const Real _dtinvh, const Real G1, const Real G2, const Real _h, const Real _sigma=1): 
-	 a(a), dtinvh(_dtinvh), G1(G1), G2(G2), h(_h), sigma(_sigma) { }
+	a(a), dtinvh(_dtinvh), G1(G1), G2(G2), h(_h), sigma(_sigma) { }
     
     void compute(const Real * const srcfirst, const int srcfloats, const int rowsrcs, const int slicesrcs,
                  Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts);
 };
 
-void SurfaceTension_Test::_gold(TestLab_S2& lab, Block& block, const Real a, const Real _dtinvh, const Real G1, const Real G2, const Real _h, const Real _sigma)
+void Test_SurfaceTension::_gold(TestLab_S2& lab, Block& block, const Real a, const Real _dtinvh, const Real G1, const Real G2, const Real _h, const Real _sigma)
 {	
 	SurfaceTension_CPP_M1 gold(a, _dtinvh, G1, G2, _h, _sigma);
 	
@@ -47,62 +49,12 @@ void SurfaceTension_Test::_gold(TestLab_S2& lab, Block& block, const Real a, con
 	Real * const dstfirst = &block(0,0,0).dsdt.r;
 	
 	gold.compute(srcfirst, srcfloats, rowsrcs, slicesrcs,
-			   dstfirst, dstfloats, rowdsts, slicedsts);
-}
-
-void SurfaceTension_Test::_compare(Block& _a, Block& _b, double accuracy, string kernelname)
-{
-	double maxe[6] = {0,0,0,0,0,0};
-	double sume[6] = {0,0,0,0,0,0};
-	
-	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
-		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
-			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
-			{
-				StateVector a = _a(ix, iy, iz).dsdt;
-				StateVector b = _b(ix, iy, iz).dsdt;
-				const double s[6]  = {
-					b.r ,
-					b.u ,
-					b.v ,
-					b.w ,
-					b.s ,
-					b.levelset
-				};
-								
-				const double e[6]  = {
-					b.r - a.r,
-					b.u - a.u,
-					b.v - a.v,
-					b.w - a.w,
-					b.s - a.s,
-					b.levelset - a.levelset
-				};
-
-				for(int i=0; i<6; i++)
-					if (fabs(e[i])/fabs(s[i])>accuracy && fabs(e[i])>accuracy) printf("significant error at %d %d %d %d -> e=%e (rel is %e, values are %e %e)\n", ix, iy, iz, i, e[i], e[i]/s[i],s[i],s[i]-e[i]);
-				
-				for(int i=0; i<6; i++)
-					maxe[i] = max(fabs(e[i]), maxe[i]);
-				
-				for(int i=0; i<6; i++)
-					sume[i] += fabs(e[i]);
-			}
-	
-	printf("\tLinf discrepancy:\t");
-	for(int i=0; i<6; i++)
-		printf("%.2e ", maxe[i]);
-	
-	cout << endl;
-	printf("\tL1 (dh=1):       \t");
-	for(int i=0; i<6; i++)
-		printf("%.2e ", sume[i]);
-	cout<<endl;
+				 dstfirst, dstfloats, rowdsts, slicedsts);
 }
 
 Real SurfaceTension_CPP_M1::project(const Real phi)
 {
-    return 1-min(max((phi-G2)/(G1-G2),(Real)0),(Real)1);
+	return reconstruct(1, 0, phi, 1/h);
 }
 
 void SurfaceTension_CPP_M1::gradient(const Real c[3][2], Real gradc[3])
@@ -122,12 +74,18 @@ void SurfaceTension_CPP_M1::sten_tensor(const Real gradc[3], Real pi_tensor[6][9
     
     for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
-            pi_tensor[ipoint][j+3*i] =  (gradmag==0? 0: ( (i==j ? (Real)1/3:0)*(gradmag*gradmag) - gradc[i]*gradc[j] )*sigma/gradmag );
+            pi_tensor[ipoint][j+3*i] = (gradmag==0? 0: ( (i==j ? (Real)1/3:0)*(gradmag*gradmag) - gradc[i]*gradc[j] )*sigma/gradmag );
 }
 
 Real SurfaceTension_CPP_M1::delta_hs(const Real HSstencil[3][2])
 {
     return sqrt(pow(HSstencil[0][1]-HSstencil[0][0],2)+pow(HSstencil[1][1]-HSstencil[1][0],2)+pow(HSstencil[2][1]-HSstencil[2][0],2));
+}
+
+inline void assert_not_nan(const Real * const x, const int N, const int line= __LINE__)
+{
+	for(int i=0; i<N; ++i)
+		assert(!isnan(x[i]));
 }
 
 struct AIGP_ST_M1 { Real r, u, v, w, s, l; }; 
@@ -136,7 +94,7 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
                                     Real * const dstfirst, const int dstfloats, const int rowdsts, const int slicedsts)
 {
 #define GETLS(ix,iy,iz) project((*(AIGP_ST_M1*)(srcfirst + srcfloats*((ix) + (iy)*rowsrcs + (iz)*slicesrcs))).l)
-//#define GETLS(ix,iy,iz) ((ix+1)*(ix+1))	
+	//#define GETLS(ix,iy,iz) ((ix+1)*(ix+1))	
 #define GETU(ix,iy,iz) (*(AIGP_ST_M1*)(srcfirst + srcfloats*((ix) + (iy)*rowsrcs + (iz)*slicesrcs))).u/(*(AIGP_ST_M1*)(srcfirst + srcfloats*((ix) + (iy)*rowsrcs + (iz)*slicesrcs))).r
 #define GETV(ix,iy,iz) (*(AIGP_ST_M1*)(srcfirst + srcfloats*((ix) + (iy)*rowsrcs + (iz)*slicesrcs))).v/(*(AIGP_ST_M1*)(srcfirst + srcfloats*((ix) + (iy)*rowsrcs + (iz)*slicesrcs))).r
 #define GETW(ix,iy,iz) (*(AIGP_ST_M1*)(srcfirst + srcfloats*((ix) + (iy)*rowsrcs + (iz)*slicesrcs))).w/(*(AIGP_ST_M1*)(srcfirst + srcfloats*((ix) + (iy)*rowsrcs + (iz)*slicesrcs))).r
@@ -178,6 +136,11 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
                 const Real cm1m1m1 = GETLS(ix-1,iy-1,iz-1);
                 const Real c1m1m1 = GETLS(ix+1,iy-1,iz-1);  
 				
+				for(int dz=-1; dz<2; ++dz)
+					for(int dy=-1; dy<2; ++dy)
+						for(int dx=-1; dx<2; ++dx)
+							assert(!isnan(GETLS(ix+dx,iy+dy,iz+dz)));
+				
                 const Real NormalVectOnBoundaryX[6] =
                 {
                     (4*c100-4*c000+2*c1m10-2*c0m10+2*c101-2*c001+c1m11-c0m11) + (2*c110-2*c010+c111-c011) + (2*c10m1-2*c00m1+c1m1m1-c0m1m1) + (c11m1-c01m1),
@@ -187,6 +150,8 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
                     (2*c100+c110+2*c101+c111) + (-2*cm100-cm110-2*cm101-cm111) + (-cm1m10-cm1m11) + (c1m10+c1m11),                    
                     (2*c100+c110+2*c10m1+c11m1) + (-2*cm100-cm110-2*cm10m1-cm11m1) + (-cm1m10-cm1m1m1) + (c1m10+c1m1m1)					
                 };
+				
+				assert_not_nan(NormalVectOnBoundaryX, sizeof(NormalVectOnBoundaryX)/sizeof(Real));
                 
                 const Real NormalVectOnBoundaryY[6] =
                 {
@@ -197,6 +162,8 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
                     (2*c010+c110+2*c011+c111) + (cm110+cm111) + (-cm1m10-2*c0m10-cm1m11-2*c0m11) + (-c1m10-c1m11),                                        
                     (2*c010+c110+2*c01m1+c11m1) + (cm110+cm11m1) + (-cm1m10-2*c0m10-cm1m1m1-2*c0m1m1) + (-c1m10-c1m1m1)
                 };
+				
+				assert_not_nan(NormalVectOnBoundaryY, sizeof(NormalVectOnBoundaryY)/sizeof(Real));
                 
                 const Real NormalVectZ[8] = 
                 {
@@ -218,6 +185,8 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
                     c0m10-c0m1m1	     + c000-c00m1 +
                     c1m10-c1m1m1	 + c100-c10m1
                 };
+				
+				assert_not_nan(NormalVectZ, sizeof(NormalVectZ)/sizeof(Real));
                 
                 const Real NormalVectOnBoundaryZ[6] =
                 {
@@ -228,12 +197,16 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
                     NormalVectZ[0] + NormalVectZ[1] + NormalVectZ[2] + NormalVectZ[3],
                     NormalVectZ[4] + NormalVectZ[5] + NormalVectZ[6] + NormalVectZ[7]
                 };
+				
+				assert_not_nan(NormalVectOnBoundaryZ, sizeof(NormalVectOnBoundaryZ)/sizeof(Real));
                 
                 Real pi_tensor[6][9];
                 for(int i=0; i<6; i++)
                 {
                     const Real gradc[3] = {NormalVectOnBoundaryX[i], NormalVectOnBoundaryY[i], NormalVectOnBoundaryZ[i]};
-					
+					assert(!isnan(gradc[0]));
+					assert(!isnan(gradc[1]));
+					assert(!isnan(gradc[2]));
                     sten_tensor(gradc, pi_tensor, i);
 				}
                 
@@ -245,10 +218,14 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
 					const Real rhsu = dtinvh*divX/(16*h);
                     const Real rhsv = dtinvh*divY/(16*h);
                     const Real rhsw = dtinvh*divZ/(16*h);                        
-
+					
                     OUTPUTU(ix,iy,iz) = a*OUTPUTU(ix,iy,iz) + rhsu;
                     OUTPUTV(ix,iy,iz) = a*OUTPUTV(ix,iy,iz) + rhsv;
                     OUTPUTW(ix,iy,iz) = a*OUTPUTW(ix,iy,iz) + rhsw;
+					
+					assert(!isnan(OUTPUTU(ix,iy,iz)));
+					assert(!isnan(OUTPUTV(ix,iy,iz)));
+					assert(!isnan(OUTPUTW(ix,iy,iz)));
                 }  
                 
                 {                    
@@ -273,8 +250,10 @@ void SurfaceTension_CPP_M1::compute(const Real * const srcfirst, const int srcfl
                     delete [] pi_tensor_u;
                     
                     const Real rhss = dtinvh*divAll/(32*h);
-
+					
                     OUTPUTS(ix,iy,iz) = a*OUTPUTS(ix,iy,iz) + rhss;
+					
+					assert(!isnan(OUTPUTS(ix,iy,iz)));
                 }
             }
 #undef GETLS

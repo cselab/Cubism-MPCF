@@ -188,7 +188,7 @@ LIBS += -L$(tbb-lib) \
 
 ifeq "$(vtk)" "1"
 	CPPFLAGS += -I$(vtk-inc) -D_USE_VTK_
-	
+
 	LIBS += -L$(vtk-lib) \
 		-lvtkVolumeRendering \
 		-lvtkRendering \
@@ -214,7 +214,7 @@ ifeq "$(vtk)" "1"
 		-lvtkzlib \
 		-lvtkHybrid \
 		-lvtkfreetype
-		
+
 	ifneq "$(findstring brutus,$(shell hostname))" ""
 		LIBS+= -lvtkParallel -lVPIC -lCosmo
 	endif
@@ -231,11 +231,15 @@ VPATH := ../source/ ../../MPCFcore/source/ ../../../Cubism/source/
 OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockTube.o Test_ShockBubble.o Test_CVT.o FlowStep_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o Test_TG.o
 
 ifeq "$(sse)" "1"
-	OBJECTS += FlowStep_SSE_diego.o
+	ifeq "$(ap)" "double"
+		OBJECTS += Convection_SSEd.o
+	else
+		OBJECTS += Convection_SSE.o
+	endif
 endif
 
 ifeq "$(avx)" "1"
-	OBJECTS += FlowStep_AVX_diego.o
+	OBJECTS += Convection_AVX.o
 endif
 
 #on brutus flowstep performs better without native arch

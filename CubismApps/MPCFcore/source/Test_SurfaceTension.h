@@ -1,5 +1,5 @@
 /*
- *  SurfaceTension_Test.h
+ *  Test_SurfaceTension.h
  *  MPCFcore
  *
  *  Created by Diego Rossinelli on 2/20/12.
@@ -19,13 +19,7 @@ using namespace std;
 #include "TestTypes.h"
 #include "Timer.h"
 
-#ifdef _FLOAT_PRECISION_
-typedef float Real;
-#else
-typedef double Real;
-#endif
-
-class SurfaceTension_Test
+class Test_SurfaceTension
 {	
 	Real _heaviside(const Real phi, const Real EPSILON)
 	{
@@ -81,14 +75,13 @@ class SurfaceTension_Test
 					lab(ix, iy, iz).s.v = (1-y)*(1-y);
 					lab(ix, iy, iz).s.w = z*z;
 					lab(ix, iy, iz).s.levelset = 1./(_getGamma(gamma1, gamma2, r-radius, eps)-1);
+					assert(!isnan(lab(ix, iy, iz).s.levelset));
 					lab(ix, iy, iz).s.s = 10*lab(ix, iy, iz).s.levelset;
 				}
 	}
 	
 	void _gold(TestLab_S2& lab, Block& block, const Real a, const Real _dtinvh, const Real G1, const Real G2, const Real _h, const Real _sigma=1);
-	
-	void _compare(Block& _a, Block& _b, double accuracy, string kernelname);
-	
+		
 	template<typename FS> double _benchmark(FS fs, const int NBLOCKS, const int NTIMES)
 	{
 		TestLab_S2 * lab = new TestLab_S2[NBLOCKS];
@@ -105,7 +98,7 @@ class SurfaceTension_Test
 		//measure performance
 		{
 			Timer timer;
-						
+			
 			//run FS
 			const int srcfloats  = sizeof(GP)/sizeof(Real);
 			const int rowsrcs = _BLOCKSIZE_+2;
@@ -177,7 +170,7 @@ public:
 	{
 		TestLab_S2 * lab = new TestLab_S2;
 		_initialize_lab(*lab, 1./_BLOCKSIZE_, 1., 0.1, 1/fs.G1+1, 1/fs.G2+1);
-				
+		
 		Block * blockgold = new Block;
 		_initialize(*blockgold);
 		
@@ -185,7 +178,7 @@ public:
 		
 		Block * block = new Block;
 		_initialize(*block);
-
+		
 		{
 			const int srcfloats  = sizeof(GP)/sizeof(Real);
 			const int rowsrcs = _BLOCKSIZE_+2;
@@ -204,7 +197,7 @@ public:
 		
 		delete lab;
 		
-		_compare(*blockgold, *block, accuracy, typeid(fs).name());
+		blockgold->compare(*block, accuracy, typeid(fs).name());
 		
 		delete blockgold;
 		delete block;		
@@ -228,7 +221,7 @@ public:
 				COUNT++;
 			}
 		}
-
+		
 		//measure performance
 		{
 			Timer timer;
@@ -261,7 +254,7 @@ public:
 		}
 		
 		string implname = typeid(fs).name();
-
+		
 		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE, false);
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
 	}

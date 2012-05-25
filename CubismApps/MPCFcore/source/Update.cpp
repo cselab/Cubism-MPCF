@@ -17,7 +17,7 @@
 void Update_CPP::compute(const Real * const src, Real * const dst, const int gptfloats)
 {
 	assert(gptfloats >= 6);
-
+	
 	const int N=_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*gptfloats;
 	
 	for(int i=0; i<N; i+=gptfloats)
@@ -44,7 +44,7 @@ void Update_SSE::_sse_update6(const float * const src, float * const dst, const 
 	const int N=_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*gptfloats;
 	const __m128 b = _mm_set1_ps(m_b);
 	const __m128 b2 = _mm_set_ps(0, 0, m_b, m_b);
-
+	
 	assert(N % 2 == 0);
 	
 	for(int i=0; i<N; i+=gptfloats*2)
@@ -61,7 +61,7 @@ void Update_SSE::_sse_update(const float * const src, float * const dst, const i
 	const int Nm1=(_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_-1)*gptfloats;
 	const __m128 b = _mm_set1_ps(m_b);
 	const __m128 b2 = _mm_set_ps(0, 0, m_b, m_b);
-
+	
 	for(int i=0; i<Nm1; i+=gptfloats)
 	{
 		_mm_storeu_ps(dst+i,   _mm_loadu_ps(dst+i) + b*_mm_loadu_ps(src+i));
@@ -83,7 +83,7 @@ void Update_SSE::_sse_updateLD(const float * const src, float * const dst, const
 	const int N = (Nfloats/4)*4;
 	
 	const __m128 b = _mm_set1_ps(m_b);
-
+	
 	for(int i=0; i<N; i+=4)
 		_mm_store_ps(dst+i, _mm_load_ps(dst+i) + b*_mm_load_ps(src+i));
 	
@@ -96,7 +96,7 @@ void Update_SSE::_sse_updateLD(const float * const src, float * const dst, const
 void Update_AVX::_avx_sparse(const float * const src, float * const dst, const int gptfloats)
 {
 	const int Nfloats = _BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*gptfloats;
-
+	
 	const __m256 b = _mm256_set_ps(0, 0, m_b, m_b, m_b, m_b, m_b, m_b);
 	
 	for(int i=0; i<Nfloats; i+=gptfloats)
@@ -112,7 +112,7 @@ void Update_AVX::_avx_lockdown(const float * const src, float * const dst, const
 	
 	for(int i=0; i<N; i+=8)
 		_mm256_storeu_ps(dst+i, _mm256_loadu_ps(dst+i) + b*_mm256_loadu_ps(src+i));
-
+	
 	//diego dai salta gio'! vo a pe'
 	for(int i=N; i<Nfloats; i++) dst[i] += m_b*src[i];
 }

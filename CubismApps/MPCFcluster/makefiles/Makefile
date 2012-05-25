@@ -229,11 +229,19 @@ endif
 VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-cluster
 
-OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o FlowStep_CPP.o FlowStep_SSE_diego.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o Histogram.o
+OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Convection_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o Histogram.o
 OBJECTS += Test_ShockBubble.o Test_CVT.o
 
+ifeq "$(sse)" "1"
+	ifeq "$(ap)" "double"
+		OBJECTS += Convection_SSEd.o
+	else
+		OBJECTS += Convection_SSE.o
+	endif
+endif
+
 ifeq "$(avx)" "1"
-	OBJECTS += FlowStep_AVX_diego.o
+	OBJECTS += Convection_AVX.o
 endif
 
 mpcf-cluster: $(OBJECTS)
