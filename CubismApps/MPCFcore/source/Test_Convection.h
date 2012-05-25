@@ -71,9 +71,9 @@ public:
 	
 	template<typename FS> void accuracy(FS& fs, double accuracy=1e-4, bool bAwk=false)
 	{
-		gamma1 = fs.gamma1;
+		/*gamma1 = fs.gamma1;
 		gamma2 = fs.gamma2;
-		smoothlength = fs.smoothlength;
+		smoothlength = fs.smoothlength;*/
 		dtinvh = fs.dtinvh;
 		
 		TestLab * lab = new TestLab;
@@ -159,9 +159,9 @@ public:
 	
 	template<typename FS> void performance(FS& fs, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
 	{
-		gamma1 = fs.gamma1;
+		/*gamma1 = fs.gamma1;
 		gamma2 = fs.gamma2;
-		smoothlength = fs.smoothlength;
+		smoothlength = fs.smoothlength;*/
 		dtinvh = fs.dtinvh;
 		
 		int COUNT = 0;
@@ -221,9 +221,9 @@ public:
 	
 	template<typename FS> void profile(FS& fs, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
 	{
-		gamma1 = fs.gamma1;
+		/*gamma1 = fs.gamma1;
 		gamma2 = fs.gamma2;
-		smoothlength = fs.smoothlength;
+		smoothlength = fs.smoothlength;*/
 		dtinvh = fs.dtinvh;
 		
 		int COUNT = 0;

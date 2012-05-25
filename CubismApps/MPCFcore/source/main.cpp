@@ -120,7 +120,7 @@ int main (int argc, const char ** argv)
 	//C++ kernels
 	{
 		if (kernel == "Convection_CPP" || kernel == "all")
-			testing(Test_Convection(), Convection_CPP(0, 1, 2.5, 2.1, 1, 0, 0), info);
+			testing(Test_Convection(), Convection_CPP(0, 1), info);
 		
 		if (kernel == "Diffusion_CPP" || kernel == "all")
 			testing(Test_Diffusion(), Diffusion_CPP(1, 1, 2, 1/(2.1-1), 1/(2.1-1), 1, 1, 1), info);
