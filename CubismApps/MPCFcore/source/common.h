@@ -61,6 +61,7 @@ inline Real getPC(const Real phi, const Real smoothlength, const Real pc1, const
 }
 
 //SSE-related functions
+#ifdef _SSE_
 #include <xmmintrin.h>
 
 #ifdef __INTEL_COMPILER
@@ -202,6 +203,7 @@ inline __m128d getPC(const __m128d phi, const __m128d inv_smoothlength,
 
 #define _3ORPS_(a,b,c) _mm_or_ps(a, _mm_or_ps(b,c))
 #define _3ORPD_(a,b,c) _mm_or_pd(a, _mm_or_pd(b,c))
+#endif //SSE
 
 //AVX-related functions
 #ifdef _AVX_

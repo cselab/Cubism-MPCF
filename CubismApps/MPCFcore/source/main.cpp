@@ -14,6 +14,7 @@
 #endif
 
 #include <iostream>
+#include <xmmintrin.h>
 
 #include <ArgumentParser.h>
 
