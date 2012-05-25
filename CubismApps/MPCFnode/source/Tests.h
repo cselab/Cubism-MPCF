@@ -8,7 +8,9 @@
  */
 #pragma once
 
-#ifdef _USE_CVT_
+typedef BlockLab<FluidBlock, tbb::scalable_allocator> Lab;
+
+/*#ifdef _USE_CVT_
 #include "Test_ShockTube.h"
 typedef BlockLab<FluidBlock, tbb::scalable_allocator> Lab;
 
@@ -18,6 +20,7 @@ typedef BlockLab<FluidBlock, tbb::scalable_allocator> Lab;
 typedef BlockLabBubble<FluidBlock, tbb::scalable_allocator> Lab;
 
 #endif
+*/
 
 //typedef BlockLabBubbleYZSymmetric<FluidBlock, tbb::scalable_allocator> Lab;
 
