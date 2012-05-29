@@ -48,14 +48,16 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
                     {
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
-                        const double r = sqrt(pow(p[0]-Simulation_Environment::shock_pos-1.2*radius,2)+pow(p[1]-bubble_pos[1],2));
-                        const double bubble = Simulation_Environment::heaviside_smooth(r-radius);                                                                        
+                        const double r1 = sqrt(pow(p[0]-Simulation_Environment::shock_pos-1.2*radius,2)+pow(p[1]-bubble_pos[1],2));
+                        const double r2 = sqrt(pow(p[0]-Simulation_Environment::shock_pos-3.5*radius,2)+pow(p[1]-bubble_pos[1],2));
                         
-                        const Real pre_shock[3] = {1,0,1};
+                        const double bubble = Simulation_Environment::heaviside_smooth(min(r1-radius, r2-radius));                                                                        
+                                                
+                        const Real pre_shock[3] = {10,0,10};
                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
                         const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);                                           
                         
-                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.138*bubble+pre_shock[0]*(1-bubble));
+                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
                         b(ix, iy, iz).u        = (shock*post_shock[1] + (1-shock)*pre_shock[1])*b(ix, iy, iz).rho;
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;

@@ -41,7 +41,7 @@ Real MaxSpeedOfSound_CPP::compute(const Real * const src, const int gptfloats)
         const Real c =  mysqrt((1/G+1)*max(p/r, (Real)0));
 #else
 		const Real p = (e - (u*u + v*v + w*w)*(0.5/r) - P)/G;
-  		const Real c =  mysqrt((1/G+1)*max((p+P)/r, (Real)0));
+  		const Real c =  mysqrt((1/G+1)*max((p+P/G/(1/G+1))/r, (Real)0));
 #endif
 		
 		const Real cu = max(myabs(c + u/r), myabs(c - u/r));

@@ -110,7 +110,7 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
 		
 		Lab mylab;
 		mylab.prepare(grid, stencil_start, stencil_end, tensorial);
-        
+                
 #pragma omp for schedule(static)
 		for(int i=0; i<N; i++) 
 		{
@@ -121,7 +121,7 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
             const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();	
 			
 			Real * const destfirst = &((FluidBlock*)ary[i].ptrBlock)->tmp[0][0][0][0];
-            
+
 			kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice, 
 						   destfirst, FluidBlock::gptfloats, FluidBlock::sizeX, FluidBlock::sizeX*FluidBlock::sizeY);
 		}
@@ -411,7 +411,7 @@ struct LSRKstep
         
         const double t1 = timer.stop();
         if (LSRK3data::profiler != NULL) LSRK3data::profiler->pop_stop();
-        
+                
 		double tsurface_tension = 0;
         if(LSRK3data::sten_sigma!=0)
         {

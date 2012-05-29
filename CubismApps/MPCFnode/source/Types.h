@@ -99,10 +99,10 @@ public:
 
 struct FluidElement
 {
+#ifndef _LIQUID_
 	Real rho, u, v, w, energy, G;
-    
-#ifdef _LIQUID_
-    Real P;
+#else
+    Real rho, u, v, w, energy, G, P;
 #endif
     
 #ifndef _LIQUID_
@@ -251,7 +251,12 @@ struct FluidBlock
 	typedef FluidElement element_type;
 	
 	FluidElement __attribute__((aligned(_ALIGNBYTES_))) data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
+    
+#ifndef _LIQUID_
 	Real __attribute__((aligned(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][6];
+#else
+	Real __attribute__((aligned(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][7];
+#endif
     
 	void clear_data()
 	{

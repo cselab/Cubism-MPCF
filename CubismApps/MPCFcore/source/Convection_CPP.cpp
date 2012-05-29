@@ -714,7 +714,7 @@ void Convection_CPP::_zflux(const int relid)
 #else
     _zweno_minus(relid, P.ring, P.weno.ref(0));
     _zweno_pluss(relid, P.ring, P.weno.ref(1));
-    _zextraterm(w.weno(0), w.weno(-1), P.weno(0), P.weno(-1));
+    _zextraterm(w.weno(0), w.weno(-1), G.weno(0), G.weno(-1), P.weno(0), P.weno(-1));
     _char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));    
 #endif
     
