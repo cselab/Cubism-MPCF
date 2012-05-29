@@ -99,9 +99,6 @@ protected:
 		P.weno.next();
 #endif
 	}
-	
-	//inline Real _getgamma(const Real phi) const { return getgamma(phi, smoothlength, gamma1, gamma2); } 
-	//inline Real _getPC(const Real phi) const { return getPC(phi, smoothlength, pc1, pc2); }
     
 	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
 	

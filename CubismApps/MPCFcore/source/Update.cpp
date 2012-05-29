@@ -21,6 +21,10 @@ void Update_CPP::compute(const Real * const src, Real * const dst, const int gpt
 	const int N=_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*gptfloats;
 	
 	for(int i=0; i<N; i+=gptfloats)
+#ifndef _LIQUID_        
 		for(int comp=0;comp<6;comp++)
-			dst[i+comp] += m_b*src[i+comp];
+#else
+        for(int comp=0;comp<7;comp++)
+#endif
+            dst[i+comp] += m_b*src[i+comp];
 }

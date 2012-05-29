@@ -36,6 +36,25 @@ using namespace std;
 
 #include "BoundaryConditions.h"
 
+#ifndef _LIQUID_
+#define SETUP_MARKERS_IC \
+const double mix_gamma = 1 + (G2*G1)/(G1*bubble+G2*(1-bubble)); \
+b(ix, iy, iz).G  = 1./(mix_gamma-1); \
+const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho; \
+b(ix, iy, iz).energy   = pressure*b(ix, iy, iz).G + ke;
+
+#else
+
+#define SETUP_MARKERS_IC \
+const double mix_gamma = 1 + (G2*G1)/(G1*bubble+G2*(1-bubble)); \
+const double mix_pinf  = (mix_gamma-1)/mix_gamma * (F1/G1*(1-bubble) + F2/G2*bubble); \
+b(ix, iy, iz).G  = 1./(mix_gamma-1); \
+b(ix, iy, iz).P = mix_gamma*mix_pinf/(mix_gamma-1); \
+const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho; \
+b(ix, iy, iz).energy   = pressure*b(ix, iy, iz).G + b(ix, iy, iz).P + ke;
+
+#endif
+
 class Simulation_Environment
 {
 public:
@@ -45,40 +64,28 @@ public:
     static int reinit_freq, reinit_steps;
     static Real PC1, PC2;
 	
-	static Real heaviside(const Real phi)
-	{
-		if(EPSILON!=0)
-		{
-			const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/EPSILON)));
-			const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
-			const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
-			return (x<0 ? val_xneg : val_xpos);
-		}
-		else
-			return (phi>0 ? 0:1);
-	}
-	
-	static Real getGamma(const Real x)
-	{
-		const Real hs = heaviside(x);
-		return GAMMA1*hs + GAMMA2*(((Real)1)-hs);
-	}
+    static Real heaviside(const Real phi)
+    {
+        return (phi>0? 0:1);
+    }
     
-    static Real getPressureCorrection(const Real x)
-	{
-		const Real hs = heaviside(x);
-		return PC1*hs + PC2*(((Real)1)-hs);
-	}
+    static Real heaviside_smooth(const Real phi)
+    {
+        const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/EPSILON)));
+        const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
+        const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
+        return (x<0 ? val_xneg : val_xpos);
+    }
     
-	static void getPostShockRatio(const Real mach, const Real gamma, Real postShock[])
-	{
-		const double Mpost = sqrt( (pow(mach,(Real)2.)*(gamma-1.)+2.) / (2.*gamma*pow(mach,(Real)2.)-(gamma-1.)) );
-		postShock[0] = (gamma+1.)*pow(mach,(Real)2.)/( (gamma-1.)*pow(mach,(Real)2.)+2. ) ;
-		postShock[2] = 1./(gamma+1.) * ( 2.*gamma*pow(mach,(Real)2.)-(gamma-1.) );
-		const double preShockU = mach*sqrt(gamma);
-		const double postShockU = Mpost*sqrt(gamma*postShock[2]/postShock[0]);
-		postShock[1] = preShockU - postShockU;
-	}	
+    static void getPostShockRatio(const Real pre_shock[3], const Real mach, const Real gamma, const Real pc, Real postShock[3])
+    {
+        const double Mpost = sqrt( (pow(mach,(Real)2.)*(gamma-1.)+2.) / (2.*gamma*pow(mach,(Real)2.)-(gamma-1.)) );
+        postShock[0] = (gamma+1.)*pow(mach,(Real)2.)/( (gamma-1.)*pow(mach,(Real)2.)+2.)*pre_shock[0] ;
+        postShock[2] = 1./(gamma+1.) * ( 2.*gamma*pow(mach,(Real)2.)-(gamma-1.))*pre_shock[2];
+        const double preShockU = mach*sqrt(gamma*(pc+pre_shock[2])/pre_shock[0]);
+        const double postShockU = Mpost*sqrt(gamma*(pc+postShock[2])/postShock[0]);
+        postShock[1] = preShockU - postShockU;
+    }
 };
 
 class Simulation
@@ -92,39 +99,71 @@ public:
 
 struct FluidElement
 {
-	Real rho, u, v, w, energy, levelset;
-	
-	void clear() { rho = u = v = w = energy = levelset = 0; }
+	Real rho, u, v, w, energy, G;
+    
+#ifdef _LIQUID_
+    Real P;
+#endif
+    
+#ifndef _LIQUID_
+	void clear() { rho = u = v = w = energy = G = 0; }
+#else
+    void clear() { rho = u = v = w = energy = G = P = 0; }
+#endif
 };
 
 struct StreamerGridPointASCII
 {
 	void operate(const FluidElement& input, ofstream& output) const 
 	{
+#ifndef _LIQUID_
 		output << input.rho << " " << input.u << " " << input.v << " " << 
-        input.w << " " << input.energy << " " << input.levelset << endl;
+        input.w << " " << input.energy << " " << input.G << endl;
+#else
+        output << input.rho << " " << input.u << " " << input.v << " " << 
+        input.w << " " << input.energy << " " << input.G << " " << input.P << endl;
+#endif
 	}
 	
 	void operate(ifstream& input, FluidElement& output) const 
 	{
+#ifndef _LIQUID_
 		input >> output.rho;
 		input >> output.u;
 		input >> output.v;
 		input >> output.w;
 		input >> output.energy;
-		input >> output.levelset;
+		input >> output.G;
 		
 		cout << "reading: " <<  output.rho << " " 
 		<<  output.u << " " 
 		<<  output.v << " " 
 		<<  output.w << " " 
 		<<  output.energy << " " 
-		<<  output.levelset << "\n" ;
+		<<  output.G << "\n" ;
+#else
+		input >> output.rho;
+		input >> output.u;
+		input >> output.v;
+		input >> output.w;
+		input >> output.energy;
+		input >> output.G;
+		input >> output.P;
+		
+		cout << "reading: " <<  output.rho << " " 
+		<<  output.u << " " 
+		<<  output.v << " " 
+		<<  output.w << " " 
+		<<  output.energy << " " 
+        <<  output.G << " " 
+		<<  output.P << "\n" ;
+#endif
 	}
 };
 
 struct StreamerGridPoint //dummy
 {
+#ifndef _LIQUID_
 	static const int channels = 6;
 	void operate(const FluidElement& input, Real output[6]) const
 	{
@@ -133,9 +172,23 @@ struct StreamerGridPoint //dummy
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;
-		output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)*(Simulation_Environment::getGamma(input.levelset)-1);
-		output[5] = input.levelset;		
+		output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)/input.G;
+		output[5] = input.G;		
 	}
+#else
+    static const int channels = 7;
+	void operate(const FluidElement& input, Real output[7]) const
+	{
+		output[0] = input.rho;
+		assert(input.rho >= 0);
+		output[1] = input.u/input.rho;
+		output[2] = input.v/input.rho;
+		output[3] = input.w/input.rho;
+		output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+		output[5] = input.G;		
+  		output[6] = input.P;		
+	}
+#endif
 };
 
 struct StreamerDensity
@@ -170,16 +223,20 @@ struct StreamerPressure
 	static const int channels = 1;
 	void operate(const FluidElement& input, Real output[1]) const
 	{
-		output[0] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)*(Simulation_Environment::getGamma(input.levelset)-1);
+#ifndef _LIQUID_        
+		output[0] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)/input.G;
+#else
+        output[0] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+#endif
 	}
 };
 
-struct StreamerLevelset
+struct StreamerG
 {
 	static const int channels = 1;
 	void operate(const FluidElement& input, Real output[1]) const
 	{
-		output[0] = input.levelset;
+		output[0] = input.G;
 	}
 };
 
@@ -272,7 +329,11 @@ struct StreamerDummy_HDF5
 		output[2] = input.v;
 		output[3] = input.w;
 		output[4] = input.energy;
-		output[5] = input.levelset;		
+		output[5] = input.G;		
+        
+#ifdef _LIQUID_
+        output[6] = input.P;		
+#endif
 	}
 	
 	void operate(const Real output[9], const int ix, const int iy, const int iz) const
@@ -285,7 +346,11 @@ struct StreamerDummy_HDF5
 		input.v = output[2];
 		input.w = output[3];
 		input.energy = output[4];
-		input.levelset = output[5];		
+		input.G = output[5];		
+        
+#ifdef _LIQUID_
+  		input.P = output[6];		
+#endif
 	}
 	
 	static const char * getAttributeName() { return "Tensor"; } 

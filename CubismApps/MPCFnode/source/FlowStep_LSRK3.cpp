@@ -15,10 +15,17 @@
 #include <utility>
 #include <iostream>
 
+#include <emmintrin.h>
+
 #include <Timer.h>
 #include <Profiler.h>
 #include <Convection_CPP.h>
+
+#ifdef _SSE_
 #include <Convection_SSE.h>
+#include <SurfaceTension_SSE.h>
+#include <Diffusion_SSE.h>
+#endif
 
 #ifdef _AVX_
 #include <Convection_AVX.h>
@@ -29,9 +36,7 @@
 #include <Update.h>
 #include <MaxSpeedOfSound.h>
 #include <SurfaceTension_CPP.h>
-#include <SurfaceTension_SSE.h>
 #include <Diffusion_CPP.h>
-#include <Diffusion_SSE.h>
 
 using namespace tbb;
 using namespace std;
@@ -76,7 +81,7 @@ struct MaxSOS
 	
 	void operator()(blocked_range<int> range)
 	{
-		Kernel kernel(LSRK3data::gamma1, LSRK3data::gamma2, LSRK3data::smoothlength, LSRK3data::pc1, LSRK3data::pc2);
+		Kernel kernel;
 		
 		for(int r=range.begin(); r<range.end(); ++r)
 		{
@@ -97,23 +102,23 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
 #pragma omp parallel
 	{
 #ifdef _USE_NUMA_
-   	const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
-	const int mynode = omp_get_thread_num() / cores_per_node;
+        const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
+        const int mynode = omp_get_thread_num() / cores_per_node;
         numa_run_on_node(mynode);
 #endif
-		Kernel kernel(a, dtinvh, LSRK3data::gamma1, LSRK3data::gamma2, LSRK3data::smoothlength, LSRK3data::pc1, LSRK3data::pc2);
+		Kernel kernel(a, dtinvh);
 		
 		Lab mylab;
 		mylab.prepare(grid, stencil_start, stencil_end, tensorial);
-				
+        
 #pragma omp for schedule(static)
 		for(int i=0; i<N; i++) 
 		{
 			mylab.load(ary[i], t);
             
-            		const Real * const srcfirst = &mylab(-3,-3,-3).rho;
-            		const int labSizeRow = mylab.template getActualSize<0>();
-            		const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();	
+            const Real * const srcfirst = &mylab(-3,-3,-3).rho;
+            const int labSizeRow = mylab.template getActualSize<0>();
+            const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();	
 			
 			Real * const destfirst = &((FluidBlock*)ary[i].ptrBlock)->tmp[0][0][0][0];
             
@@ -134,11 +139,11 @@ void _process_surface_tension(const Real sigma, const Real dtinvh, vector<BlockI
 #pragma omp parallel
     {
 #ifdef _USE_NUMA_
-	const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
-	const int mynode = omp_get_thread_num() / cores_per_node;
+        const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
+        const int mynode = omp_get_thread_num() / cores_per_node;
         numa_run_on_node(mynode);
 #endif
-	Kernel kernel(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), myInfo.front().h_gridpoint, LSRK3data::smoothlength, sigma);
+        Kernel kernel(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), myInfo.front().h_gridpoint, LSRK3data::smoothlength, sigma);
         
         Lab mylab;
         mylab.prepare(grid, stencil_start, stencil_end, tensorial);
@@ -162,7 +167,7 @@ void _process_surface_tension(const Real sigma, const Real dtinvh, vector<BlockI
 template<typename Lab, typename Kernel>
 void _process_diffusion(const Real dtinvh, vector<BlockInfo>& myInfo, FluidGrid& grid, const Real t=0, bool tensorial=true)
 {
-   const int stencil_start[3] = {-1,-1,-1};
+    const int stencil_start[3] = {-1,-1,-1};
     const int stencil_end[3] = {2,2,2};
     BlockInfo * ary = &myInfo.front();
     const int N = myInfo.size();
@@ -227,7 +232,6 @@ struct TBBWorker {
     }
 };
 
-
 template < typename TSOS>
 Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
 {
@@ -238,14 +242,14 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
     
 #pragma omp parallel
     {
-
+        
 #ifdef _USE_NUMA_
 		const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
         const int mynode = omp_get_thread_num() / cores_per_node;
         numa_run_on_node(mynode);
 #endif
-
-        TSOS kernel(LSRK3data::gamma1, LSRK3data::gamma2, LSRK3data::smoothlength, LSRK3data::pc1, LSRK3data::pc2);
+        
+        TSOS kernel;
 #pragma omp for schedule(static)
         for (size_t i=0; i<N; ++i)
         {
@@ -291,38 +295,48 @@ Real FlowStep_LSRK3::_computeSOS(bool bAwk)
 	
     if (LSRK3data::dispatcher == "tbblight")
     {
-      if (kernels=="sse" || kernels=="avx")
-	{
-	  MaxSOS<MaxSpeedOfSound_SSE> compute_sos(&vInfo.front());
-	  if (!LSRK3data::bAffinity)
-	    parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, auto_partitioner());
-	  else
-	    parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, LSRK3data::affinitypart);
-
-	  sos = compute_sos.sos;
-	}
-      else
-	{
-	  MaxSOS<MaxSpeedOfSound_CPP> compute_sos(&vInfo.front());
-	  if (!LSRK3data::bAffinity)
-	    parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, auto_partitioner());
-	  else
-	    parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, LSRK3data::affinitypart);
-
-	  sos = compute_sos.sos;
-	}
+        if (kernels=="sse" || kernels=="avx")
+        {
+#if defined(_SSE_) || defined(_AVX_)
+            MaxSOS<MaxSpeedOfSound_SSE> compute_sos(&vInfo.front());
+            if (!LSRK3data::bAffinity)
+                parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, auto_partitioner());
+            else
+                parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, LSRK3data::affinitypart);
+            
+            sos = compute_sos.sos;
+#endif
+        }
+        else
+        {
+            MaxSOS<MaxSpeedOfSound_CPP> compute_sos(&vInfo.front());
+            if (!LSRK3data::bAffinity)
+                parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, auto_partitioner());
+            else
+                parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, LSRK3data::affinitypart);
+            
+            sos = compute_sos.sos;
+        }
     }
     else if (kernels=="sse" || kernels=="avx")
-	sos = _computeSOS_OMP<MaxSpeedOfSound_SSE>(grid,  bAwk);
+    {
+#if defined(_SSE_) || defined(_AVX_)
+        sos = _computeSOS_OMP<MaxSpeedOfSound_SSE>(grid,  bAwk);
+#endif
+    }
     else
-	sos = _computeSOS_OMP<MaxSpeedOfSound_CPP>(grid,  bAwk);
-		
+        sos = _computeSOS_OMP<MaxSpeedOfSound_CPP>(grid,  bAwk);
+    
     const Real time = timer.stop();
     
     if (LSRK3data::verbosity >= 1 && LSRK3data::step_id % LSRK3data::ReportFreq == 0)
     {
         if (kernels=="sse" || kernels=="avx")
+        {
+#if defined(_SSE_) || defined(_AVX_)
             MaxSpeedOfSound_SSE::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, vInfo.size(), time, bAwk);
+#endif
+        }
         else
             MaxSpeedOfSound_CPP::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, vInfo.size(), time, bAwk);
         
@@ -360,17 +374,17 @@ struct LSRKstep
             
             Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg1);
             Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg2);
-		
+            
 			if(LSRK3data::sten_sigma!=0)
 		    {
 				Ksten sten(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), vInfo.front().h_gridpoint, LSRK3data::smoothlength, LSRK3data::sten_sigma);
 				sten.printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg4, bAwk);
 			}
-
+            
 			if(LSRK3data::nu1!=0)
 			{
 				Kdiff diffusion(dtinvh, LSRK3data::nu1, LSRK3data::nu2, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), vInfo.front().h_gridpoint, LSRK3data::smoothlength, dtinvh);
-
+                
 				diffusion.printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg3, bAwk);
 			}		
         }
@@ -379,7 +393,7 @@ struct LSRKstep
     vector<double> step(FluidGrid& grid, vector<BlockInfo>& vInfo, Real a, Real b, Real dtinvh, const Real current_time)
     {
         Timer timer;
-	  vector<double> res;
+        vector<double> res;
         
         if (LSRK3data::profiler != NULL) LSRK3data::profiler->push_start("FLOWSTEP");
         LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
@@ -404,18 +418,18 @@ struct LSRKstep
             LSRK3data::SurfaceTension<Ksten, Lab> sten(dtinvh, LSRK3data::sten_sigma);
             
             if (LSRK3data::profiler != NULL) LSRK3data::profiler->push_start("SURFACE TENSION");
-
+            
 			timer.start();
-
+            
             if (LSRK3data::dispatcher == "omp")
                 _process_surface_tension<Lab, Ksten>(LSRK3data::sten_sigma, dtinvh, vInfo, grid, current_time, true);
             else if (LSRK3data::dispatcher == "tbblight")
                 TBBWorker<Lab, LSRK3data::SurfaceTension<Ksten, Lab> >::_process(vInfo, sten, grid, current_time, true);
             else               
                 BlockProcessing::process<Lab>(vInfo, sten, grid, current_time, true);            
-
+            
 			tsurface_tension = timer.stop();
-
+            
             if (LSRK3data::profiler != NULL) LSRK3data::profiler->pop_stop();
         }
 		
@@ -507,8 +521,10 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
     
     if (parser("-kernels").asString("cpp")=="cpp")
         LSRKstep<Convection_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time, bAwk);
+#ifdef _SSE_
     else if (parser("-kernels").asString("cpp")=="sse")
         LSRKstep<Convection_SSE, Update_SSE, SurfaceTension_SSE, Diffusion_SSE>(grid, dt/h, current_time, bAwk);
+#endif
 #ifdef _AVX_
     else if (parser("-kernels").asString("cpp")=="avx")
         LSRKstep<Convection_AVX, Update_AVX, SurfaceTension_AVX, Diffusion_AVX>(grid, dt/h, current_time, bAwk);

@@ -106,7 +106,11 @@ void Test_SteadyState::_ic(FluidGrid& grid)
 					b(ix, iy, iz).v        = 1.32;
 					b(ix, iy, iz).w        = -11.2;
 					b(ix, iy, iz).energy   = 2.5+0.5*3;
-					b(ix, iy, iz).levelset = -1;
+					b(ix, iy, iz).G = Simulation_Environment::GAMMA1;
+                    
+#ifdef _LIQUID_
+                    b(ix, iy, iz).P = Simulation_Environment::PC1;
+#endif                    
 				}
 	}	
 	

@@ -23,44 +23,42 @@ using namespace std;
 
 class Test_Convection
 {
-	Real gamma1, gamma2, smoothlength, dtinvh;
-	
-	inline Real _getGamma(Real phi)
-	{		
-		assert(gamma1>0);
-		assert(gamma2>0);
-		
-		const Real gamma = reconstruct(gamma1, gamma2, phi, ((Real)1)/smoothlength);
-		
-		assert(gamma >= 1);
-		
-		return gamma;
-	}
-	
 	void _toPrimitive(GP& p, Real out[6]) 
 	{
 		out[0] = p.s.r;
 		out[1] = p.s.u/out[0];
 		out[2] = p.s.v/out[0];
 		out[3] = p.s.w/out[0];
+#ifndef _LIQUID_
+		out[4] = (p.s.s - (p.s.u*p.s.u+p.s.v*p.s.v+p.s.w*p.s.w)*(((Real)0.5)/p.s.r))/G;
+#else
+        out[4] = (p.s.s - (p.s.u*p.s.u+p.s.v*p.s.v+p.s.w*p.s.w)*(((Real)0.5)/p.s.r) - P)/G;
+#endif
+        
+		out[5] = p.s.G;
+        
+#ifdef _LIQUID_
+        out[6] = p.s.P;
+#endif
 		
-		out[4] = (p.s.s - (p.s.u*p.s.u+p.s.v*p.s.v+p.s.w*p.s.w)*(((Real)0.5)/p.s.r))*(_getGamma(p.s.levelset)-(Real)1);
-		out[5] = p.s.levelset;
-		
-		assert((p.s.s > (pow(p.s.u,2)+pow(p.s.v,2)+pow(p.s.w,2))*(0.5/p.s.r)));
-		assert((_getGamma(p.s.levelset)-1.) > 0);
 		assert(p.s.r>0);
 		assert(!isnan(p.s.r));
 		assert(!isnan(p.s.u));
 		assert(!isnan(p.s.v));
 		assert(!isnan(p.s.w));
 		assert(!isnan(p.s.s));
-		assert(!isnan(p.s.levelset));
-		
+		assert(!isnan(p.s.G));
+
+#ifdef _LIQUID_
+        assert(!isnan(p.s.P));
+#endif
+        
+#ifndef _LIQUID_
 		for(int i=0; i<6; i++)
+#else
+  		for(int i=0; i<7; i++)
+#endif
 			assert(!isnan(out[i]));
-		
-		assert(out[4]>0);
 	}
 	
 	virtual void _initialize(TestLab& lab, Block& block);
@@ -71,9 +69,6 @@ public:
 	
 	template<typename FS> void accuracy(FS& fs, double accuracy=1e-4, bool bAwk=false)
 	{
-		/*gamma1 = fs.gamma1;
-		gamma2 = fs.gamma2;
-		smoothlength = fs.smoothlength;*/
 		dtinvh = fs.dtinvh;
 		
 		TestLab * lab = new TestLab;
@@ -159,9 +154,6 @@ public:
 	
 	template<typename FS> void performance(FS& fs, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
 	{
-		/*gamma1 = fs.gamma1;
-		gamma2 = fs.gamma2;
-		smoothlength = fs.smoothlength;*/
 		dtinvh = fs.dtinvh;
 		
 		int COUNT = 0;
@@ -221,9 +213,6 @@ public:
 	
 	template<typename FS> void profile(FS& fs, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
 	{
-		/*gamma1 = fs.gamma1;
-		gamma2 = fs.gamma2;
-		smoothlength = fs.smoothlength;*/
 		dtinvh = fs.dtinvh;
 		
 		int COUNT = 0;

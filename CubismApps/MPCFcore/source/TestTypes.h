@@ -9,10 +9,15 @@
 #pragma once
 
 #include <cassert>
+#include <stdio.h>
 
 #include "common.h"
 
-struct StateVector { Real r, u, v, w, s, levelset;};
+#ifndef _LIQUID_
+struct StateVector { Real r, u, v, w, s, G;};
+#else
+struct StateVector { Real r, u, v, w, s, G, P;};
+#endif
 
 //union GP { StateVector s; StateVector dsdt; };
 struct GP {StateVector s; StateVector dsdt;};
@@ -43,8 +48,13 @@ struct MatrixGP
 	
 	void compare(MatrixGP& block, double accuracy, string kernelname, bool compare_dsdt=true)
 	{
+#ifndef _LIQUID_
 		double maxe[6]={0,0,0,0,0,0};
 		double sume[6]={0,0,0,0,0,0};
+#else
+		double maxe[6]={0,0,0,0,0,0,0};
+		double sume[6]={0,0,0,0,0,0,0};
+#endif
 		
 		for(int iz = 0; iz<_BLOCKSIZE_; iz++)
 			for(int iy = 0; iy<_BLOCKSIZE_; iy++)
@@ -59,20 +69,21 @@ struct MatrixGP
 						a = (*this)(ix, iy, iz).s;
 						b = block(ix, iy, iz).s;
 					}
-				
+                    
+#ifndef _LIQUID_
 					const double s[6]  = {
 						b.r ,
 						b.u ,
 						b.v ,
 						b.w ,
 						b.s ,
-						b.levelset
+						b.G
 					};
-					
+                                        
 					for(int i=0; i<6; ++i)
 						assert(!isnan(s[i]));
 					
-					const double e[6]  = {
+                    const double e[6]  = {
 						b.r - a.r,
 						b.u - a.u,
 						b.v - a.v,
@@ -80,8 +91,8 @@ struct MatrixGP
 						b.s - a.s,
 						b.levelset - a.levelset
 					};
-					
-					for(int i=0; i<6; ++i)
+                    
+                    for(int i=0; i<6; ++i)
 						assert(!isnan(e[i]));
 					
 					for(int i=0; i<6; i++)
@@ -91,17 +102,59 @@ struct MatrixGP
 						maxe[i] = max(fabs(e[i]), maxe[i]);
 					
 					for(int i=0; i<6; i++)
+						sume[i] += fabs(e[i]);        
+                    
+                    printf("\tLinf discrepancy:\t");
+                    for(int i=0; i<6; i++)
+                        printf("%.2e ", maxe[i]);
+                    
+                    printf("\n\tL1 (dh=1):       \t");
+                    for(int i=0; i<6; i++)
+                        printf("%.2e ", sume[i]);
+                    printf("\n");
+#else
+                    const double s[7]  = {
+						b.r ,
+						b.u ,
+						b.v ,
+						b.w ,
+						b.s ,
+						b.G ,
+                        b.P
+					};
+					
+					const double e[7]  = {
+						b.r - a.r,
+						b.u - a.u,
+						b.v - a.v,
+						b.w - a.w,
+						b.s - a.s,
+						b.G - a.G,
+                        b.P - a.P
+					};
+					
+					for(int i=0; i<7; ++i)
+						assert(!isnan(e[i]));
+					
+					for(int i=0; i<7; i++)
+						if (fabs(e[i])/fabs(s[i])>accuracy && fabs(e[i])>accuracy) printf("significant error at %d %d %d %d -> e=%e (rel is %e, values are %e %e)\n", ix, iy, iz, i, e[i], e[i]/s[i],s[i],s[i]-e[i]);
+					
+					for(int i=0; i<7; i++)
+						maxe[i] = max(fabs(e[i]), maxe[i]);
+					
+					for(int i=0; i<7; i++)
 						sume[i] += fabs(e[i]);
+                    
+                    printf("\tLinf discrepancy:\t");
+                    for(int i=0; i<7; i++)
+                        printf("%.2e ", maxe[i]);
+                    
+                    printf("\n\tL1 (dh=1):       \t");
+                    for(int i=0; i<7; i++)
+                        printf("%.2e ", sume[i]);
+                    printf("\n");
+#endif
 				}
-		
-		printf("\tLinf discrepancy:\t");
-		for(int i=0; i<6; i++)
-			printf("%.2e ", maxe[i]);
-		
-		printf("\n\tL1 (dh=1):       \t");
-		for(int i=0; i<6; i++)
-			printf("%.2e ", sume[i]);
-		printf("\n");
 	}
 };
 

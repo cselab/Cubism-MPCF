@@ -16,18 +16,7 @@
 
 class MaxSpeedOfSound_CPP
 {
-protected:
-	
-	const Real gamma1, gamma2, smoothlength;
-    const Real pc1, pc2;
-	
-	inline Real _getgamma(const Real phi) const { return getgamma(phi, smoothlength, gamma1, gamma2); } 
-	inline Real _getPC(const Real phi) const { return getPC(phi, smoothlength, pc1, pc2); }
 public:
-	
-	MaxSpeedOfSound_CPP(const Real gamma1, const Real gamma2, const Real smoothlength, const Real pc1, const Real pc2):
-	gamma1(gamma1), gamma2(gamma2), smoothlength(smoothlength), pc1(pc1), pc2(pc2) { }
-	
 	Real compute(const Real * const src, const int gptfloats);
 	
 	static void printflops(const float PEAKPERF_CORE, const float PEAKBAND, const int NCORES, const int NT, const int NBLOCKS, float MEASUREDTIME, const bool bAwk=false)

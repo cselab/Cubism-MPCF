@@ -58,7 +58,7 @@ namespace LSRK3data {
 		
 		inline void operator()(Lab& lab, const BlockInfo& info, FluidBlock& o) const
 		{
-			Kernel kernel(a, dtinvh, LSRK3data::gamma1, LSRK3data::gamma2, LSRK3data::smoothlength, LSRK3data::pc1, LSRK3data::pc2);
+			Kernel kernel(a, dtinvh);
 			
 			const Real * const srcfirst = &lab(-3,-3,-3).rho;
 			const int labSizeRow = lab.template getActualSize<0>();

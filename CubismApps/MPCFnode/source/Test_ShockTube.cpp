@@ -16,6 +16,11 @@ void Test_ShockTube::_ic(FluidGrid& grid)
 	cout << "ShockTube Initial condition..." ;
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
 	
+    const double G1 = Simulation_Environment::GAMMA1-1;
+    const double G2 = Simulation_Environment::GAMMA2-1;
+    const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
+    const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
+    
 	for(int i=0; i<(int)vInfo.size(); i++)
 	{
 		BlockInfo info = vInfo[i];
@@ -35,7 +40,11 @@ void Test_ShockTube::_ic(FluidGrid& grid)
 					b(ix, iy, iz).v        = 0;
 					b(ix, iy, iz).w        = 0;
 					b(ix, iy, iz).energy   = mask? 2.5:0.25;
-					b(ix, iy, iz).levelset = 1;
+					b(ix, iy, iz).G = Simulation_Environment::GAMMA1;
+                    
+#ifdef _LIQUID_
+                    b(ix, iy, iz).P = Simulation_Environment::PC1;
+#endif
 				}
 	}
 	

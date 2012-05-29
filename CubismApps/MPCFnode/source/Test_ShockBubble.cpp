@@ -24,6 +24,11 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
 	cout << "ShockBubble Initial condition..." ;
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
     
+    const double G1 = Simulation_Environment::GAMMA1-1;
+    const double G2 = Simulation_Environment::GAMMA2-1;
+    const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
+    const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
+    
 #pragma omp parallel
 	{	
 #ifdef _USE_NUMA_
@@ -34,33 +39,32 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
 		
 		for(int i=0; i<(int)vInfo.size(); i++)
 		{
-			BlockInfo info = vInfo[i];
-			FluidBlock& b = *(FluidBlock*)info.ptrBlock;
-			
-			for(int iz=0; iz<FluidBlock::sizeZ; iz++)
-				for(int iy=0; iy<FluidBlock::sizeY; iy++)
-					for(int ix=0; ix<FluidBlock::sizeX; ix++)
-					{
-						Real p[3], post_shock[3];
-						info.pos(p, ix, iy, iz);
-						
-						b(ix, iy, iz).levelset = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2))-radius;
-						
-						const double shock  = Simulation_Environment::heaviside(p[0]-Simulation_Environment::shock_pos);
-						const double bubble = Simulation_Environment::heaviside(b(ix, iy, iz).levelset);
-						const double gamma  = Simulation_Environment::getGamma(b(ix, iy, iz).levelset);
-						Simulation_Environment::getPostShockRatio(Simulation_Environment::mach, Simulation_Environment::GAMMA1, post_shock);
-						
-						b(ix, iy, iz).rho      = (0.138*bubble + (1.-bubble))*(1.-shock) + shock*post_shock[0];
-						b(ix, iy, iz).u        = b(ix, iy, iz).rho*(shock*post_shock[1]);
-						b(ix, iy, iz).v        = 0;
-						b(ix, iy, iz).w        = 0;
-						
-						const double pressure  = (1.-shock) + shock*post_shock[2];
-						b(ix, iy, iz).energy   = pressure/(gamma-1.) + 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
-					}
-		}
-		
+            BlockInfo info = vInfo[i];
+            FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+            
+            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+                for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                    for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                    {
+                        Real p[3], post_shock[3];
+                        info.pos(p, ix, iy, iz);
+                        const double r = sqrt(pow(p[0]-Simulation_Environment::shock_pos-1.2*radius,2)+pow(p[1]-bubble_pos[1],2));
+                        const double bubble = Simulation_Environment::heaviside_smooth(r-radius);                                                                        
+                        
+                        const Real pre_shock[3] = {1,0,1};
+                        Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
+                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);                                           
+                        
+                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.138*bubble+pre_shock[0]*(1-bubble));
+                        b(ix, iy, iz).u        = (shock*post_shock[1] + (1-shock)*pre_shock[1])*b(ix, iy, iz).rho;
+                        b(ix, iy, iz).v        = 0;
+                        b(ix, iy, iz).w        = 0;
+                        
+                        const double pressure  = shock*post_shock[2] + (1-shock)*pre_shock[2];
+                        
+                        SETUP_MARKERS_IC
+                    }
+        }		
 	}	
 	cout << "done." << endl;
 }
@@ -78,7 +82,6 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
 	Real rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0.;
-    Real xRinterface=0, xTinterface=0;
     Real x[3];
     const Real h = vInfo[0].h_gridpoint;
     const Real h3 = h*h*h;
@@ -103,27 +106,14 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     vInt += b(ix, iy, iz).v;
                     wInt += b(ix, iy, iz).w;
                     eInt += b(ix, iy, iz).energy;
-                    vol  += Simulation_Environment::heaviside(b(ix,iy,iz).levelset);
+                    vol  += b(ix,iy,iz).G;
                     ke   += 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w);
-                    
-                    if (info.index[0]!=grid.getBlocksPerDimension(0)-1 && ix!=_BLOCKSIZE_-1 && b(ix,iy,iz).levelset*b(ix+1,iy,iz).levelset<0)
-                    {
-                        lab.load(info);
-                        xRinterface = max(xRinterface,x[0]+_findzero(lab(ix-1,iy,iz).levelset, lab(ix,iy,iz).levelset, lab(ix+1,iy,iz).levelset, h));
-                    }
-                    
-                    if (info.index[1]!=grid.getBlocksPerDimension(1)-1 && iy!=_BLOCKSIZE_-1 && b(ix,iy,iz).levelset*b(ix,iy+1,iz).levelset<0)
-                    {
-                        lab.load(info);
-                        xTinterface = max(xTinterface,x[1]+_findzero(lab(ix,iy-1,iz).levelset, lab(ix,iy,iz).levelset, lab(ix,iy+1,iz).levelset, h));
-                    }
-                    
                 }
     }
     
     FILE * f = fopen("integrals.dat", "a");
-    fprintf(f, "%d  %f  %f  %f  %f  %f  %f  %f %f   %f  %f  %f\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, xRinterface, xTinterface, ke);
+    fprintf(f, "%d  %f  %f  %f  %f  %f  %f  %f %f   %f\n", step_id, t, dt, rInt*h3, uInt*h3, 
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke);
     fclose(f);
 }
 

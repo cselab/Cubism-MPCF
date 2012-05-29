@@ -10,6 +10,7 @@
 
 #include "common.h"
 #include "SurfaceTension_CPP.h"
+#ifdef _SSE_
 #include "DivTensor_SSE.h"
 
 class SurfaceTension_SSE: public virtual DivTensor_SSE, public virtual SurfaceTension_CPP
@@ -276,3 +277,4 @@ public:
 	{ 
 	}
 };
+#endif

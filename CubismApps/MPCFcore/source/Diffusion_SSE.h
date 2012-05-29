@@ -10,6 +10,7 @@
 
 #include "common.h"
 #include "Diffusion_CPP.h"
+#ifdef _SEE_
 #include "DivTensor_SSE.h"
 
 class Diffusion_SSE: public virtual Diffusion_CPP, public virtual DivTensor_SSE
@@ -546,3 +547,4 @@ public:
 	}
 #undef LEFT
 };
+#endif

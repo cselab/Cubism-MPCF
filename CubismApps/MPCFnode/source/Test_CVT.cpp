@@ -76,7 +76,7 @@ void Test_CVT::_ic(FluidGrid& grid)
 						const double rad_rel2 = rad2/rthresh;
 						const double wz02 = (rad_rel2<=1.0) ? omega0*(1.0 - exp(-factK/rad_rel2* exp(1./(rad_rel2-1.)) ) ): 0.0;
 						
-						b(ix, iy, iz).levelset = 1;
+						b(ix, iy, iz).G = 1/G1;
 						
 						b(ix, iy, iz).rho = 1.0;
 						b(ix, iy, iz).u =  (wz0*vpxt - wz02*vpxt2)*b(ix, iy, iz).rho;

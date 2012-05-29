@@ -600,6 +600,7 @@ void Convection_CPP::_copyback(Real * const gptfirst, const int gptfloats, const
 			rhs.w = a*rhs.w - dtinvh*w.rhs(ix, iy);
 			rhs.s = a*rhs.s - dtinvh*p.rhs(ix, iy);
 			rhs.G = a*rhs.G - dtinvh*(G.rhs(ix, iy) - divu(ix,iy)*sumG(ix,iy)*factor2);
+            
 #ifdef _LIQUID_
 			rhs.P = a*rhs.P - dtinvh*(P.rhs(ix, iy) - divu(ix,iy)*sumP(ix,iy)*factor2);			
 #endif
@@ -691,59 +692,88 @@ void Convection_CPP::_yflux(const int relid)
 	_hlle_rho(P.weno(0), P.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), P.flux.ref());
 #endif
 }
-/*
- void Convection_CPP::_zflux(const int relid)
- {	
- _zweno_minus(relid, rho.ring, rho.weno.ref(0));
- _zweno_pluss(relid, rho.ring, rho.weno.ref(1));
- _zweno_minus(relid, u.ring, u.weno.ref(0));
- _zweno_pluss(relid, u.ring, u.weno.ref(1));
- _zweno_minus(relid, v.ring, v.weno.ref(0));
- _zweno_pluss(relid, v.ring, v.weno.ref(1));
- _zweno_minus(relid, w.ring, w.weno.ref(0));
- _zweno_pluss(relid, w.ring, w.weno.ref(1));
- _zweno_minus(relid, p.ring, p.weno.ref(0));
- _zweno_pluss(relid, p.ring, p.weno.ref(1));
- _zweno_minus(relid, G.ring, G.weno.ref(0));
- _zweno_pluss(relid, G.ring, G.weno.ref(1));
- 
- _zextraterm(w.weno(0), w.weno(-1), G.weno(0), G.weno(-1));
- _char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), charvel.ref(0), charvel.ref(1));
- 
- _hlle_rho(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), rho.flux.ref());
- _hlle_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), u.flux.ref());
- _hlle_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), v.flux.ref());
- _hlle_pvel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), w.flux.ref());
- _hlle_e(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), charvel(0), charvel(1), p.flux.ref());
- _hlle_rho(G.weno(0), G.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), G.flux.ref());
- }
- 
- void Convection_CPP::_xrhs()
- {	
- _xdivergence(rho.flux(), rhsrho);
- _xdivergence(u.flux(), rhsu);
- _xdivergence(v.flux(), rhsv);
- _xdivergence(w.flux(), rhsw);
- _xdivergence(p.flux(), rhss);
- _xdivergence(G.flux(), rhsls);
- }
- 
- void Convection_CPP::_yrhs()
- {	
- _ydivergence(rho.flux(), rhsrho);
- _ydivergence(u.flux(), rhsu);
- _ydivergence(v.flux(), rhsv);
- _ydivergence(w.flux(), rhsw);
- _ydivergence(p.flux(), rhss);
- _ydivergence(G.flux(), rhsls);
- }
- 
- void Convection_CPP::_zrhs()
- {	
- _zdivergence(rho.flux(-1), rho.flux(0), rhsrho);
- _zdivergence(u.flux(-1), u.flux(0), rhsu);
- _zdivergence(v.flux(-1), v.flux(0), rhsv);
- _zdivergence(w.flux(-1), w.flux(0), rhsw);
- _zdivergence(p.flux(-1), p.flux(0), rhss);
- _zdivergence(G.flux(-1), G.flux(0), rhsls);
- }*/
+
+void Convection_CPP::_zflux(const int relid)
+{	
+    _zweno_minus(relid, rho.ring, rho.weno.ref(0));
+    _zweno_pluss(relid, rho.ring, rho.weno.ref(1));
+    _zweno_minus(relid, u.ring, u.weno.ref(0));
+    _zweno_pluss(relid, u.ring, u.weno.ref(1));
+    _zweno_minus(relid, v.ring, v.weno.ref(0));
+    _zweno_pluss(relid, v.ring, v.weno.ref(1));
+    _zweno_minus(relid, w.ring, w.weno.ref(0));
+    _zweno_pluss(relid, w.ring, w.weno.ref(1));
+    _zweno_minus(relid, p.ring, p.weno.ref(0));
+    _zweno_pluss(relid, p.ring, p.weno.ref(1));
+    _zweno_minus(relid, G.ring, G.weno.ref(0));
+    _zweno_pluss(relid, G.ring, G.weno.ref(1));
+    
+#ifndef _LIQUID_
+    _zextraterm(w.weno(0), w.weno(-1), G.weno(0), G.weno(-1));
+    _char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), charvel.ref(0), charvel.ref(1));
+#else
+    _zweno_minus(relid, P.ring, P.weno.ref(0));
+    _zweno_pluss(relid, P.ring, P.weno.ref(1));
+    _zextraterm(w.weno(0), w.weno(-1), P.weno(0), P.weno(-1));
+    _char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));    
+#endif
+    
+    _hlle_rho(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), rho.flux.ref());
+    _hlle_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), u.flux.ref());
+    _hlle_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), v.flux.ref());
+    _hlle_pvel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), w.flux.ref());
+    
+#ifndef _LIQUID_
+    _hlle_e(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), charvel(0), charvel(1), p.flux.ref());
+#else
+    _hlle_e(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), p.flux.ref());
+#endif
+    
+    _hlle_rho(G.weno(0), G.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), G.flux.ref());
+    
+#ifdef _LIQUID_
+    _hlle_rho(P.weno(0), P.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), P.flux.ref());
+#endif
+}
+
+void Convection_CPP::_xrhs()
+{	
+    _xdivergence(rho.flux(), rho.rhs);
+    _xdivergence(u.flux(), u.rhs);
+    _xdivergence(v.flux(), v.rhs);
+    _xdivergence(w.flux(), w.rhs);
+    _xdivergence(p.flux(), p.rhs);
+    _xdivergence(G.flux(), G.rhs);
+    
+#ifdef _LIQUID_
+    _xdivergence(P.flux(), P.rhs);
+#endif
+}
+
+void Convection_CPP::_yrhs()
+{	
+    _ydivergence(rho.flux(), rho.rhs);
+    _ydivergence(u.flux(), u.rhs);
+    _ydivergence(v.flux(), v.rhs);
+    _ydivergence(w.flux(), w.rhs);
+    _ydivergence(p.flux(), p.rhs);
+    _ydivergence(G.flux(), G.rhs);
+    
+#ifdef _LIQUID_
+    _ydivergence(P.flux(), P.rhs);
+#endif
+}
+
+void Convection_CPP::_zrhs()
+{	
+    _zdivergence(rho.flux(-1), rho.flux(0), rho.rhs);
+    _zdivergence(u.flux(-1), u.flux(0), u.rhs);
+    _zdivergence(v.flux(-1), v.flux(0), v.rhs);
+    _zdivergence(w.flux(-1), w.flux(0), w.rhs);
+    _zdivergence(p.flux(-1), p.flux(0), p.rhs);
+    _zdivergence(G.flux(-1), G.flux(0), G.rhs);
+    
+#ifdef _LIQUID_
+    _zdivergence(P.flux(-1), P.flux(0), P.rhs);
+#endif
+}
