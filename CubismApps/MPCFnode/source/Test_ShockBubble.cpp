@@ -51,7 +51,7 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
                         const double r = sqrt(pow(p[0]-Simulation_Environment::shock_pos-1.2*radius,2)+pow(p[1]-bubble_pos[1],2));
                         
                         const double bubble = Simulation_Environment::heaviside_smooth(r-radius);                                                                        
-                                                
+                        
                         const Real pre_shock[3] = {1,0,1};
                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
                         const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);                                           
@@ -82,7 +82,7 @@ Real _findzero(const Real f0, const Real f1, const Real f2, const Real h)
 void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const Real t, const Real dt)
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
-	Real rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0.;
+	Real rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0.;
     Real x[3];
     const Real h = vInfo[0].h_gridpoint;
     const Real h3 = h*h*h;
@@ -107,14 +107,15 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     vInt += b(ix, iy, iz).v;
                     wInt += b(ix, iy, iz).w;
                     eInt += b(ix, iy, iz).energy;
-                    vol  += b(ix,iy,iz).G<0.5*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
+                    vol  += b(ix,iy,iz).G>0.5*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
+                    r2Int += b(ix, iy, iz).rho*min(max((b(ix,iy,iz).G-1/(Simulation_Environment::GAMMA1-2))/(1/(Simulation_Environment::GAMMA1-1)-1/(Simulation_Environment::GAMMA2-1)),(Real)0),(Real)1);
                     ke   += 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w);
                 }
     }
     
     FILE * f = fopen("integrals.dat", "a");
-    fprintf(f, "%d  %f  %f  %f  %f  %f  %f  %f %f   %f\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke);
+    fprintf(f, "%d  %f  %f  %f  %f  %f  %f  %f %f   %f %f\n", step_id, t, dt, rInt*h3, uInt*h3, 
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3);
     fclose(f);
 }
 

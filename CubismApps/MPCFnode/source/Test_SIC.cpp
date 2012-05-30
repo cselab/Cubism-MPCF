@@ -70,33 +70,3 @@ void Test_SIC::_ic(FluidGrid& grid)
 	}	
 	cout << "done." << endl;
 }
-/*
-void Test_SIC::setup()
-{
-	printf("////////////////////////////////////////////////////////////\n");
-	printf("////////////         TEST SHOCK BUBBLE       ///////////////\n");
-	printf("////////////////////////////////////////////////////////////\n");
-	
-	_setup_constants();
-	parser.mute();
-	
-	if (parser("-morton").asBool(0))
-		grid = new GridMorton<FluidGrid>(BPDX, BPDY, BPDZ);
-	else
-		grid = new FluidGrid(BPDX, BPDY, BPDZ);
-	
-	assert(grid != NULL);
-	
-	stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY, &profiler, Simulation_Environment::PC1, Simulation_Environment::PC2, bAWK);
-	
-    
-	if(bRESTART)
-	{
-		_restart();
-		_dump("restartedcondition.vti");
-	}
-	else
-	{
-		_ic(*grid);
-	}
-}*/

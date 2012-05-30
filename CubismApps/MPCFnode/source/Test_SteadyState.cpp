@@ -73,10 +73,12 @@ void Test_SteadyState::_save()
 
 void Test_SteadyState::_dump(string filename)
 {	
-	cout << "Dump to " << filename << "..." ;
+    const string path = parser("-fpath").asString(".");
+    
+	cout << "Dump to " << path << filename << "..." ;
 #ifdef _USE_VTK_ 
 	SerializerIO_ImageVTK<FluidGrid, StreamerGridPoint> vtkdumper;
-	vtkdumper.Write(*grid, filename);
+	vtkdumper.Write(*grid, path+filename);
 #else
 	#warning VTK WAS DISABLED AT COMPILE TIME
 #endif
