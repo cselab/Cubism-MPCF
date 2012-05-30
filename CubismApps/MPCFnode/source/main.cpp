@@ -20,6 +20,7 @@
 #include "Test_ShockBubble.h"
 #include "Test_CVT.h"
 #include "Test_TG.h"
+#include "Test_SIC.h"
 
 using namespace std;
 
@@ -89,7 +90,7 @@ int main (int argc, const char ** argv)
 	else
 		printf("NUMA API supported!\n");
 #endif
-
+    
 	ArgumentParser parser(argc, argv);	
 	const bool bFlush2Zero = parser("-f2z").asBool(true);
 	
@@ -111,9 +112,11 @@ int main (int argc, const char ** argv)
 		sim = new Test_ShockBubble(argc, argv);
 	else if( parser("-sim").asString() == "cvt" )
 		sim = new Test_CVT(argc, argv);
-        else if( parser("-sim").asString() == "tg" )
-	  sim = new Test_TG(argc, argv);
-	else
+    else if( parser("-sim").asString() == "tg" )
+        sim = new Test_TG(argc, argv);
+    else if( parser("-sim").asString() == "sic" )
+        sim = new Test_SIC(argc, argv);
+    else
 	{
 		printf("Study case not defined!\n"); 
 		abort();

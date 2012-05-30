@@ -135,8 +135,11 @@ void Convection_CPP::printflops(const float PEAKPERF_CORE, const float PEAKBAND,
 	}
 	
 	const double ai_overall = min((double)PEAKPERF , (totflop / texpected_ai) / PEAKBAND);
-	
+#ifndef _LIQUID_	
 	const int nquantities = 6;
+#else
+    const int nquantities = 7;
+#endif
 	const double inout_footprint =  NT * NBLOCKS * nquantities * (size_t)sizeof(Real) *
 	(powf(_BLOCKSIZE_ + 6, 3) + 2 * powf(_BLOCKSIZE_, 3));
 	
