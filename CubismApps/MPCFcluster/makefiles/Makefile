@@ -230,7 +230,7 @@ VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubis
 .DEFAULT_GOAL := mpcf-cluster
 
 OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Convection_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o Histogram.o
-OBJECTS += Test_ShockBubble.o Test_CVT.o
+OBJECTS += Test_ShockBubble.o Test_CVT.o Test_SIC.o
 
 ifeq "$(sse)" "1"
 	ifeq "$(ap)" "double"

@@ -99,8 +99,12 @@ public:
       if (bVP)
 	{
       if (isroot) cout << "dumping MPI VP ..." ;
-        
+       
+      const string path = parser("-fpath").asString(".");
+ 
         std::stringstream streamer;
+	streamer<<path;
+	streamer<<"/";
         streamer<<"data";
         streamer.setf(ios::dec | ios::right);
         streamer.width(5);

@@ -82,10 +82,9 @@ Real _findzero(const Real f0, const Real f1, const Real f2, const Real h)
 void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const Real t, const Real dt)
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
-	Real rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0.;
-    Real x[3];
-    const Real h = vInfo[0].h_gridpoint;
-    const Real h3 = h*h*h;
+    double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0.;
+    const double h = vInfo[0].h_gridpoint;
+    const double h3 = h*h*h;
     
     Lab lab;
     const int ss[3] = {-1,-1,-1};
@@ -101,20 +100,20 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
 			for(int iy=0; iy<FluidBlock::sizeY; iy++)
 				for(int ix=0; ix<FluidBlock::sizeX; ix++)
 				{
-                    info.pos(x, ix, iy, iz);
-                    rInt += b(ix, iy, iz).rho;
+                                    rInt += b(ix, iy, iz).rho;
                     uInt += b(ix, iy, iz).u;
                     vInt += b(ix, iy, iz).v;
                     wInt += b(ix, iy, iz).w;
                     eInt += b(ix, iy, iz).energy;
-                    vol  += b(ix,iy,iz).G<0.5*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
+                    vol  += b(ix,iy,iz).G>0.5*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
+                    r2Int += b(ix, iy, iz).rho*(1-min(max((b(ix,iy,iz).G-1/(Simulation_Environment::GAMMA1-2))/(1/(Simulation_Environment::GAMMA1-1)-1/(Simulation_Environment::GAMMA2-1)),(Real)0),(Real)1));
                     ke   += 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w);
                 }
     }
     
     FILE * f = fopen("integrals.dat", "a");
-    fprintf(f, "%d  %f  %f  %f  %f  %f  %f  %f %f   %f\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke);
+    fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3);
     fclose(f);
 }
 

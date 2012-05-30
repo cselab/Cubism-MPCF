@@ -21,6 +21,8 @@
 #include "Test_SteadyStateMPI.h"
 #include "Test_ShockBubbleMPI.h"
 #include "Test_CVTMPI.h"
+#include "Test_SICMPI.h"
+
 using namespace std;
 
 Simulation * sim = NULL;
@@ -54,13 +56,15 @@ int main (int argc, const char ** argv)
 	  cout << "Dispatcher: " << parser("-dispatcher").asString() << endl;
 
 	Environment::setup(max(1, parser("-nthreads").asInt()));
-	
+
 	if( parser("-sim").asString() == "steady" )
 		sim = new Test_SteadyStateMPI(isroot, argc, argv);
 	else if( parser("-sim").asString() == "sb" )
 		sim = new Test_ShockBubbleMPI(isroot, argc, argv);
 	else if( parser("-sim").asString() == "cvt" )
 		sim = new Test_CVTMPI(isroot, argc, argv);
+	else if( parser("-sim").asString() == "sic" )
+		sim = new Test_SICMPI(isroot, argc, argv);
 	else 
 		if (isroot)
 		{

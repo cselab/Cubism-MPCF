@@ -12,15 +12,16 @@
 
 class Test_ShockBubble: public Test_SteadyState
 {
-    friend class Test_ShockBubbleMPI;
+  friend class Test_ShockBubbleMPI;
     
-	void _ic(FluidGrid& grid);
-	void _setup_constants();
-    void _dumpStatistics(FluidGrid& grid, const int counter, const Real t, const Real dt);
+  void _ic(FluidGrid& grid);
     
 protected:
     Real radius, bubble_pos[3];
-    
+
+    void _setup_constants();
+    void _dumpStatistics(FluidGrid& grid, const int counter, const Real t, const Real dt);
+
 public:	
 	Test_ShockBubble(const int argc, const char ** argv): Test_SteadyState(argc, argv) { }
     
