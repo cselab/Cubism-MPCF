@@ -100,3 +100,4 @@ void Test_SIC::setup()
       _ic(*grid);
     }
 }
+

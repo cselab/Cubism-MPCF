@@ -76,6 +76,7 @@ void Test_SteadyState::_dump(string filename)
   const string path = parser("-fpath").asString(".");
 
   cout << "Dump to " << path << filename << "..." ;
+
 #ifdef _USE_VTK_ 
 	SerializerIO_ImageVTK<FluidGrid, StreamerGridPoint> vtkdumper;
 	vtkdumper.Write(*grid, path+filename);
