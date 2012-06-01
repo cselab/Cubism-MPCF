@@ -159,7 +159,10 @@ public:
 					(*this)(ix,iy,iz).v        = ((dir==1)? -1:1)*source.v;
 					(*this)(ix,iy,iz).w        = ((dir==2)? -1:1)*source.w;
 					(*this)(ix,iy,iz).energy   = source.energy;
-					(*this)(ix,iy,iz).levelset = source.levelset;
+					(*this)(ix,iy,iz).G = source.G;
+#ifdef _LIQUID_
+                    (*this)(ix,iy,iz).P = source.P;
+#endif
 				}
 	}
 	

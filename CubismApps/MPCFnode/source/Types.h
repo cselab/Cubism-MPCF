@@ -330,10 +330,14 @@ struct StreamerDummy_HDF5
 		
 		output[0] = input.rho;
 		assert(input.rho >= 0);
-		output[1] = input.u;
-		output[2] = input.v;
-		output[3] = input.w;
-		output[4] = input.energy;
+		output[1] = input.u/input.rho;
+		output[2] = input.v/input.rho;
+		output[3] = input.w/input.rho;        
+#ifndef _LIQUID_        
+		output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)/input.G;
+#else
+        output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+#endif        
 		output[5] = input.G;		
         
 #ifdef _LIQUID_
@@ -347,10 +351,14 @@ struct StreamerDummy_HDF5
 		
 		input.rho = output[0];
 		assert(input.rho >= 0);
-		input.u = output[1];
-		input.v = output[2];
-		input.w = output[3];
-		input.energy = output[4];
+		input.u = output[1]*output[0];
+		input.v = output[2]*output[0];
+		input.w = output[3]*output[0];
+#ifndef _LIQUID_        
+		input.energy = output[4]*output[5] + 0.5*output[0]*(output[1]*output[1]+output[2]*output[2]+output[3]*output[3]);
+#else
+		input.energy = output[4]*output[5] + 0.5*output[0]*(output[1]*output[1]+output[2]*output[2]+output[3]*output[3])+output[6];
+#endif 
 		input.G = output[5];		
         
 #ifdef _LIQUID_

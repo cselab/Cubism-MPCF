@@ -48,21 +48,22 @@ void Test_SIC::_ic(FluidGrid& grid)
                     {
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
-                        const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
+                        const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));//+pow(p[2]-bubble_pos[2],2));
                         const double r2 = r1;//sqrt(pow(p[0]-Simulation_Environment::shock_pos-3.5*radius,2)+pow(p[1]-bubble_pos[1],2));
                         
                         const double bubble = Simulation_Environment::heaviside_smooth(min(r1-radius, r2-radius));                                                                        
                                                 
                         const Real pre_shock[3] = {10,0,10};
                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
-                        const double shock = 0;//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);                                           
-                        
-                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
-                        b(ix, iy, iz).u        = (shock*post_shock[1] + (1-shock)*pre_shock[1])*b(ix, iy, iz).rho;
+                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos)*Simulation_Environment::heaviside_smooth(0.05-p[0]);                                           
+                        const double shock2 = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);
+                        b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));//shock*post_shock[0] +
+                        b(ix, iy, iz).u        = 100*b(ix, iy, iz).rho*shock;//100*b(ix, iy, iz).rho*shock2;//(shock*post_shock[1] + (1-shock)*pre_shock[1])*b(ix, iy, iz).rho
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double pressure  = shock*post_shock[2] + (1-shock)*(0.01*bubble+pre_shock[2]*(1-bubble));
+                        const double p_front = pre_shock[2]+2*3500*exp(-35*(Simulation_Environment::shock_pos*0.9-p[0]))*cos(35*(Simulation_Environment::shock_pos*0.9-p[0])+M_PI/3);
+                        const double pressure  = shock*p_front + (1-shock)*pre_shock[2];//shock*post_shock[2]
                         
                         SETUP_MARKERS_IC
                     }
@@ -88,8 +89,7 @@ void Test_SIC::setup()
   assert(grid != NULL);
   
   stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY, &profiler, Simulation_Environment::PC1, Simulation_Environment::PC2, bAWK);
-  
-    
+      
   if(bRESTART)
     {
       _restart();
