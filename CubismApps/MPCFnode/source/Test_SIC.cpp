@@ -29,6 +29,8 @@ void Test_SIC::_ic(FluidGrid& grid)
     const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
     const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
     
+    const double h = vInfo.front().h_gridpoint;
+    
 #pragma omp parallel
 	{	
 #ifdef _USE_NUMA_
@@ -46,7 +48,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                 for(int iy=0; iy<FluidBlock::sizeY; iy++)
                     for(int ix=0; ix<FluidBlock::sizeX; ix++)
                     {
-                        Real p[3], post_shock[3];
+                       /* Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
                         const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));//+pow(p[2]-bubble_pos[2],2));
                         const double r2 = r1;//sqrt(pow(p[0]-Simulation_Environment::shock_pos-3.5*radius,2)+pow(p[1]-bubble_pos[1],2));
@@ -64,6 +66,28 @@ void Test_SIC::_ic(FluidGrid& grid)
                         
                         const double p_front = pre_shock[2]+2*3500*exp(-35*(Simulation_Environment::shock_pos*0.9-p[0]))*cos(35*(Simulation_Environment::shock_pos*0.9-p[0])+M_PI/3);
                         const double pressure  = shock*p_front + (1-shock)*pre_shock[2];//shock*post_shock[2]
+                        
+                        SETUP_MARKERS_IC*/
+                        
+                        //**************************
+                        //Let's do 1D in Shukla 2010
+                        //**************************
+                        Real p[3];
+                        info.pos(p, ix, iy, iz);
+                        
+                        const double bubble = Simulation_Environment::heaviside(0.5-p[0]);                                                                        
+                        
+                        const Real pre_shock[3] = {10,0,10};
+                        const Real post_shock[3] = {0.125,0,0.1};
+                        //const Real pre_shock[3] = {1,0,500};
+                        //const Real post_shock[3] = {1,0,0.2};                        
+                        const double shock = 1-bubble;//1-0.5*(1+tanh(0.25*(p[0]-0.5)/h));//Simulation_Environment::heaviside(p[0]-Simulation_Environment::shock_pos);
+                        b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*post_shock[0];
+                        b(ix, iy, iz).u        = pre_shock[1]*b(ix, iy, iz).rho*shock;
+                        b(ix, iy, iz).v        = 0;
+                        b(ix, iy, iz).w        = 0;
+                        
+                        const double pressure  = pre_shock[2]*shock+post_shock[2]*(1-shock);
                         
                         SETUP_MARKERS_IC
                     }

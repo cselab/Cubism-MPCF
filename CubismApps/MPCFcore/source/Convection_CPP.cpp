@@ -337,11 +337,11 @@ void Convection_CPP::_xextraterm(const TempSOA& um, const TempSOA& up, const Tem
 #ifdef _LIQUID_
 								 , const TempSOA& Pm, const TempSOA& Pp
 #endif
-								 )
+                                 , const TempSOA& am, const TempSOA& ap)
 {
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
-			divu.ref(ix, iy) = um(ix+1, iy) - up(ix, iy);
+			divu.ref(ix, iy) = (ap(ix+1, iy)*um(ix+1, iy)-am(ix+1, iy)*up(ix+1, iy))/(ap(ix+1, iy)-am(ix+1, iy))-(ap(ix, iy)*um(ix, iy)-am(ix, iy)*up(ix, iy))/(ap(ix, iy)-am(ix, iy));
 	
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
@@ -358,11 +358,11 @@ void Convection_CPP::_yextraterm(const TempSOA& um, const TempSOA& up, const Tem
 #ifdef _LIQUID_
 								 , const TempSOA& Pm, const TempSOA& Pp
 #endif
-								 )
+                                 , const TempSOA& am, const TempSOA& ap)
 {
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
-			divu.ref(ix, iy) += um(iy+1, ix) - up(iy, ix);
+			divu.ref(ix, iy) += (ap(iy+1, ix)*um(iy+1, ix)-am(iy+1, ix)*up(iy+1, ix))/(ap(iy+1, ix)-am(iy+1, ix))-(ap(iy, ix)*um(iy, ix)-am(iy, ix)*up(iy, ix))/(ap(iy, ix)-am(iy, ix));
 	
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
@@ -375,15 +375,15 @@ void Convection_CPP::_yextraterm(const TempSOA& um, const TempSOA& up, const Tem
 #endif
 }
 
-void Convection_CPP::_zextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
+void Convection_CPP::_zextraterm(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1, const TempSOA& Gm, const TempSOA& Gp
 #ifdef _LIQUID_
 								 , const TempSOA& Pm, const TempSOA& Pp
 #endif
-								 )
+                                 , const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1)
 {
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
-			divu.ref(ix, iy) += um(ix, iy) - up(ix, iy);
+			divu.ref(ix, iy) += (ap1(ix, iy)*um1(ix, iy)-am1(ix, iy)*up1(ix, iy))/(ap1(ix, iy)-am1(ix, iy))-(ap0(ix, iy)*um0(ix, iy)-am0(ix, iy)*up0(ix, iy))/(ap0(ix, iy)-am0(ix, iy));
 	
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
@@ -407,16 +407,33 @@ void Convection_CPP::_char_vel(const TempSOA& rm, const TempSOA& rp,
 {	
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix++)
-		{
+		{       
+            //rho averages
+            const Real rho_roe = 0.5*(rm(ix,iy)+rp(ix,iy));
+            const Real v_roe = 0.5*(sqrt(rm(ix,iy))*vm(ix,iy)+sqrt(rp(ix,iy))*vp(ix,iy))/(sqrt(rm(ix,iy))+sqrt(rp(ix,iy)));
+            const Real p_roe = 0.5*(sqrt(rm(ix,iy))*pm(ix,iy)+sqrt(rp(ix,iy))*pp(ix,iy))/(sqrt(rm(ix,iy))+sqrt(rp(ix,iy)));
+            const Real G_roe = 0.5*(sqrt(rm(ix,iy))*Gm(ix,iy)+sqrt(rp(ix,iy))*Gp(ix,iy))/(sqrt(rm(ix,iy))+sqrt(rp(ix,iy)));
+#ifdef _LIQUID_
+            const Real P_roe = 0.5*(sqrt(rm(ix,iy))*Pm(ix,iy)+sqrt(rp(ix,iy))*Pp(ix,iy))/(sqrt(rm(ix,iy))+sqrt(rp(ix,iy)));
+#endif
+            
 #ifndef _LIQUID_
 			const Real cminus = mysqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy))*((Real)1/rm(ix, iy)), (Real)0));
 			const Real cplus  = mysqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy))*((Real)1/rp(ix, iy)), (Real)0));
+            
+			const Real c_roe  = mysqrt((1/G_roe+1)* max((p_roe)*((Real)1/r_roe), (Real)0));
 #else
 			const Real cminus = mysqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy)+Pm(ix,iy)/Gm(ix,iy)*(1/Gm(ix,iy)+1))*((Real)1/rm(ix, iy)), (Real)0));
 			const Real cplus  = mysqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy)+Pp(ix,iy)/Gp(ix,iy)*(1/Gp(ix,iy)+1))*((Real)1/rp(ix, iy)), (Real)0));
+            
+            const Real c_roe = mysqrt((1/G_roe+1)* max((p_roe+P_roe/G_roe*(1/G_roe+1))*((Real)1/rho_roe), (Real)0));
 #endif
-			outm.ref(ix, iy) = min(vm(ix, iy) - cminus, vm(ix, iy) - cplus);
-			outp.ref(ix, iy) = max(vp(ix, iy) + cminus, vp(ix, iy) + cplus);
+            
+            //outm.ref(ix, iy) = min(vm(ix, iy) - cminus, vp(ix, iy) - cplus);
+            //outp.ref(ix, iy) = max(vm(ix, iy) + cminus, vp(ix, iy) + cplus);
+            
+            outm.ref(ix, iy) = min(vm(ix, iy) - cminus, v_roe - c_roe);
+            outp.ref(ix, iy) = max(v_roe + c_roe, vp(ix, iy) + cplus);
 		}
 	
 }
@@ -626,13 +643,13 @@ void Convection_CPP::_xflux(const int relid)
 	_xweno_pluss(G.ring(relid), G.weno.ref(1));
 	
 #ifndef _LIQUID_	
-	_xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1));	
 	_char_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), charvel.ref(0), charvel.ref(1));
+	_xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1), charvel(0), charvel(1));	
 #else
 	_xweno_minus(P.ring(relid), P.weno.ref(0));
 	_xweno_pluss(P.ring(relid), P.weno.ref(1));
-	_xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1));	
 	_char_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
+	_xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));	
 #endif
 	
 	_hlle_rho(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), rho.flux.ref());
@@ -669,15 +686,15 @@ void Convection_CPP::_yflux(const int relid)
 	_yweno_pluss(G.ring(relid), G.weno.ref(1));
 	
 #ifndef _LIQUID_
-	_yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1));
 	_char_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), charvel.ref(0), charvel.ref(1));
+	_yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1), charvel(0), charvel(1));
 #else
 	_yweno_minus(P.ring(relid), P.weno.ref(0));
 	_yweno_pluss(P.ring(relid), P.weno.ref(1));
-	_yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1));
 	_char_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
+	_yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
 #endif
-	
+
 	_hlle_rho(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), rho.flux.ref());
 	_hlle_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), u.flux.ref());
 	_hlle_pvel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), v.flux.ref());
@@ -712,13 +729,13 @@ void Convection_CPP::_zflux(const int relid)
     _zweno_pluss(relid, G.ring, G.weno.ref(1));
     
 #ifndef _LIQUID_
-    _zextraterm(w.weno(0), w.weno(-1), G.weno(0), G.weno(-1));
     _char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), charvel.ref(0), charvel.ref(1));
+    _zextraterm(w.weno(-2), w.weno(-1),w.weno(0), w.weno(1), G.weno(0), G.weno(-1), charvel(-2), charvel(-1), charvel(0), charvel(1));
 #else
     _zweno_minus(relid, P.ring, P.weno.ref(0));
     _zweno_pluss(relid, P.ring, P.weno.ref(1));
-    _zextraterm(w.weno(0), w.weno(-1), G.weno(0), G.weno(-1), P.weno(0), P.weno(-1));
     _char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));    
+    _zextraterm(w.weno(-2), w.weno(-1),w.weno(0), w.weno(1), G.weno(0), G.weno(-1), P.weno(0), P.weno(-1), charvel(-2), charvel(-1), charvel(0), charvel(1));
 #endif
     
     _hlle_rho(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), rho.flux.ref());

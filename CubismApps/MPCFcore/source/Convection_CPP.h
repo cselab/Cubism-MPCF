@@ -67,16 +67,16 @@ protected:
 	};
 	
 	WorkingSet<2> rho, u, v, p;
-	WorkingSet<3> w, G;
+	WorkingSet<4> w, G;
 	
 	//used for HLLE fluxes
-	RingTempSOA charvel;
+	RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 4> charvel;
 	
 	//used for the extra term
 	OutputSOA sumG, divu;
 	
 #ifdef _LIQUID_
-	WorkingSet<3>  P;
+	WorkingSet<4>  P;
 	OutputSOA sumP;
 #endif	
 	
@@ -92,11 +92,12 @@ protected:
 	{
 		rho.flux.next(); u.flux.next(); v.flux.next(); w.flux.next(); p.flux.next(); G.flux.next();
 		
-		w.weno.next(); G.weno.next();
+		w.weno.next(); G.weno.next(); w.weno.next(); G.weno.next(); charvel.next(); charvel.next();
 		
 #ifdef _LIQUID_
 		P.flux.next();
 		P.weno.next();
+        P.weno.next();
 #endif
 	}
     
@@ -113,17 +114,19 @@ protected:
 #ifdef _LIQUID_
 							 , const TempSOA& Pm, const TempSOA& Pp
 #endif
-							 );
+                             , const TempSOA& am, const TempSOA& ap);
+    
 	virtual void _yextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
 #ifdef _LIQUID_
 							 , const TempSOA& Pm, const TempSOA& Pp
 #endif
-							 );
-	virtual void _zextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
+                             , const TempSOA& am, const TempSOA& ap);
+    
+	virtual void _zextraterm(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1, const TempSOA& Gm, const TempSOA& Gp
 #ifdef _LIQUID_
 							 , const TempSOA& Pm, const TempSOA& Pp
 #endif
-							 );
+                             , const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1);
 	
 	virtual void _char_vel(const TempSOA& rminus, const TempSOA& rplus, 
 						   const TempSOA& vminus, const TempSOA& vplus,
