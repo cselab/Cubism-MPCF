@@ -70,18 +70,22 @@ void Test_SIC::_ic(FluidGrid& grid)
                         SETUP_MARKERS_IC*/
                         
                         //**************************
-                        //Let's do 1D in Shukla 2010
+                        //Let's do 1D in Colonius
                         //**************************
                         Real p[3];
                         info.pos(p, ix, iy, iz);
+                                                
+                        //test 5.3 equation 32
+                        //const Real pre_shock[3] = {10,0,10};
+                        //const Real post_shock[3] = {0.125,0,0.1};
+                        //const double bubble = Simulation_Environment::heaviside(0.5-p[0]);     
                         
+                        //test 5.3 equation 31
+                        const Real pre_shock[3] = {1.241,0,2.753};
+                        const Real post_shock[3] = {0.991,0,3.059e-4};                       
                         const double bubble = Simulation_Environment::heaviside(0.5-p[0]);                                                                        
                         
-                        const Real pre_shock[3] = {10,0,10};
-                        const Real post_shock[3] = {0.125,0,0.1};
-                        //const Real pre_shock[3] = {1,0,500};
-                        //const Real post_shock[3] = {1,0,0.2};                        
-                        const double shock = 1-bubble;//1-0.5*(1+tanh(0.25*(p[0]-0.5)/h));//Simulation_Environment::heaviside(p[0]-Simulation_Environment::shock_pos);
+                        const double shock = 1-bubble;
                         b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*post_shock[0];
                         b(ix, iy, iz).u        = pre_shock[1]*b(ix, iy, iz).rho*shock;
                         b(ix, iy, iz).v        = 0;

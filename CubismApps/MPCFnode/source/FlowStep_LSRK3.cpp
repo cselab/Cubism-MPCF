@@ -14,6 +14,7 @@
 
 #include <utility>
 #include <iostream>
+#include <limits>
 
 #include <emmintrin.h>
 
@@ -513,10 +514,16 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
     if (LSRK3data::nu1>0)
         dt = min(dt, (Real)(h*h/(12*max(LSRK3data::nu1,LSRK3data::nu2))) );
     
-    if (dt<1e-10 || maxSOS<1e-10)
+    if (maxSOS>1e6)
     {
-        cout << "Something went wrong. Zero time step detected." << endl;
+        cout << "Speed of sound is too high. Is it realistic?" << endl;
         abort();
+    }
+    
+    if (dt<std::numeric_limits<Real>::epsilon()*1e1)
+    {
+        cout << "Last time step encountered." << endl;
+        return 0;
     }
     
     if (parser("-kernels").asString("cpp")=="cpp")

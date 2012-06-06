@@ -8,6 +8,7 @@
  */
 #pragma once
 #include <tbb/task.h>
+#include <limits>
 
 #include <BlockProcessingMPI.h>
 #include <BlockLabMPI.h>
@@ -400,10 +401,16 @@ public:
         if (verbosity>=1)
 			cout << "dt is "<< dt << "\n";
         
-        if (dt<1e-10 || maxSOS<1e-10)
+        if (maxSOS>1e6)
         {
-            cout << "Something went wrong. Zero time step detected." << endl;
+            cout << "Speed of sound is too high. Is it realistic?" << endl;
             abort();
+        }
+        
+        if (dt<std::numeric_limits<Real>::epsilon()*1e1)
+        {
+            cout << "Last time step encountered." << endl;
+            return 0;
         }
 		
 		if (parser("-kernels").asString("cpp")=="cpp")
