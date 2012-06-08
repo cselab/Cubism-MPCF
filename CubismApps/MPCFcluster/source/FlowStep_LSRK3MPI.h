@@ -413,6 +413,9 @@ public:
             return 0;
         }
 		
+        if (LSRK3data::verbosity >= 1)
+            cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
+        
 		if (parser("-kernels").asString("cpp")=="cpp")
 			LSRKstepMPI<Convection_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time);
 #ifdef _SSE_

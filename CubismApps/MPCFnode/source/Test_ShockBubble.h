@@ -42,13 +42,13 @@ public:
 		BoundaryCondition<BlockType,ElementTypeBlock,allocator> bc(this->m_stencilStart, this->m_stencilEnd, this->m_cacheBlock);
             
 		if (info.index[0]==0)           bc.template applyBC_absorbing_better_faces<0,0>();		
-		if (info.index[0]==this->NX-1)  bc.template applyBC_absorbing_better_faces<0,1>();
-        if (info.index[1]==0)			bc.template applyBC_absorbing_better_faces<1,0>();
-		if (info.index[1]==this->NY-1)	bc.template applyBC_absorbing_better_faces<1,1>();
-		if (info.index[2]==0)			bc.template applyBC_absorbing_better_faces<2,0>();
-		if (info.index[2]==this->NZ-1)	bc.template applyBC_absorbing_better_faces<2,1>();
+		if (info.index[0]==this->NX-1)  bc.template applyBC_reflecting<0,1>();//bc.template applyBC_absorbing_better_faces<0,1>();
+        if (info.index[1]==0)			bc.template applyBC_reflecting<1,0>();//bc.template applyBC_absorbing_better_faces<1,0>();
+		if (info.index[1]==this->NY-1)	bc.template applyBC_reflecting<1,1>();//bc.template applyBC_absorbing_better_faces<1,1>();
+		if (info.index[2]==0)			bc.template applyBC_reflecting<2,0>();//bc.template applyBC_absorbing_better_faces<2,0>();
+		if (info.index[2]==this->NZ-1)	bc.template applyBC_reflecting<2,1>();//bc.template applyBC_absorbing_better_faces<2,1>();
         
-        if (info.index[0]==0 || info.index[0]==this->NX-1 || info.index[1]==0 || info.index[1]==this->NY-1 || info.index[2]==0 || info.index[2]==this->NZ-1) 
-            bc.applyBC_absorbing_better_tensorials();
+		//        if (info.index[0]==0 || info.index[0]==this->NX-1 || info.index[1]==0 || info.index[1]==this->NY-1 || info.index[2]==0 || info.index[2]==this->NZ-1) 
+//            bc.applyBC_absorbing_better_tensorials();
 	}
 };

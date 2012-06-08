@@ -94,6 +94,9 @@ public:
 			step_id++;
             
 			bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
+            
+            if (dt==0)
+                break;
 		}
         
 		std::stringstream streamer;

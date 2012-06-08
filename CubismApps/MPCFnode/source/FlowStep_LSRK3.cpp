@@ -399,10 +399,7 @@ struct LSRKstep
         if (LSRK3data::profiler != NULL) LSRK3data::profiler->push_start("FLOWSTEP");
         LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
         timer.start();
-        
-        if (LSRK3data::verbosity >= 1)
-            cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
-        
+             
         if (LSRK3data::dispatcher == "omp")
             _process<Lab, Kflow>(a, dtinvh, vInfo, grid, current_time);
         else if (LSRK3data::dispatcher == "tbblight")
@@ -525,6 +522,9 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
         cout << "Last time step encountered." << endl;
         return 0;
     }
+
+    if (LSRK3data::verbosity >= 1)
+        cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
     
     if (parser("-kernels").asString("cpp")=="cpp")
         LSRKstep<Convection_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time, bAwk);

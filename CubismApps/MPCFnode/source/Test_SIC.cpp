@@ -58,14 +58,17 @@ void Test_SIC::_ic(FluidGrid& grid)
                         const Real pre_shock[3] = {10,0,10};
                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
                         const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos)*Simulation_Environment::heaviside_smooth(0.05-p[0]);                                           
-                        const double shock2 = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);
-                        b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));//shock*post_shock[0] +
-                        b(ix, iy, iz).u        = 100*b(ix, iy, iz).rho*shock;//100*b(ix, iy, iz).rho*shock2;//(shock*post_shock[1] + (1-shock)*pre_shock[1])*b(ix, iy, iz).rho
+                        const double shock2 = Simulation_Environment::heaviside(p[0]-Simulation_Environment::shock_pos);
+                        
+                        b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
+                        
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double p_front = pre_shock[2]+2*3500*exp(-35*(Simulation_Environment::shock_pos*0.9-p[0]))*cos(35*(Simulation_Environment::shock_pos*0.9-p[0])+M_PI/3);
-                        const double pressure  = shock*p_front + (1-shock)*pre_shock[2];//shock*post_shock[2]
+                        const double p_front = pre_shock[2]+2*3500*exp(-100*(Simulation_Environment::shock_pos-p[0]))*cos(100*(Simulation_Environment::shock_pos-p[0])+M_PI/3);
+                        const double pressure  = shock*p_front + (1-shock)*pre_shock[2];
+                        
+                        b(ix, iy, iz).u        = 100*shock2*b(ix, iy, iz).rho;
                         
                         SETUP_MARKERS_IC
                         
