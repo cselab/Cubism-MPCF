@@ -384,18 +384,18 @@ public:
 		LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(LSRK3data::TLP);
         
 		const Real maxSOS = _computeSOS();
-		Real dt = min(max_dt, CFL*h/maxSOS);
+		double dt = min(max_dt, CFL*h/maxSOS);
 		
 		if (verbosity>=1)
 			cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";
 		
         if (LSRK3data::nu1>0)
-            dt = min(dt, (Real)(h*h/(12*max(LSRK3data::nu1,LSRK3data::nu2))) );
+            dt = min(dt, (double)(h*h/(12*max(LSRK3data::nu1,LSRK3data::nu2))) );
         
         if (LSRK3data::sten_sigma>0) 
         {
             const Real sumrho = parser("-sumrho").asDouble(HUGE_VAL);
-            dt = min(dt, (Real)sqrt(sumrho*h*h*h/(4*M_PI*LSRK3data::sten_sigma)));
+            dt = min(dt, (double)sqrt(sumrho*h*h*h/(4*M_PI*LSRK3data::sten_sigma)));
         }
         
         if (verbosity>=1)
@@ -407,7 +407,7 @@ public:
             abort();
         }
         
-        if (dt<std::numeric_limits<Real>::epsilon()*1e1)
+        if (dt<std::numeric_limits<double>::epsilon()*1e1)
         {
             cout << "Last time step encountered." << endl;
             return 0;

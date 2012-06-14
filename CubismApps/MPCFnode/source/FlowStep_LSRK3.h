@@ -44,13 +44,21 @@ namespace LSRK3data {
 		int stencil_start[3];
 		int stencil_end[3];
 		
+#ifndef _LIQUID_
 		FlowStep(Real a, Real dtinvh): a(a), dtinvh(dtinvh), stencil(-3,-3,-3,4,4,4, false, 6, 0,1,2,3,4,5)
+#else
+        FlowStep(Real a, Real dtinvh): a(a), dtinvh(dtinvh), stencil(-3,-3,-3,4,4,4, false, 7, 0,1,2,3,4,5,6)
+#endif
 		{
 			stencil_start[0] = stencil_start[1] = stencil_start[2] = -3;		
 			stencil_end[0] = stencil_end[1] = stencil_end[2] = 4;
 		}
-		
+
+#ifndef _LIQUID_		
 		FlowStep(const FlowStep& c): a(c.a), dtinvh(c.dtinvh), stencil(-3,-3,-3,4,4,4, false, 6, 0,1,2,3,4,5)
+#else
+		FlowStep(const FlowStep& c): a(c.a), dtinvh(c.dtinvh), stencil(-3,-3,-3,4,4,4, false, 7, 0,1,2,3,4,5,6)
+#endif
 		{
 			stencil_start[0] = stencil_start[1] = stencil_start[2] = -3;		
 			stencil_end[0] = stencil_end[1] = stencil_end[2] = 4;

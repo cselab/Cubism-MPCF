@@ -48,13 +48,13 @@ void Test_SIC::_ic(FluidGrid& grid)
                 for(int iy=0; iy<FluidBlock::sizeY; iy++)
                     for(int ix=0; ix<FluidBlock::sizeX; ix++)
                     {
-                       Real p[3], post_shock[3];
+                        Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
-                        const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
+                        const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));//+pow(p[2]-bubble_pos[2],2));
                         const double r2 = r1;//sqrt(pow(p[0]-Simulation_Environment::shock_pos-3.5*radius,2)+pow(p[1]-bubble_pos[1],2));
                         
                         const double bubble = Simulation_Environment::heaviside_smooth(min(r1-radius, r2-radius));                                                                        
-                                                
+                        
                         const Real pre_shock[3] = {10,0,10};
                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
                         const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos)*Simulation_Environment::heaviside_smooth(0.05-p[0]);                                           
@@ -65,10 +65,15 @@ void Test_SIC::_ic(FluidGrid& grid)
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double p_front = pre_shock[2]+2*3500*exp(-100*(Simulation_Environment::shock_pos-p[0]))*cos(100*(Simulation_Environment::shock_pos-p[0])+M_PI/3);
+                        const double pulse_period = 0.5;
+                        const double c_liquid = sqrt(Simulation_Environment::GAMMA1*(pre_shock[2]+Simulation_Environment::PC1)/pre_shock[0]);
+                        const double pulse_omega = 7.34;//(1.5*M_PI-M_PI/3)/pulse_period;
+                        const double pulse_decay = 8.85;//pulse_omega * 11;
+                        const double pulse_amp = 1e3*pre_shock[2];
+                        const double p_front = pre_shock[2]+2*pulse_amp*exp(-pulse_decay*(Simulation_Environment::shock_pos-p[0]))*cos(pulse_omega*(Simulation_Environment::shock_pos-p[0])+M_PI/3);//pre_shock[2]+2*3500*7.43*exp(-100*(Simulation_Environment::shock_pos-p[0]))*cos(100*(Simulation_Environment::shock_pos-p[0])+M_PI/3);// in space
                         const double pressure  = shock*p_front + (1-shock)*pre_shock[2];
                         
-                        b(ix, iy, iz).u        = 100*shock2*b(ix, iy, iz).rho;
+                        b(ix, iy, iz).u        = 0;
                         
                         SETUP_MARKERS_IC
                         
@@ -76,27 +81,27 @@ void Test_SIC::_ic(FluidGrid& grid)
                         //Let's do 1D in Colonius
                         //**************************
                         /*Real p[3];
-                        info.pos(p, ix, iy, iz);
-                                                
-                        //test 5.3 equation 32
-                        //const Real pre_shock[3] = {10,0,10};
-                        //const Real post_shock[3] = {0.125,0,0.1};
-                        //const double bubble = Simulation_Environment::heaviside(0.5-p[0]);     
-                        
-                        //test 5.3 equation 31
-                        const Real pre_shock[3] = {1.241,0,2.753};
-                        const Real post_shock[3] = {0.991,0,3.059e-4};                       
-                        const double bubble = Simulation_Environment::heaviside(0.5-p[0]);                                                                        
-                        
-                        const double shock = 1-bubble;
-                        b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*post_shock[0];
-                        b(ix, iy, iz).u        = pre_shock[1]*b(ix, iy, iz).rho*shock;
-                        b(ix, iy, iz).v        = 0;
-                        b(ix, iy, iz).w        = 0;
-                        
-                        const double pressure  = pre_shock[2]*shock+post_shock[2]*(1-shock);
-                        
-                        SETUP_MARKERS_IC*/
+                         info.pos(p, ix, iy, iz);
+                         
+                         //test 5.3 equation 32
+                         //const Real pre_shock[3] = {10,0,10};
+                         //const Real post_shock[3] = {0.125,0,0.1};
+                         //const double bubble = Simulation_Environment::heaviside(0.5-p[0]);     
+                         
+                         //test 5.3 equation 31
+                         const Real pre_shock[3] = {1.241,0,2.753};
+                         const Real post_shock[3] = {0.991,0,3.059e-4};                       
+                         const double bubble = Simulation_Environment::heaviside(0.5-p[0]);                                                                        
+                         
+                         const double shock = 1-bubble;
+                         b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*post_shock[0];
+                         b(ix, iy, iz).u        = pre_shock[1]*b(ix, iy, iz).rho*shock;
+                         b(ix, iy, iz).v        = 0;
+                         b(ix, iy, iz).w        = 0;
+                         
+                         const double pressure  = pre_shock[2]*shock+post_shock[2]*(1-shock);
+                         
+                         SETUP_MARKERS_IC*/
                     }
         }		
 	}	
@@ -105,30 +110,30 @@ void Test_SIC::_ic(FluidGrid& grid)
 
 void Test_SIC::setup()
 {
-  printf("////////////////////////////////////////////////////////////\n");
-  printf("////////////             TEST SIC            ///////////////\n");
-  printf("////////////////////////////////////////////////////////////\n");
-  
-  _setup_constants();
-  parser.mute();
-  
-  if (parser("-morton").asBool(0))
-    grid = new GridMorton<FluidGrid>(BPDX, BPDY, BPDZ);
-  else
-    grid = new FluidGrid(BPDX, BPDY, BPDZ);
-  
-  assert(grid != NULL);
-  
-  stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY, &profiler, Simulation_Environment::PC1, Simulation_Environment::PC2, bAWK);
-      
-  if(bRESTART)
+    printf("////////////////////////////////////////////////////////////\n");
+    printf("////////////             TEST SIC            ///////////////\n");
+    printf("////////////////////////////////////////////////////////////\n");
+    
+    _setup_constants();
+    parser.mute();
+    
+    if (parser("-morton").asBool(0))
+        grid = new GridMorton<FluidGrid>(BPDX, BPDY, BPDZ);
+    else
+        grid = new FluidGrid(BPDX, BPDY, BPDZ);
+    
+    assert(grid != NULL);
+    
+    stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY, &profiler, Simulation_Environment::PC1, Simulation_Environment::PC2, bAWK);
+    
+    if(bRESTART)
     {
-      _restart();
-      _dump("restartedcondition.vti");
+        _restart();
+        _dump("restartedcondition.vti");
     }
-  else
+    else
     {
-      _ic(*grid);
+        _ic(*grid);
     }
 }
 

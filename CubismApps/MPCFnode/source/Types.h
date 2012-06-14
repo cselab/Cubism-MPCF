@@ -266,8 +266,12 @@ struct FluidBlock
 	}
     
 	void clear_tmp()
-	{
+	{    
+#ifndef _LIQUID_
 		const int N = sizeX*sizeY*sizeZ*6;
+#else
+        const int N = sizeX*sizeY*sizeZ*7;
+#endif
         Real * const e = &tmp[0][0][0][0];
         for(int i=0; i<N; ++i) e[i] = 0;
 	}
