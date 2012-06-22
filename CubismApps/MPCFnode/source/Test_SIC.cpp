@@ -57,7 +57,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         
                         const Real pre_shock[3] = {10,0,10};
                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
-                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos)*Simulation_Environment::heaviside_smooth(0.05-p[0]);                                           
+                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);//*Simulation_Environment::heaviside_smooth(0.05-p[0]);                                           
                         const double shock2 = Simulation_Environment::heaviside(p[0]-Simulation_Environment::shock_pos);
                         
                         b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
@@ -70,10 +70,11 @@ void Test_SIC::_ic(FluidGrid& grid)
                         const double pulse_omega = 7.34;//(1.5*M_PI-M_PI/3)/pulse_period;
                         const double pulse_decay = 8.85;//pulse_omega * 11;
                         const double pulse_amp = 1e3*pre_shock[2];
-                        const double p_front = pre_shock[2]+2*pulse_amp*exp(-pulse_decay*(Simulation_Environment::shock_pos-p[0]))*cos(pulse_omega*(Simulation_Environment::shock_pos-p[0])+M_PI/3);//pre_shock[2]+2*3500*7.43*exp(-100*(Simulation_Environment::shock_pos-p[0]))*cos(100*(Simulation_Environment::shock_pos-p[0])+M_PI/3);// in space
-                        const double pressure  = shock*p_front + (1-shock)*pre_shock[2];
+                        const double ramp = 1;//1.03*(1-exp(-742.87*max((Real)0.,(Real)(Simulation_Environment::shock_pos-p[0]) ) ) );
+                        const double p_front = pre_shock[2]+pulse_amp;//pre_shock[2]+2*pulse_amp*exp(-pulse_decay*(Simulation_Environment::shock_pos-p[0]))*cos(pulse_omega*(Simulation_Environment::shock_pos-p[0])+M_PI/3);
+                        const double pressure  = p_front*ramp*shock+pre_shock[2]*(1-shock);
                         
-                        b(ix, iy, iz).u        = 0;
+                        b(ix, iy, iz).u        = 0;//c_liquid*shock2;
                         
                         SETUP_MARKERS_IC
                         
