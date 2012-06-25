@@ -23,14 +23,15 @@ protected:
 	template<int dir, int side>
 	void _setup()
 	{
-		s[0] =	dir==0? (side==0? stencilStart[0]: TBlock::sizeX) : stencilStart[0];
-		s[1] =	dir==1? (side==0? stencilStart[1]: TBlock::sizeY) : stencilStart[1];
-		s[2] =	dir==2? (side==0? stencilStart[2]: TBlock::sizeZ) : stencilStart[2];
+		s[0] =	dir==0? (side==0? stencilStart[0]: TBlock::sizeX) : 0;
+		s[1] =	dir==1? (side==0? stencilStart[1]: TBlock::sizeY) : 0;
+		s[2] =	dir==2? (side==0? stencilStart[2]: TBlock::sizeZ) : 0;
 		
-		e[0] =	dir==0? (side==0? 0: TBlock::sizeX + stencilEnd[0]-1) : TBlock::sizeX +  stencilEnd[0]-1;
-		e[1] =	dir==1? (side==0? 0: TBlock::sizeY + stencilEnd[1]-1) : TBlock::sizeY +  stencilEnd[1]-1;
-		e[2] =	dir==2? (side==0? 0: TBlock::sizeZ + stencilEnd[2]-1) : TBlock::sizeZ +  stencilEnd[2]-1;
+		e[0] =	dir==0? (side==0? 0: TBlock::sizeX + stencilEnd[0]-1) : TBlock::sizeX;
+		e[1] =	dir==1? (side==0? 0: TBlock::sizeY + stencilEnd[1]-1) : TBlock::sizeY;
+		e[2] =	dir==2? (side==0? 0: TBlock::sizeZ + stencilEnd[2]-1) : TBlock::sizeZ;
 	}
+    
 public:
 	
 	BoundaryCondition(const int ss[3], const int se[3], Matrix3D<TElement, true, allocator> * cacheBlock): 
@@ -86,7 +87,7 @@ public:
 				}
 	}
     
-	void applyBC_absorbing_better_tensorials()
+	void applyBC_absorbing_better_tensorials_edges()
     {
         const int bsize[3] = {TBlock::sizeX, TBlock::sizeY, TBlock::sizeZ};
         int s[3], e[3];
@@ -116,6 +117,12 @@ public:
                                 }
                     }         
         }
+    }
+    
+    void applyBC_absorbing_better_tensorials_corners()
+    {
+        const int bsize[3] = {TBlock::sizeX, TBlock::sizeY, TBlock::sizeZ};
+        int s[3], e[3];
         
         //Corners
         {
