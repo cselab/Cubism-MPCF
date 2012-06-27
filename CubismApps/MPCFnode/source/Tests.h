@@ -17,8 +17,11 @@ typedef BlockLab_CVT<FluidBlock, tbb::scalable_allocator> Lab;
 
 #else
 
-#include "Test_ShockBubble.h"
-typedef BlockLabBubble<FluidBlock, tbb::scalable_allocator> Lab;
+//#include "Test_ShockBubble.h"
+//typedef BlockLabBubble<FluidBlock, tbb::scalable_allocator> Lab;
+
+#include "Test_SIC.h"
+typedef BlockLabCollapse<FluidBlock, tbb::scalable_allocator> Lab;
 
 #endif
 

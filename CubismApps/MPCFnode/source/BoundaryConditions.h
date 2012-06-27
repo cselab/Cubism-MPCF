@@ -32,6 +32,20 @@ protected:
 		e[2] =	dir==2? (side==0? 0: TBlock::sizeZ + stencilEnd[2]-1) : TBlock::sizeZ;
 	}
     
+    Real _pulse(const Real t_star)
+    {        
+        const Real Pa = 1000*10;
+        const Real omega = 2*M_PI*0.5/6e-6;
+        const Real rise  = 1.03*(1-exp(-9.21e7*t_star));
+        const Real alpha = 9.1e5;
+        
+        Real p = rise*2*Pa*exp(-alpha*t_star)*cos(omega*t_star + M_PI/3.);
+        
+        //printf("t= %e, pulse: %e\n",t_star,p);
+        
+        return p;
+    }
+    
 public:
 	
 	BoundaryCondition(const int ss[3], const int se[3], Matrix3D<TElement, true, allocator> * cacheBlock): 
@@ -187,7 +201,36 @@ public:
 					(*this)(ix,iy,iz).v        = p.v;
 					(*this)(ix,iy,iz).w        = p.w;
 					(*this)(ix,iy,iz).energy   = p.energy;
-					(*this)(ix,iy,iz).levelset = p.levelset;
+					(*this)(ix,iy,iz).G        = p.G;
+#ifdef _LIQUID_
+                    (*this)(ix,iy,iz).P        = p.P;
+#endif
+				}
+	}
+    
+    template<int dir, int side>
+	void applyBC_spaceDirichlet(const TElement& p, const Real t, const Real h)
+	{
+		_setup<dir,side>();
+		
+		for(int iz=s[2]; iz<e[2]; iz++)
+			for(int iy=s[1]; iy<e[1]; iy++)
+				for(int ix=s[0]; ix<e[0]; ix++)
+				{
+                    Real pc = 0;
+					(*this)(ix,iy,iz).rho      = p.rho;
+					(*this)(ix,iy,iz).u        = p.u;
+					(*this)(ix,iy,iz).v        = p.v;
+					(*this)(ix,iy,iz).w        = p.w;
+					(*this)(ix,iy,iz).G        = p.G;
+#ifdef _LIQUID_
+                    pc = p.P;
+                    (*this)(ix,iy,iz).P        = p.P;
+#endif
+                    Real c_L                 = sqrt((1/p.G+1)*(pc+10)/p.rho);
+                    Real t_off               = (ix<0? abs(ix): ix-TBlock::sizeX+1)*h*500e-6;
+                    //printf("ix: %d, t: %e t_off: %e, c_L: %e, h: %e\n",abs(ix),t,t_off,c_L,h);
+                    (*this)(ix,iy,iz).energy   = _pulse((t+t_off)/(c_L*10))*p.G+pc;
 				}
 	}
 };

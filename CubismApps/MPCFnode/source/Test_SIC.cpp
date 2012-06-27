@@ -48,6 +48,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                 for(int iy=0; iy<FluidBlock::sizeY; iy++)
                     for(int ix=0; ix<FluidBlock::sizeX; ix++)
                     {
+                        /*
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
                         const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));//+pow(p[2]-bubble_pos[2],2));
@@ -75,6 +76,18 @@ void Test_SIC::_ic(FluidGrid& grid)
                         const double pressure  = p_front*ramp*shock+pre_shock[2]*(1-shock);
                         
                         b(ix, iy, iz).u        = 0;//c_liquid*shock2;
+                        */
+                        const Real pre_shock[3] = {10,0,10};
+                        //const Real post_shock[3] = {0.991,0,3.059e-4};                       
+                        const double bubble = 0;//Simulation_Environment::heaviside(0.5-p[0]);                                                                        
+                        
+                        b(ix, iy, iz).rho      = pre_shock[0];
+                        b(ix, iy, iz).u        = 0;
+                        b(ix, iy, iz).v        = 0;
+                        b(ix, iy, iz).w        = 0;
+                        
+                        const double pressure  = pre_shock[2];
+                        
                         
                         SETUP_MARKERS_IC
                         

@@ -139,6 +139,7 @@ void Test_ShockBubble::run()
 		if (step_id%SAVEPERIOD == 0 && SAVEPERIOD < 1e5) _save();
 		
 		profiler.push_start("EVOLVE");
+        stepper->set_current_time(t);
 		const Real dt = (*stepper)(TEND-t);
 		profiler.pop_stop();
 		
