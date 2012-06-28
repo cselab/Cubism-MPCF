@@ -34,7 +34,7 @@ protected:
     
     Real _pulse(const Real t_star)
     {        
-        const Real Pa = 1000*10;
+        const Real Pa = 2000*10;
         const Real omega = 2*M_PI*0.5/6e-6;
         const Real rise  = 1.03*(1-exp(-9.21e7*t_star));
         const Real alpha = 9.1e5;
