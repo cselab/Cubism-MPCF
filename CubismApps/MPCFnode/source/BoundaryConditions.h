@@ -32,17 +32,15 @@ protected:
 		e[2] =	dir==2? (side==0? 0: TBlock::sizeZ + stencilEnd[2]-1) : TBlock::sizeZ;
 	}
     
-    Real _pulse(const Real t_star)
-    {        
-        const Real Pa = 2000*10;
-        const Real omega = 2*M_PI*0.5/6e-6;
-        const Real rise  = 1.03*(1-exp(-9.21e7*t_star));
+    Real _pulse(const Real t_star, const Real p_ratio)
+    {
+        const Real Pa = p_ratio*2*10;//target peak pressure
+        const Real omega = 2*M_PI*0.5/6e-6;//tensile part set to be 6microseconds (6e-6)
+        const Real rise  = 1.03*(1-exp(-9.21e7*t_star));//50ns rise time
         const Real alpha = 9.1e5;
         
         Real p = rise*2*Pa*exp(-alpha*t_star)*cos(omega*t_star + M_PI/3.);
-        
-        //printf("t= %e, pulse: %e\n",t_star,p);
-        
+
         return p;
     }
     
@@ -227,10 +225,14 @@ public:
                     pc = p.P;
                     (*this)(ix,iy,iz).P        = p.P;
 #endif
-                    Real c_L                 = sqrt((1/p.G+1)*(pc+10)/p.rho);
-                    Real t_off               = (ix<0? abs(ix): ix-TBlock::sizeX+1)*h*500e-6;
-                    //printf("ix: %d, t: %e t_off: %e, c_L: %e, h: %e\n",abs(ix),t,t_off,c_L,h);
-                    (*this)(ix,iy,iz).energy   = _pulse((t+t_off)/(c_L*10))*p.G+pc;
+                    /// time is scaled by tc = R0/c_L, R0=0.1 equivalent to 50microns, domain size: 500microns
+                    Real c_L                 = sqrt((1/p.G+1)*(pc+10)/p.rho);//speed of sound
+                    Real p_ratio             = 1000;
+                    Real radius              = 50e-6;
+                    Real time_scale          = 0.1/c_L*1500/radius; //time scale between us and real dimension
+                    Real t_off               = (ix<0? abs(ix): ix-TBlock::sizeX+1)*h/c_L;//space offset
+                    //printf("t: %e, t_off: %e, c_L: %f\n",t,t_off,c_L*10);
+                    (*this)(ix,iy,iz).energy   = _pulse((t+t_off)/time_scale,p_ratio)*p.G+pc;
 				}
 	}
 };
