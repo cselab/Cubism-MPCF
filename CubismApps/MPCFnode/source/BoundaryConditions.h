@@ -232,7 +232,8 @@ public:
                     Real time_scale          = 0.1/c_L*1500/radius; //time scale between us and real dimension
                     Real t_off               = (ix<0? abs(ix): ix-TBlock::sizeX+1)*h/c_L;//space offset
                     //printf("t: %e, t_off: %e, c_L: %f\n",t,t_off,c_L*10);
-                    (*this)(ix,iy,iz).energy   = _pulse((t+t_off)/time_scale,p_ratio)*p.G+pc;
+                    //(*this)(ix,iy,iz).energy   = _pulse((t+t_off)/time_scale,p_ratio)*p.G+pc;
+                    (*this)(ix,iy,iz).energy = p.energy;
 				}
 	}
 };

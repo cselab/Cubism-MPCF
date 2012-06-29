@@ -46,9 +46,13 @@ public:
         b.G = 1./(6.59-1);
 #ifdef _LIQUID_
         b.P = 4.049e4*b.G*6.59;
+        b.energy = 1e4*b.G + b.P;
+#else
+        b.energy = 1e4*b.G;
 #endif
         
-        if (info.index[0]==0)           bc.template applyBC_spaceDirichlet<0,0>(b,t,info.h_gridpoint);//pressure pulse		
+        //if (info.index[0]==0)           bc.template applyBC_spaceDirichlet<0,0>(b,t,info.h_gridpoint);//pressure pulse		
+        if (info.index[0]==0)           bc.template applyBC_dirichlet<0,0>(b);
         if (info.index[0]==this->NX-1)  bc.template applyBC_reflecting<0,1>(); //Wall
         if (info.index[1]==0)			bc.template applyBC_absorbing_better_faces<1,0>();
         if (info.index[1]==this->NY-1)	bc.template applyBC_absorbing_better_faces<1,1>();
