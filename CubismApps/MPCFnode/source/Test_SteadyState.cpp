@@ -179,7 +179,8 @@ void Test_SteadyState::_setup_constants()
 	VERBOSITY = parser("-verb").asInt(0);
 	NSTEPS = parser("-nsteps").asInt(0);
 	bAWK = parser("-awk").asBool(false);
-	
+    ANALYSISPERIOD = parser("-analysisperiod").asInt(std::numeric_limits<int>::max());
+    
 	parser.save_options();
 	parser.mute();
 	

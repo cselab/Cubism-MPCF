@@ -21,6 +21,7 @@ protected:
     
     void _setup_constants();
     void _dumpStatistics(FluidGrid& grid, const int counter, const Real t, const Real dt);
+    void _analysis(FluidGrid& grid, const int stepid);
     
 public:	
 	Test_ShockBubble(const int argc, const char ** argv): Test_SteadyState(argc, argv) { }
@@ -56,7 +57,7 @@ public:
         const bool bEdgeXY = (info.index[0]==0 || info.index[0]==this->NX-1) && (info.index[1]==0 || info.index[1]==this->NY-1);
         const bool bEdgeYZ = (info.index[1]==0 || info.index[1]==this->NY-1) && (info.index[2]==0 || info.index[2]==this->NZ-1);
         const bool bEdgeZX = (info.index[2]==0 || info.index[2]==this->NZ-1) && (info.index[0]==0 || info.index[0]==this->NX-1);
-
+        
         const bool bCorner = (info.index[0]==0 || info.index[0]==this->NX-1) && (info.index[1]==0 || info.index[1]==this->NY-1) && (info.index[2]==0 || info.index[2]==this->NZ-1);
         
         if (this->istensorial)

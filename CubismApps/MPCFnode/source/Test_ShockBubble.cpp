@@ -6,8 +6,8 @@
  *  Copyright 2011 ETH Zurich. All rights reserved.
  *
  */
-#include <limits>
 #include <sstream>
+#include <algorithm>
 
 #ifdef _USE_NUMA_
 #include <numa.h>
@@ -18,6 +18,14 @@
 
 #include "Test_ShockBubble.h"
 #include "Tests.h"
+
+using namespace std;
+
+struct sort_pred {
+    bool operator()(const std::pair<Real,Real> &left, const std::pair<Real,Real> &right) {
+        return left.first < right.first;
+    }
+};
 
 void Test_ShockBubble::_ic(FluidGrid& grid)
 {
@@ -82,14 +90,9 @@ Real _findzero(const Real f0, const Real f1, const Real f2, const Real h)
 void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const Real t, const Real dt)
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
-    double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0.;
+    double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0., mach_max=-HUGE_VAL, p_max=-HUGE_VAL;
     const double h = vInfo[0].h_gridpoint;
     const double h3 = h*h*h;
-    
-    Lab lab;
-    const int ss[3] = {-1,-1,-1};
-    const int se[3] = {2,2,2};
-    lab.prepare(grid, ss, se, false);
     
 	for(int i=0; i<(int)vInfo.size(); i++)
 	{
@@ -100,7 +103,7 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
 			for(int iy=0; iy<FluidBlock::sizeY; iy++)
 				for(int ix=0; ix<FluidBlock::sizeX; ix++)
 				{
-                                    rInt += b(ix, iy, iz).rho;
+                    rInt += b(ix, iy, iz).rho;
                     uInt += b(ix, iy, iz).u;
                     vInt += b(ix, iy, iz).v;
                     wInt += b(ix, iy, iz).w;
@@ -108,52 +111,180 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     vol  += b(ix,iy,iz).G>0.5*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
                     r2Int += b(ix, iy, iz).rho*(1-min(max((b(ix,iy,iz).G-1/(Simulation_Environment::GAMMA1-2))/(1/(Simulation_Environment::GAMMA1-1)-1/(Simulation_Environment::GAMMA2-1)),(Real)0),(Real)1));
                     ke   += 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w);
+                    
+#ifndef _LIQUID_
+                    const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w))/b(ix,iy,iz).G;
+                    const double c = sqrt((1/b(ix,iy,iz).G+1)*pressure/b(ix, iy, iz).rho);
+#else
+                    const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w) - b(ix, iy, iz).P)/b(ix,iy,iz).G;
+                    const double c = sqrt((1/b(ix,iy,iz).G+1)*(pressure+b(ix,iy,iz).P/b(ix,iy,iz).G/(1/b(ix,iy,iz).G+1))/b(ix, iy, iz).rho);
+#endif
+                    
+                    const double velmag = sqrt(b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w)/b(ix, iy, iz).rho;
+                    mach_max = max(mach_max, velmag/c);
+                    p_max = max(p_max, pressure);
                 }
     }
     
     FILE * f = fopen("integrals.dat", "a");
-    fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3);
+    fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3, mach_max, p_max);
+    fclose(f);
+    
+    
+    FILE * f2 = fopen("centerline_velocities.dat", "a");
+    Lab lab;
+    const int ss[3]={0,0,0};
+    const int se[3]={2,2,2};
+    lab.prepare(grid, ss, se, false);
+    
+    vector<pair<Real,Real> > velocities;
+    
+    Real x[3];
+    
+    for(int i=0; i<(int)vInfo.size(); i++)
+    {        
+        BlockInfo info = vInfo[i];
+        
+        if (info.index[1]!=grid.getBlocksPerDimension(1)/2) continue;
+        
+        FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+        lab.load(info);
+        
+        for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+            for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                {
+                    if (iy!=0 || iz!=0) continue;
+                    
+                    info.pos(x,ix,iy,iz);
+                    
+                    if( Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))*                        Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1))) == 0 &&
+                       !(Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 && 
+                         Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 ) ) 
+                    {                        
+                        velocities.push_back(pair<Real,Real>(x[0],b(ix, iy, iz).u/b(ix, iy, iz).rho));
+                    }
+                }
+    }
+    
+    std::sort(velocities.begin(), velocities.end(), sort_pred());
+    
+    if (velocities.size()>0) fprintf(f2, "%d %e %e\n", step_id, velocities.front().second, velocities.back().second);
+    
+    fclose(f2);
+}
+
+void Test_ShockBubble::_analysis(FluidGrid& grid, const int step_id)
+{
+    std::stringstream streamer;
+    streamer<<"centerline_pressure-"<<step_id<<".dat";
+    FILE * f = fopen(streamer.str().c_str(), "w");
+    streamer.str("");
+    
+    vector<BlockInfo> vInfo = grid.getBlocksInfo();
+    Real x[3];
+    
+    for(int i=0; i<(int)vInfo.size(); i++)
+    {        
+        BlockInfo info = vInfo[i];
+        
+        if (info.index[1]!=grid.getBlocksPerDimension(1)/2) continue;
+        
+        FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+        
+        for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+            for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                {
+                    if (iy!=0 || iz!=0) continue;
+                    
+                    info.pos(x,ix,iy,iz);
+                    
+                    const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
+                    
+#ifndef _LIQUID_
+                    const double pressure = (b(ix, iy, iz).energy - ke)/b(ix, iy, iz).G;
+#else                    
+                    const double pressure = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
+#endif                    
+                    fprintf(f, "%e %e\n", x[0], pressure);
+                }
+    }    
+    
+    fclose(f); 
+    
+    streamer<<"wall_pressure-"<<step_id<<".dat";
+    f = fopen(streamer.str().c_str(), "w");
+    streamer.str("");
+    
+    for(int i=0; i<(int)vInfo.size(); i++)
+    {        
+        BlockInfo info = vInfo[i];
+        
+        if (info.index[0]!=grid.getBlocksPerDimension(0)-1 || info.index[2]!=grid.getBlocksPerDimension(2)/2) continue;
+        
+        FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+        
+        for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+            for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                {
+                    if (ix!=FluidBlock::sizeX-1 || iz!=0) continue;
+                    
+                    info.pos(x,ix,iy,iz);
+                    
+                    const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
+                    const double pressure = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
+                    
+                    fprintf(f, "%e %e\n", x[1], pressure);
+                }
+    }
+    
     fclose(f);
 }
 
 void Test_ShockBubble::run()
 {	
+    Real dt=0;
 	bool bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
+    
 	while (bLoop)
 	{
 		cout << "time is " << t << endl;
 		cout << "step_id is " << step_id << endl;
         
-		if(step_id%DUMPPERIOD == 0 && DUMPPERIOD < 1e5)
+		if(step_id%DUMPPERIOD == 0)
 		{
-			profiler.push_start("DUMP");
-            
+			profiler.push_start("DUMP");            
 			std::stringstream streamer;
 			streamer<<"data-"<<step_id<<".vti";
 			_dump(streamer.str());
 			//_vp(*grid);			
 			profiler.pop_stop();
+            
+            profiler.push_start("DUMP ANALYSIS");
+            _analysis(*grid, step_id);
+            profiler.pop_stop();
 		}
         
-		if (step_id%SAVEPERIOD == 0 && SAVEPERIOD < 1e5) _save();
+		if (step_id%SAVEPERIOD == 0) _save();
 		
 		profiler.push_start("EVOLVE");
-		const Real dt = (*stepper)(TEND-t);
+		dt = (*stepper)(TEND-t);
 		profiler.pop_stop();
 		
 		if(step_id%10 == 0)
 			profiler.printSummary();			
 		
         profiler.push_start("DUMP STATISTICS");
-		if (DUMPPERIOD < 1e5) _dumpStatistics(*grid, step_id, t, dt);
-		profiler.pop_stop();
-        
+        _dumpStatistics(*grid, step_id, t, dt);
+        profiler.pop_stop();
+                
 		t+=dt;
 		step_id++;
 		bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
-        if (dt==0)
-            break;
+        if (dt==0) break;
 	}
     
 	std::stringstream streamer;

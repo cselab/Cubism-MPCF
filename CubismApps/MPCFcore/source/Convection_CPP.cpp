@@ -188,14 +188,14 @@ void Convection_CPP::_convert(const Real * const gptfirst, const int gptfloats, 
 			
 			G.ref(dx, dy) = pt.G;
 			
-			assert(!isnan(rho.ref(dx, dy)));
+			/*assert(!isnan(rho.ref(dx, dy)));
 			assert(!isnan(u.ref(dx, dy)));
 			assert(!isnan(v.ref(dx, dy)));
 			assert(!isnan(w.ref(dx, dy)));
 			assert(!isnan(p.ref(dx, dy)));
-			assert(!isnan(G.ref(dx, dy)));
+			assert(!isnan(G.ref(dx, dy)));*/
 #ifdef _LIQUID_
-			assert(!isnan(P.ref(dx, dy)));
+			//assert(!isnan(P.ref(dx, dy)));
 #endif
 		}
 }
