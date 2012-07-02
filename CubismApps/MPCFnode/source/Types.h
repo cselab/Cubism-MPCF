@@ -55,6 +55,12 @@ b(ix, iy, iz).energy   = pressure*b(ix, iy, iz).G + b(ix, iy, iz).P + ke;
 
 #endif
 
+struct sort_pred {
+    bool operator()(const std::pair<Real,Real> &left, const std::pair<Real,Real> &right) {
+        return left.first < right.first;
+    }
+};
+
 class Simulation_Environment
 {
 public:
