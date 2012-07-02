@@ -9,6 +9,8 @@
 #pragma once
 
 #include "math.h"
+#include <limits>
+
 #include "Types.h"
 #include "FlowStep_LSRK3.h"
 
@@ -18,7 +20,7 @@ class Test_SteadyState: public Simulation
 {
 protected:
 	//"constants" of the sim
-    int BPDX, BPDY, BPDZ, DUMPPERIOD, SAVEPERIOD, RAMP, VERBOSITY, REPORT_FREQ, MOLLFACTOR;
+    int BPDX, BPDY, BPDZ, DUMPPERIOD, SAVEPERIOD, RAMP, VERBOSITY, REPORT_FREQ, MOLLFACTOR, ANALYSISPERIOD;
 	Real CFL, TEND;
 	bool bRESTART, bASCIIFILES, bVP;
 	
