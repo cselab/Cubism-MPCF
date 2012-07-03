@@ -138,7 +138,10 @@ public:
     
     void dumpAnalysis(G& grid, const int step_id, const Real t, const Real dt)
     {
+        std::stringstream streamer;
+
         vector<pair<Real,Real> > velocities;        
+        vector<pair<Real,Real> > pressures;        
         
         Real x[3];
         
@@ -149,7 +152,7 @@ public:
         while (!synch.done())
         {
             vector<BlockInfo> avail = synch.avail(LSRK3MPIdata::GSYNCH);
-
+            
             LabMPI lab;
             const SynchronizerMPI& Synch = grid.get_SynchronizerMPI(dummy);
             lab.prepare(grid, Synch);
@@ -178,19 +181,26 @@ public:
                             {                        
                                 velocities.push_back(pair<Real,Real>(x[0],b(ix, iy, iz).u/b(ix, iy, iz).rho));
                             }
+                            
+                            const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
+                            
+#ifndef _LIQUID_
+                            const double pressure = (b(ix, iy, iz).energy - ke)/b(ix, iy, iz).G;
+#else                    
+                            const double pressure = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
+#endif                    
+                            pressures.push_back(pair<Real,Real>(x[0], pressure));
                         }
             }
         }
         
         velocities.resize(2, pair<Real,Real>(0,0));
-        printf("%e %e\n", velocities[0].second, velocities[1].second);
         
         FILE * f2;
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
-            std::stringstream streamer;
             streamer<<"centerline_velocities-"<<step_id<<".dat";
-            f2 = fopen(streamer.str().c_str(), "a");
+            f2 = fopen(streamer.str().c_str(), "w");
             streamer.str("");
         }
         
@@ -206,6 +216,94 @@ public:
             if (g_velocities.size()>0) fprintf(f2, "%d %e %e\n", step_id, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-2].second, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-1].second);
             
             fclose(f2);
+        }        
+        
+        FILE * f3;
+        if (MPI::COMM_WORLD.Get_rank()==0)
+        {
+            streamer<<"centerline_pressure-"<<step_id<<".dat";
+            f3 = fopen(streamer.str().c_str(), "w");
+            streamer.str("");
+        }
+        
+        int pressures_lsize;
+        int pressures_size = pressures.size();
+        MPI::COMM_WORLD.Allreduce(&pressures_size, &pressures_lsize, 1, MPI::INT, MPI::MAX);
+        pressures.resize(pressures_lsize, pair<Real,Real>(-1,0));
+
+        vector<pair<Real,Real> > g_pressures;
+        if (MPI::COMM_WORLD.Get_rank()==0) g_pressures.resize(pressures.size()*MPI::COMM_WORLD.Get_size());
+        
+        MPI::COMM_WORLD.Gather(&pressures.front(), 2*pressures.size(), MPI_FLOAT, &g_pressures.front(), 2*pressures.size(), MPI_FLOAT, 0);                
+        
+        if (MPI::COMM_WORLD.Get_rank()==0)
+        {
+            std::sort(g_pressures.begin(), g_pressures.end(), sort_pred());
+            
+            for(int i=0; i< g_pressures.size(); ++i)
+            {
+                if(g_pressures[i].first==-1) continue;
+                fprintf(f3, "%e %e\n", g_pressures[i].first, g_pressures[i].second);
+            }
+            
+            fclose(f3);
+        }
+        
+        pressures.clear();
+        g_pressures.clear();
+        
+        FILE * f4;
+        if (MPI::COMM_WORLD.Get_rank()==0)
+        {
+            streamer<<"wall_pressure-"<<step_id<<".dat";
+            f4 = fopen(streamer.str().c_str(), "w");
+            streamer.str("");
+        }
+        
+        vector<BlockInfo> vInfo = grid.getBlocksInfo();
+        
+        for(int i=0; i<(int)vInfo.size(); i++)
+        {        
+            BlockInfo info = vInfo[i];
+            
+            if (info.index[0]!=grid.getBlocksPerDimension(0)-1 || info.index[2]!=grid.getBlocksPerDimension(2)/2) continue;
+            
+            FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+            
+            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+                for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                    for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                    {
+                        if (ix!=FluidBlock::sizeX-1 || iz!=0) continue;
+                        
+                        info.pos(x,ix,iy,iz);
+                        
+                        const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
+                        const double pressure = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
+                        
+                        pressures.push_back(pair<Real,Real>(x[1], pressure));
+                    }
+        }
+        
+        pressures_size = pressures.size();
+        MPI::COMM_WORLD.Allreduce(&pressures_size, &pressures_lsize, 1, MPI::INT, MPI::MAX);
+        pressures.resize(pressures_lsize, pair<Real,Real>(-1,0));
+        
+        if (MPI::COMM_WORLD.Get_rank()==0) g_pressures.resize(pressures.size()*MPI::COMM_WORLD.Get_size());
+        
+        MPI::COMM_WORLD.Gather(&pressures.front(), 2*pressures.size(), MPI_FLOAT, &g_pressures.front(), 2*pressures.size(), MPI_FLOAT, 0);
+        
+        if (MPI::COMM_WORLD.Get_rank()==0)
+        {
+            std::sort(g_pressures.begin(), g_pressures.end(), sort_pred());
+            
+            for(int i=0; i< g_pressures.size(); ++i)
+            {
+                if(g_pressures[i].first==-1) continue;
+                fprintf(f4, "%e %e\n", g_pressures[i].first, g_pressures[i].second);
+            }
+            
+            fclose(f4);
         }
     }
     
