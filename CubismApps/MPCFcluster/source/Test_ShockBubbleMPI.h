@@ -12,6 +12,7 @@
 
 #include "Test_SteadyStateMPI.h"
 #include <Test_ShockBubble.h>
+#include <SynchronizerMPI.h>
 
 class Test_ShockBubbleMPI: public Test_ShockBubble
 {
@@ -65,10 +66,12 @@ public:
     
     void dumpStatistics(G& grid, const int step_id, const Real t, const Real dt)
     {
-        vector<BlockInfo> vInfo = grid.getBlocksInfo();
+        vector<BlockInfo> vInfo = grid.getResidentBlocksInfo();
         double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0., mach_max=-HUGE_VAL, p_max=-HUGE_VAL;
         double g_rInt=0., g_uInt=0., g_vInt=0., g_wInt=0., g_eInt=0., g_vol=0., g_ke=0., g_r2Int=0., g_mach_max=-HUGE_VAL, g_p_max=-HUGE_VAL;
-        const double h = vInfo[0].h_gridpoint;
+        
+        vector<BlockInfo> g_vInfo = grid.getBlocksInfo();
+        const double h = g_vInfo.front().h_gridpoint;
         const double h3 = h*h*h;
         
         for(int i=0; i<(int)vInfo.size(); i++)
@@ -103,16 +106,16 @@ public:
                     }
         }
         
-        MPI::COMM_WORLD.Reduce(&rInt, &g_rInt, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&uInt, &g_uInt, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&vInt, &g_vInt, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&wInt, &g_wInt, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&eInt, &g_eInt, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&vol, &g_vol, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&ke, &g_ke, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&r2Int, &g_r2Int, 1, MPI::FLOAT, MPI::SUM, 0);
-        MPI::COMM_WORLD.Reduce(&mach_max, &g_mach_max, 1, MPI::FLOAT, MPI::MAX, 0);
-        MPI::COMM_WORLD.Reduce(&p_max, &g_p_max, 1, MPI::FLOAT, MPI::MAX, 0);
+        MPI::COMM_WORLD.Reduce(&rInt, &g_rInt, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&uInt, &g_uInt, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&vInt, &g_vInt, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&wInt, &g_wInt, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&eInt, &g_eInt, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&vol, &g_vol, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&ke, &g_ke, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&r2Int, &g_r2Int, 1, MPI::DOUBLE, MPI::SUM, 0);
+        MPI::COMM_WORLD.Reduce(&mach_max, &g_mach_max, 1, MPI::DOUBLE, MPI::MAX, 0);
+        MPI::COMM_WORLD.Reduce(&p_max, &g_p_max, 1, MPI::DOUBLE, MPI::MAX, 0);
         
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
@@ -121,43 +124,66 @@ public:
                     g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke, g_r2Int*h3, g_mach_max, g_p_max);
             fclose(f);
         }
-              
-        Lab lab;
-        const int ss[3]={0,0,0};
-        const int se[3]={2,2,2};
-        lab.prepare(grid, ss, se, false);
         
-        vector<pair<Real,Real> > velocities;
+    }
+    
+    struct Dummy
+    {
+        StencilInfo stencil;
+        
+        Dummy(): stencil(-1,-1,-1,2,2,2,false,1, 5) { }
+        
+        Dummy(const Dummy& c): stencil(c.stencil) { }
+    };
+    
+    void dumpAnalysis(G& grid, const int step_id, const Real t, const Real dt)
+    {
+        vector<pair<Real,Real> > velocities;        
         
         Real x[3];
         
-        for(int i=0; i<(int)vInfo.size(); i++)
-        {        
-            BlockInfo info = vInfo[i];
+        Dummy dummy;
+        
+        SynchronizerMPI& synch = grid.sync(dummy);
+        
+        while (!synch.done())
+        {
+            vector<BlockInfo> avail = synch.avail(LSRK3MPIdata::GSYNCH);
+
+            LabMPI lab;
+            const SynchronizerMPI& Synch = grid.get_SynchronizerMPI(dummy);
+            lab.prepare(grid, Synch);
             
-            if (info.index[1]!=grid.getBlocksPerDimension(1)/2) continue;
-            
-            FluidBlock& b = *(FluidBlock*)info.ptrBlock;
-            lab.load(info);
-            
-            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
-                for(int iy=0; iy<FluidBlock::sizeY; iy++)
-                    for(int ix=0; ix<FluidBlock::sizeX; ix++)
-                    {
-                        if (iy!=0 || iz!=0) continue;
-                        
-                        info.pos(x,ix,iy,iz);
-                        
-                        if( Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))*                        Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1))) == 0 &&
-                           !(Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 && 
-                             Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 ) ) 
-                        {                        
-                            velocities.push_back(pair<Real,Real>(x[0],b(ix, iy, iz).u/b(ix, iy, iz).rho));
+            for(int i=0; i<(int)avail.size(); i++)
+            {        
+                BlockInfo info = avail[i];            
+                
+                if (info.index[1]!=grid.getBlocksPerDimension(1)/2) continue;
+                
+                FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+                lab.load(info, t);
+                
+                for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+                    for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                        for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                        {
+                            if (iy!=0 || iz!=0) continue;
+                            
+                            info.pos(x,ix,iy,iz);
+                            
+                            if( Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))*
+                               Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1))) == 0 &&
+                               !(Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 && 
+                                 Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 ) ) 
+                            {                        
+                                velocities.push_back(pair<Real,Real>(x[0],b(ix, iy, iz).u/b(ix, iy, iz).rho));
+                            }
                         }
-                    }
+            }
         }
         
-        std::sort(velocities.begin(), velocities.end(), sort_pred());
+        velocities.resize(2, pair<Real,Real>(0,0));
+        printf("%e %e\n", velocities[0].second, velocities[1].second);
         
         FILE * f2;
         if (MPI::COMM_WORLD.Get_rank()==0)
@@ -168,15 +194,17 @@ public:
             streamer.str("");
         }
         
-         vector<pair<Real,Real> > g_velocities;
+        vector<pair<Real,Real> > g_velocities;
         if (MPI::COMM_WORLD.Get_rank()==0) g_velocities.resize(velocities.size()*MPI::COMM_WORLD.Get_size());
         
-         MPI::COMM_WORLD.Gather(&velocities.front(), velocities.size(), MPI_FLOAT, &g_velocities.front(), velocities.size(), MPI_FLOAT, 0);                
+        MPI::COMM_WORLD.Gather(&velocities.front(), 2*velocities.size(), MPI_FLOAT, &g_velocities.front(), 2*velocities.size(), MPI_FLOAT, 0);                
         
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
-            if (g_velocities.size()>0) fprintf(f2, "%d %e %e\n", step_id, g_velocities.front().second, g_velocities.back().second);
-        
+            std::sort(g_velocities.begin(), g_velocities.end(), sort_pred());
+            
+            if (g_velocities.size()>0) fprintf(f2, "%d %e %e\n", step_id, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-2].second, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-1].second);
+            
             fclose(f2);
         }
     }
@@ -207,6 +235,9 @@ public:
 				profiler.printSummary();
             
 			dumpStatistics(*grid, step_id, t, dt);
+            
+            if (step_id%ANALYSISPERIOD==0)
+                dumpAnalysis(*grid, step_id, t, dt);
             
 			t+=dt;
 			step_id++;
