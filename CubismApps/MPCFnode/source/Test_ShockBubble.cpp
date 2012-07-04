@@ -121,8 +121,8 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     }
     
     FILE * f = fopen("integrals.dat", "a");
-    fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3, mach_max, p_max);
+    fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3, mach_max, p_max, -p_max/(10*shockval));
     fclose(f);
     
     
@@ -256,7 +256,9 @@ void Test_ShockBubble::run()
 			_dump(streamer.str());
 			//_vp(*grid);			
 			profiler.pop_stop();
-            
+        }
+        if(step_id%ANALYSISPERIOD == 0)
+        {
             profiler.push_start("DUMP ANALYSIS");
             _analysis(*grid, step_id);
             profiler.pop_stop();
@@ -271,9 +273,12 @@ void Test_ShockBubble::run()
 		if(step_id%10 == 0)
 			profiler.printSummary();			
 		
-        profiler.push_start("DUMP STATISTICS");
-        _dumpStatistics(*grid, step_id, t, dt);
-        profiler.pop_stop();
+        if(step_id%10 == 0)
+        {
+            profiler.push_start("DUMP STATISTICS");
+            _dumpStatistics(*grid, step_id, t, dt);
+            profiler.pop_stop();
+        }
                 
 		t+=dt;
 		step_id++;
@@ -281,9 +286,41 @@ void Test_ShockBubble::run()
         if (dt==0) break;
 	}
     
+    cout << "Finishing run ...";
+    
+    ifstream file("integrals.dat");
+    
+    int c = 0;
+    string line;
+    while( getline(file, line) ) c++;
+    
+    file.clear();
+    file.seekg (0, ios::beg);
+    
+    vector<float> max_pressures(c);
+    
+    for(int i = 0; i < c; i++)
+    {
+        assert(file.good());
+        
+        float eatthis;
+        for(int j=0; j<13; ++j)
+            file >> eatthis;
+        
+        file >> max_pressures[i];
+    }
+    
+    sort(max_pressures.begin(), max_pressures.end());
+    
+    FILE * f = fopen("fitness", "w");
+    fprintf(f, "%e", max_pressures.back());
+    fclose(f);
+    
 	std::stringstream streamer;
 	streamer<<"data-"<<step_id<<".vti";
 	if (DUMPPERIOD < 1e5) _dump(streamer.str());
+    
+    cout << "done" << endl;
 }
 
 void Test_ShockBubble::_setup_constants()
@@ -298,6 +335,10 @@ void Test_ShockBubble::_setup_constants()
 	bubble_pos[2] = parser("-bubz").asDouble();
 	radius        = parser("-rad").asDouble();
 	parser.unset_strict_mode();
+
+    ifstream file("parameters.dat");
+    file >> bubble_pos[0];
+    file >> shockval;
 }
 
 void Test_ShockBubble::setup()

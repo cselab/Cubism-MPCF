@@ -17,7 +17,7 @@ class Test_ShockBubble: public Test_SteadyState
     void _ic(FluidGrid& grid);
     
 protected:
-    Real radius, bubble_pos[3];
+    Real radius, bubble_pos[3], shockval;
     
     void _setup_constants();
     void _dumpStatistics(FluidGrid& grid, const int counter, const Real t, const Real dt);

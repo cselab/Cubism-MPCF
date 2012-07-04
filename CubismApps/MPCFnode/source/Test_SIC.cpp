@@ -50,6 +50,10 @@ void Test_SIC::_ic(FluidGrid& grid)
                     {
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
+
+			const double x_pos = 1-0.1*bubble_pos[0];
+			const double shockvalue = 10*shockval;
+
                         const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));
                         
                         const double bubble = Simulation_Environment::heaviside_smooth(r1-radius);                                                                        
@@ -68,12 +72,13 @@ void Test_SIC::_ic(FluidGrid& grid)
                         const double c_liquid = sqrt(Simulation_Environment::GAMMA1*(pre_shock[2]+Simulation_Environment::PC1)/pre_shock[0]);
                         const double pulse_omega = 7.34;//(1.5*M_PI-M_PI/3)/pulse_period;
                         const double pulse_decay = 8.85;//pulse_omega * 11;
-                        const double pulse_amp = 1e3*pre_shock[2];
+                        //const double pulse_amp = 1e4;
                         const double ramp = 1;//1.03*(1-exp(-742.87*max((Real)0.,(Real)(Simulation_Environment::shock_pos-p[0]) ) ) );
-                        const double p_front = pulse_amp;//pre_shock[2]+2*pulse_amp*exp(-pulse_decay*(Simulation_Environment::shock_pos-p[0]))*cos(pulse_omega*(Simulation_Environment::shock_pos-p[0])+M_PI/3);
+                        const double p_front = shockvalue;//pre_shock[2]+2*pulse_amp*exp(-pulse_decay*(Simulation_Environment::shock_pos-p[0]))*cos(pulse_omega*(Simulation_Environment::shock_pos-p[0])+M_PI/3);
                         const double pressure  = p_front*ramp*shock+pre_shock[2]*(1-shock);
+                        const double c2_liquid = sqrt(Simulation_Environment::GAMMA1*(pressure+Simulation_Environment::PC1)/pre_shock[0]);
                         
-                        b(ix, iy, iz).u        = 5.0*shock* b(ix, iy, iz).rho;
+                        b(ix, iy, iz).u        = shockvalue/pre_shock[0]/c2_liquid* b(ix, iy, iz).rho*shock;//5.0*shock* b(ix, iy, iz).rho;// shockval*2/pre_shock[0]/c_liquid/3
                         
                         SETUP_MARKERS_IC
                         
@@ -115,6 +120,7 @@ void Test_SIC::setup()
     printf("////////////////////////////////////////////////////////////\n");
     
     _setup_constants();
+    
     parser.mute();
     
     if (parser("-morton").asBool(0))
