@@ -16,6 +16,7 @@
 class Test_SICMPI: public Test_SIC
 {
 	Test_SteadyStateMPI * t_ssmpi;
+    Test_ShockBubbleMPI * t_sbmpi;
     
 protected:
 	int XPESIZE, YPESIZE, ZPESIZE;
@@ -30,6 +31,7 @@ public:
     Test_SIC(argc, argv), isroot(isroot)
 	{
 		t_ssmpi = new Test_SteadyStateMPI(isroot, argc, argv);
+        t_sbmpi = new Test_ShockBubbleMPI(isroot, argc, argv);
 	}
     
 	void setup()
@@ -88,7 +90,14 @@ public:
 			if(step_id%10 == 0 && isroot && step_id > 0)
 				profiler.printSummary();
             
-			_dumpStatistics(*grid, step_id, t, dt);
+            profiler.push_start("DUMP STATISTICS");
+            t_sbmpi->dumpStatistics(*grid, step_id, t, dt);
+            profiler.pop_stop();
+            
+            profiler.push_start("DUMP ANALYSIS");
+            if (step_id%ANALYSISPERIOD==0)
+                t_sbmpi->dumpAnalysis(*grid, step_id, t, dt);
+            profiler.pop_stop();
             
 			t+=dt;
 			step_id++;

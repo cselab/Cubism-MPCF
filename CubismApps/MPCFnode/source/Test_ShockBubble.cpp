@@ -21,12 +21,6 @@
 
 using namespace std;
 
-struct sort_pred {
-    bool operator()(const std::pair<Real,Real> &left, const std::pair<Real,Real> &right) {
-        return left.first < right.first;
-    }
-};
-
 void Test_ShockBubble::_ic(FluidGrid& grid)
 {
 	cout << "ShockBubble Initial condition..." ;
