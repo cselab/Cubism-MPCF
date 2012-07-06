@@ -85,7 +85,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double pressure  = pre_shock[2];
+                        const double pressure  = pre_shock[2]*714*(1-bubble)+pre_shock[2]*bubble;
                         
                         
                         SETUP_MARKERS_IC
