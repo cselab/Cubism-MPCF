@@ -51,8 +51,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
 
-			const double x_pos = 1-0.1*bubble_pos[0];
-			const double shockvalue = 10*shockval;
+			const double shockvalue = 1e4;
 
                         const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));
                         

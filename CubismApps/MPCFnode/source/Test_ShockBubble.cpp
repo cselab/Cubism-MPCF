@@ -335,10 +335,6 @@ void Test_ShockBubble::_setup_constants()
 	bubble_pos[2] = parser("-bubz").asDouble();
 	radius        = parser("-rad").asDouble();
 	parser.unset_strict_mode();
-
-    ifstream file("parameters.dat");
-    file >> bubble_pos[0];
-    file >> shockval;
 }
 
 void Test_ShockBubble::setup()
