@@ -122,7 +122,7 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     
     FILE * f = fopen("integrals.dat", "a");
     fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3, mach_max, p_max, -p_max/(10*shockval));
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3, mach_max, p_max, -p_max/1e4);
     fclose(f);
     
     
@@ -229,7 +229,11 @@ void Test_ShockBubble::_analysis(FluidGrid& grid, const int step_id)
                     info.pos(x,ix,iy,iz);
                     
                     const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
+#ifndef _LIQUID_
+		    const double pressure = (b(ix, iy, iz).energy - ke)/b(ix, iy, iz).G;
+#else
                     const double pressure = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
+#endif
                     
                     fprintf(f, "%e %e\n", x[1], pressure);
                 }

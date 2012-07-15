@@ -299,7 +299,7 @@ Real FlowStep_LSRK3::_computeSOS(bool bAwk)
         if (kernels=="sse" || kernels=="avx")
         {
 #if defined(_SSE_) || defined(_AVX_)
-            MaxSOS<MaxSpeedOfSound_SSE> compute_sos(&vInfo.front());
+            MaxSOS<MaxSpeedOfSound_CPP> compute_sos(&vInfo.front());
             if (!LSRK3data::bAffinity)
                 parallel_reduce(blocked_range<int>(0, vInfo.size()), compute_sos, auto_partitioner());
             else
@@ -322,7 +322,7 @@ Real FlowStep_LSRK3::_computeSOS(bool bAwk)
     else if (kernels=="sse" || kernels=="avx")
     {
 #if defined(_SSE_) || defined(_AVX_)
-        sos = _computeSOS_OMP<MaxSpeedOfSound_SSE>(grid,  bAwk);
+        sos = _computeSOS_OMP<MaxSpeedOfSound_CPP>(grid,  bAwk);
 #endif
     }
     else
@@ -335,7 +335,7 @@ Real FlowStep_LSRK3::_computeSOS(bool bAwk)
         if (kernels=="sse" || kernels=="avx")
         {
 #if defined(_SSE_) || defined(_AVX_)
-            MaxSpeedOfSound_SSE::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, vInfo.size(), time, bAwk);
+            MaxSpeedOfSound_CPP::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, vInfo.size(), time, bAwk);
 #endif
         }
         else
@@ -499,17 +499,17 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
     set_constants();
     
     const Real maxSOS = _computeSOS(bAwk);
-    Real dt = min(max_dt, CFL*h/maxSOS);
+    double dt = min(max_dt, CFL*h/maxSOS);
     cout << "sos max is " << setprecision(8) << maxSOS << ", " << "dt is "<< dt << "\n";
     
     if (LSRK3data::sten_sigma>0) 
     {
         const Real sumrho = parser("-sumrho").asDouble(HUGE_VAL);
-        dt = min(dt, (Real)sqrt(sumrho*h*h*h/(4*M_PI*LSRK3data::sten_sigma)));
+        dt = min(dt, sqrt(sumrho*h*h*h/(4*M_PI*LSRK3data::sten_sigma)));
     }
     
     if (LSRK3data::nu1>0)
-        dt = min(dt, (Real)(h*h/(12*max(LSRK3data::nu1,LSRK3data::nu2))) );
+      dt = min(dt, (double)(h*h/(12*max(LSRK3data::nu1,LSRK3data::nu2))) );
     
     if (maxSOS>1e6)
     {
@@ -517,7 +517,7 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
         abort();
     }
     
-    if (dt<std::numeric_limits<Real>::epsilon()*1e1)
+    if (dt<std::numeric_limits<double>::epsilon()*1e1)
     {
         cout << "Last time step encountered." << endl;
         return 0;
@@ -530,7 +530,7 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
         LSRKstep<Convection_CPP, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time, bAwk);
 #ifdef _SSE_
     else if (parser("-kernels").asString("cpp")=="sse")
-        LSRKstep<Convection_SSE, Update_SSE, SurfaceTension_SSE, Diffusion_SSE>(grid, dt/h, current_time, bAwk);
+        LSRKstep<Convection_SSE, Update_CPP, SurfaceTension_CPP, Diffusion_CPP>(grid, dt/h, current_time, bAwk);
 #endif
 #ifdef _AVX_
     else if (parser("-kernels").asString("cpp")=="avx")
