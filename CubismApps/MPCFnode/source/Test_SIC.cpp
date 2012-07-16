@@ -51,6 +51,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
+
                         const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));//+pow(p[2]-bubble_pos[2],2));
                         
                         const double bubble = Simulation_Environment::heaviside_smooth(r1-radius);                                                                        
@@ -71,8 +72,9 @@ void Test_SIC::_ic(FluidGrid& grid)
                         //const double pulse_decay = 8.85;//pulse_omega * 11;
                         const double pulse_amp = 353*pre_shock[2];
                         const double ramp = 1;//1.03*(1-exp(-742.87*max((Real)0.,(Real)(Simulation_Environment::shock_pos-p[0]) ) ) );
-                        const double p_front = pulse_amp;//pre_shock[2]+2*pulse_amp*exp(-pulse_decay*(Simulation_Environment::shock_pos-p[0]))*cos(pulse_omega*(Simulation_Environment::shock_pos-p[0])+M_PI/3);
+                        const double p_front = shockvalue;//pre_shock[2]+2*pulse_amp*exp(-pulse_decay*(Simulation_Environment::shock_pos-p[0]))*cos(pulse_omega*(Simulation_Environment::shock_pos-p[0])+M_PI/3);
                         const double pressure  = p_front*ramp*shock+pre_shock[2]*(1-shock);
+                        const double c2_liquid = sqrt(Simulation_Environment::GAMMA1*(pressure+Simulation_Environment::PC1)/pre_shock[0]);
                         
                         b(ix, iy, iz).u        = pulse_amp/pre_shock[0]/c_liquid*b(ix, iy, iz).rho*shock;//0;//c_liquid*shock2;
                         
@@ -128,6 +130,7 @@ void Test_SIC::setup()
     printf("////////////////////////////////////////////////////////////\n");
     
     _setup_constants();
+    
     parser.mute();
     
     if (parser("-morton").asBool(0))

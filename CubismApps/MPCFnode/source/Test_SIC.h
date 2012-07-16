@@ -13,7 +13,7 @@
 class Test_SIC: public Test_ShockBubble
 {
     friend class Test_SICMPI;
-    
+
 	void _ic(FluidGrid& grid);
     
 public:	

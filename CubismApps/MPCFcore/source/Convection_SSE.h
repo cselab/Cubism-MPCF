@@ -23,10 +23,8 @@ class Convection_SSE : public Convection_CPP
 	
 public:
 	
-	Convection_SSE(Real a, Real dtinvh, 
-				   Real gamma1, Real gamma2, Real smoothlength, 
-				   Real pc1, Real pc2):
-	Convection_CPP(a, dtinvh, gamma1, gamma2, smoothlength, pc1, pc2) { }
+	Convection_SSE(Real a, Real dtinvh) :
+	Convection_CPP(a, dtinvh) { }
 	
 protected:
 	
@@ -38,20 +36,28 @@ protected:
 		
 		if (bAligned && b4Multiple)
 			_sse_convert_aligned(gptfirst, gptfloats, rowgpts, 
-								 & ringrho.ref().ref(-4,-3),
-								 & ringu.ref().ref(-4,-3),
-								 & ringv.ref().ref(-4,-3),
-								 & ringw.ref().ref(-4,-3),
-								 & ringp.ref().ref(-4,-3),
-								 & ringls.ref().ref(-4,-3));
+								 & rho.ring.ref().ref(-4,-3),
+								 & u.ring.ref().ref(-4,-3),
+								 & v.ring.ref().ref(-4,-3),
+								 & w.ring.ref().ref(-4,-3),
+								 & p.ring.ref().ref(-4,-3),
+								 & G.ring.ref().ref(-4,-3)
+#ifdef _LIQUID_
+					     , & P.ring.ref().ref(-4,-3)
+#endif
+);
 		else
 			_sse_convert(gptfirst, gptfloats, rowgpts, 
-						 & ringrho.ref().ref(-4,-3),
-						 & ringu.ref().ref(-4,-3),
-						 & ringv.ref().ref(-4,-3),
-						 & ringw.ref().ref(-4,-3),
-						 & ringp.ref().ref(-4,-3),
-						 & ringls.ref().ref(-4,-3));
+						 & rho.ring.ref().ref(-4,-3),
+						 & u.ring.ref().ref(-4,-3),
+						 & v.ring.ref().ref(-4,-3),
+						 & w.ring.ref().ref(-4,-3),
+						 & p.ring.ref().ref(-4,-3),
+						 & G.ring.ref().ref(-4,-3)
+#ifdef _LIQUID_
+				     , & P.ring.ref().ref(-4,-3)
+#endif
+);
 	}
 	
 	void _xweno_minus(const InputSOA& in, TempSOA& out) { _sse_xweno_minus(in.ptr(-4,0), &out.ref(0,0)); }
@@ -103,63 +109,91 @@ protected:
 				 const TempSOA& v1minus, const TempSOA& v1plus,
 				 const TempSOA& v2minus, const TempSOA& v2plus,
 				 const TempSOA& pminus, const TempSOA& pplus,
-				 const TempSOA& lsminus, const TempSOA& lsplus, 
+				 const TempSOA& Gminus, const TempSOA& Gplus, 
+#ifdef _LIQUID_
+		     const TempSOA& Pminus, const TempSOA& Pplus,
+#endif
 				 const TempSOA& aminus, const TempSOA& aplus,
 				 TempSOA& out)
 	{
 		_sse_hlle_e(rminus.ptr(0,0), rplus.ptr(0,0), vdminus.ptr(0,0), vdplus.ptr(0,0), v1minus.ptr(0,0), v1plus.ptr(0,0),
-					v2minus.ptr(0,0), v2plus.ptr(0,0), pminus.ptr(0,0), pplus.ptr(0,0), lsminus.ptr(0,0), lsplus.ptr(0,0), 
+					v2minus.ptr(0,0), v2plus.ptr(0,0), pminus.ptr(0,0), pplus.ptr(0,0), Gminus.ptr(0,0), Gplus.ptr(0,0), 
+#ifdef _LIQUID_
+			    Pminus.ptr(0,0), Pplus.ptr(0,0),
+#endif
 					aminus.ptr(0,0), aplus.ptr(0,0), &out.ref(0,0));
 	}
 	
 	void _char_vel(const TempSOA& rminus, const TempSOA& rplus, 
 				   const TempSOA& vminus, const TempSOA& vplus,
 				   const TempSOA& pminus, const TempSOA& pplus,
-				   const TempSOA& lminus, const TempSOA& lplus, 
+				   const TempSOA& Gminus, const TempSOA& Gplus, 
+#ifdef _LIQUID_
+		       const TempSOA& Pminus, const TempSOA& Pplus,
+#endif
 				   TempSOA& out_minus, TempSOA& out_plus)
 	{
 		_sse_char_vel(rminus.ptr(0,0), rplus.ptr(0,0), vminus.ptr(0,0), vplus.ptr(0,0), 
-					  pminus.ptr(0,0), pplus.ptr(0,0), lminus.ptr(0,0), lplus.ptr(0,0), 
+					  pminus.ptr(0,0), pplus.ptr(0,0), Gminus.ptr(0,0), Gplus.ptr(0,0), 
+#ifdef _LIQUID_
+			      Pminus.ptr(0,0), Pplus.ptr(0,0),
+#endif
 					  &out_minus.ref(0,0), &out_plus.ref(0,0));
 	}
 	
 	void _xrhs()
 	{	
-		_sse_xrhsadd(fluxrho().ptr(0,0), &rhsrho.ref(0,0));
-		_sse_xrhsadd(fluxu().ptr(0,0), &rhsu.ref(0,0));
-		_sse_xrhsadd(fluxv().ptr(0,0), &rhsv.ref(0,0));
-		_sse_xrhsadd(fluxw().ptr(0,0), &rhsw.ref(0,0));
-		_sse_xrhsadd(fluxp().ptr(0,0), &rhss.ref(0,0));
-		_sse_xrhsadd(fluxls().ptr(0,0), &rhsls.ref(0,0));
+		_sse_xrhsadd(rho.flux().ptr(0,0), &rho.rhs.ref(0,0));
+		_sse_xrhsadd(u.flux().ptr(0,0), &u.rhs.ref(0,0));
+		_sse_xrhsadd(v.flux().ptr(0,0), &v.rhs.ref(0,0));
+		_sse_xrhsadd(w.flux().ptr(0,0), &w.rhs.ref(0,0));
+		_sse_xrhsadd(p.flux().ptr(0,0), &p.rhs.ref(0,0));
+		_sse_xrhsadd(G.flux().ptr(0,0), &G.rhs.ref(0,0));
+#ifdef _LIQUID_
+		_sse_xrhsadd(P.flux().ptr(0,0), &P.rhs.ref(0,0));
+#endif
 	}
 	
 	void _yrhs()
 	{	
-		_sse_yrhsadd(fluxrho().ptr(0,0), &rhsrho.ref(0,0));
-		_sse_yrhsadd(fluxu().ptr(0,0), &rhsu.ref(0,0));
-		_sse_yrhsadd(fluxv().ptr(0,0), &rhsv.ref(0,0));
-		_sse_yrhsadd(fluxw().ptr(0,0), &rhsw.ref(0,0));
-		_sse_yrhsadd(fluxp().ptr(0,0), &rhss.ref(0,0));
-		_sse_yrhsadd(fluxls().ptr(0,0), &rhsls.ref(0,0));
+		_sse_yrhsadd(rho.flux().ptr(0,0), &rho.rhs.ref(0,0));
+		_sse_yrhsadd(u.flux().ptr(0,0), &u.rhs.ref(0,0));
+		_sse_yrhsadd(v.flux().ptr(0,0), &v.rhs.ref(0,0));
+		_sse_yrhsadd(w.flux().ptr(0,0), &w.rhs.ref(0,0));
+		_sse_yrhsadd(p.flux().ptr(0,0), &p.rhs.ref(0,0));
+		_sse_yrhsadd(G.flux().ptr(0,0), &G.rhs.ref(0,0));
+#ifdef _LIQUID_
+		_sse_yrhsadd(P.flux().ptr(0,0), &P.rhs.ref(0,0));
+#endif
 	}
 	
 	void _zrhs()
 	{	
-		_sse_zrhsadd(fluxrho(-1).ptr(0,0), fluxrho(0).ptr(0,0), &rhsrho.ref(0,0));
-		_sse_zrhsadd(fluxu(-1).ptr(0,0), fluxu(0).ptr(0,0), &rhsu.ref(0,0));
-		_sse_zrhsadd(fluxv(-1).ptr(0,0), fluxv(0).ptr(0,0), &rhsv.ref(0,0));
-		_sse_zrhsadd(fluxw(-1).ptr(0,0), fluxw(0).ptr(0,0), &rhsw.ref(0,0));
-		_sse_zrhsadd(fluxp(-1).ptr(0,0), fluxp(0).ptr(0,0), &rhss.ref(0,0));
-		_sse_zrhsadd(fluxls(-1).ptr(0,0), fluxls(0).ptr(0,0), &rhsls.ref(0,0));
+		_sse_zrhsadd(rho.flux(-1).ptr(0,0), rho.flux(0).ptr(0,0), &rho.rhs.ref(0,0));
+		_sse_zrhsadd(u.flux(-1).ptr(0,0), u.flux(0).ptr(0,0), &u.rhs.ref(0,0));
+		_sse_zrhsadd(v.flux(-1).ptr(0,0), v.flux(0).ptr(0,0), &v.rhs.ref(0,0));
+		_sse_zrhsadd(w.flux(-1).ptr(0,0), w.flux(0).ptr(0,0), &w.rhs.ref(0,0));
+		_sse_zrhsadd(p.flux(-1).ptr(0,0), p.flux(0).ptr(0,0), &p.rhs.ref(0,0));
+		_sse_zrhsadd(G.flux(-1).ptr(0,0), G.flux(0).ptr(0,0), &G.rhs.ref(0,0));
+#ifdef _LIQUID_
+		_sse_zrhsadd(P.flux(-1).ptr(0,0), P.flux(0).ptr(0,0), &P.rhs.ref(0,0));
+#endif
 	}
 
 	//these methods are called by the methods declared/defined above
+#ifndef _LIQUID_
 	void _sse_convert_aligned(const Real * const gptfirst, const int gptfloats, const int rowgpts,
-							  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const l);
+							  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G);
 	
 	void _sse_convert(const Real * const gptfirst, const int gptfloats, const int rowgpts,
-					  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const l);
-	
+					  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G);
+#else
+	void _sse_convert_aligned(const Real * const gptfirst, const int gptfloats, const int rowgpts,
+				  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G, Real * const P);
+
+        void _sse_convert(const Real * const gptfirst, const int gptfloats, const int rowgpts,
+			  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G, Real * const P);
+#endif	
 	void _sse_xweno_minus(const Real * const in, Real * const out) const;	
 	void _sse_xweno_pluss(const Real * const in, Real * const out) const;
 	void _sse_yweno_minus(const Real * const in, Real * const out);	
@@ -189,14 +223,20 @@ protected:
 					 const Real * const v1minus, const Real * const v1plus,
 					 const Real * const v2minus, const Real * const v2plus,
 					 const Real * const pminus, const Real * const pplus,
-					 const Real * const lsminus, const Real * const lsplus, 
+					 const Real * const Gminus, const Real * const Gplus, 
+#ifdef _LIQUID_
+			 const Real * const Pminus, const Real * const Pplus,
+#endif
 					 const Real * const aminus, const Real * const aplus,
 					 Real * const out);
 	
 	void _sse_char_vel(const Real * const rminus, const Real * const rplus, 
 					   const Real * const vminus, const Real * const vplus,
 					   const Real * const pminus, const Real * const pplus,
-					   const Real * const lminus, const Real * const lplus, 
+					   const Real * const Gminus, const Real * const Gplus, 
+#ifdef _LIQUID_
+			   const Real * const Pminus, const Real * const Pplus,
+#endif
 					   Real * const out_minus, Real * const out_plus);
 	
 	void _sse_xrhsadd(const Real * const flux, Real * const rhs);	
