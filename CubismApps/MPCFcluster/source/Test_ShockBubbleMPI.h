@@ -199,8 +199,8 @@ public:
         FILE * f2;
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
-            streamer<<"centerline_velocities-"<<step_id<<".dat";
-            f2 = fopen(streamer.str().c_str(), "w");
+            streamer<<"centerline_velocities.dat";
+            f2 = fopen(streamer.str().c_str(), "a");
             streamer.str("");
         }
         
@@ -213,7 +213,7 @@ public:
         {
             std::sort(g_velocities.begin(), g_velocities.end(), sort_pred());
             
-            if (g_velocities.size()>0) fprintf(f2, "%d %e %e\n", step_id, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-2].second, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-1].second);
+            if (g_velocities.size()>0) fprintf(f2, "%d %f %e %e\n", step_id, t, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-2].second, g_velocities[velocities.size()*MPI::COMM_WORLD.Get_size()-1].second);
             
             fclose(f2);
         }        

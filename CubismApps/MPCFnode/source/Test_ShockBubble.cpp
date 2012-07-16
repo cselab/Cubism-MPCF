@@ -127,12 +127,17 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     
     
     FILE * f2 = fopen("centerline_velocities.dat", "a");
+    FILE * f3 = fopen("p_center.dat", "a");
+    FILE * f4 = fopen("interface.dat","a");
+    
     Lab lab;
     const int ss[3]={0,0,0};
     const int se[3]={2,2,2};
     lab.prepare(grid, ss, se, false);
     
     vector<pair<Real,Real> > velocities;
+    vector<Real> iso_gamma;
+    Real p_wall=0;
     
     Real x[3];
     
@@ -153,19 +158,43 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     
                     info.pos(x,ix,iy,iz);
                     
+                    if((ix+1)==FluidBlock::sizeX && (info.index[0]+1)==grid.getBlocksPerDimension(0)){
+                        
+                        const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
+#ifndef _LIQUID_
+                        p_wall = (b(ix, iy, iz).energy - ke)/b(ix, iy, iz).G;
+#else                    
+                        p_wall = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
+#endif
+                    }
+                    
+                    if (abs(b(ix,iy,iz).G-2.35)<0.1) {
+                        iso_gamma.push_back(x[0]);
+                    }
+                    
                     if( Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))*                        Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1))) == 0 &&
                        !(Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 && 
                          Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 ) ) 
-                    {                        
-                        velocities.push_back(pair<Real,Real>(x[0],b(ix, iy, iz).u/b(ix, iy, iz).rho));
+                    {                   
+#ifndef _LIQUID_
+                        const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w))/b(ix,iy,iz).G;                        
+#else
+                        const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w) - b(ix, iy, iz).P)/b(ix,iy,iz).G;
+#endif
+                        velocities.push_back(pair<Real,Real>(sqrt(6.59*b(ix,iy,iz).rho*pressure),b(ix, iy, iz).u/b(ix, iy, iz).rho));
                     }
                 }
     }
     
     std::sort(velocities.begin(), velocities.end(), sort_pred());
+    std::sort(iso_gamma.begin(),iso_gamma.end());
     
-    if (velocities.size()>0) fprintf(f2, "%d %e %e\n", step_id, velocities.front().second, velocities.back().second);
+    if (velocities.size()>0) fprintf(f2, "%d %f %e %e %f\n", step_id, t, velocities.front().second, velocities.back().second, velocities.front().first);
+    if (iso_gamma.size()>0) fprintf(f4, "%d %e %f %f\n", step_id, t, iso_gamma.front(), iso_gamma.back());
+    fprintf(f3, "%d %e %e\n", step_id, t, p_wall);
     
+    fclose(f4);
+    fclose(f3);
     fclose(f2);
 }
 
