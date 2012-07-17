@@ -92,6 +92,22 @@ public:
         const double postShockU = Mpost*sqrt(gamma*(pc+postShock[2])/postShock[0]);
         postShock[1] = preShockU - postShockU;
     }
+    
+    /**
+     * Computes post shock values given the post shock pressure
+     * 
+     * @param array holding the pre shock values
+     * @param pressure of the shock
+     * @param array containing the computed post shock values
+     *
+     * @return void
+     */
+    static void getPostShockRatio(const Real pre_shock[3], const Real p_shock, Real postShock[3])
+    {
+        postShock[0] = pre_shock[0]*pow((double)p_shock/(3.31e4)+1,(1./7.));
+        postShock[1] = pre_shock[1] + sqrt((postShock[0]-pre_shock[0])/(postShock[0]*pre_shock[0])*(p_shock-pre_shock[2]));
+        postShock[2] = p_shock;
+    }
 };
 
 class Simulation
