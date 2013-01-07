@@ -175,7 +175,8 @@ CPPFLAGS += -D_ALIGNBYTES_=$(align) -D_BLOCKSIZE_=$(bs) -D_BLOCKSIZEX_=$(bs) -D_
 CPPFLAGS += -I../../../Cubism/source/ -I../source -I../../MPCFcore/source/ -I../../MPCFnode/source/
 CPPFLAGS += -I$(tbb-inc) -I$(mpi-inc)
 
-LIBS += -lstdc++ -lz -lm
+LIBS += -lstdc++ -lz -lm -lrt
+
 LIBS += -L$(tbb-lib) \
 	-ltbb \
 	-ltbbmalloc

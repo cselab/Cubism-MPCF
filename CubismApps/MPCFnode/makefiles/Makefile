@@ -180,7 +180,7 @@ endif
 
 CPPFLAGS += -I$(tbb-inc) -I$(hdf-inc)
 
-LIBS += -lstdc++
+LIBS += -lstdc++ -lm -lrt
 
 LIBS += -L$(tbb-lib) \
 	-ltbb \
