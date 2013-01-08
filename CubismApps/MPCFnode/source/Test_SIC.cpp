@@ -21,7 +21,9 @@
 
 void Test_SIC::_ic(FluidGrid& grid)
 {
-	cout << "SIC Initial condition..." ;
+	if (VERBOSITY > 0) 
+		cout << "SIC Initial condition..." ;
+		
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
     
     const double G1 = Simulation_Environment::GAMMA1-1;
@@ -38,7 +40,8 @@ void Test_SIC::_ic(FluidGrid& grid)
 		const int mynode = omp_get_thread_num() / cores_per_node;
 		numa_run_on_node(mynode);
 #endif
-		
+
+#pragma omp for		
 		for(int i=0; i<(int)vInfo.size(); i++)
 		{
             BlockInfo info = vInfo[i];
@@ -59,6 +62,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         const double shock_pressure = 3530;
                         
                         const Real pre_shock[3] = {10,0,10};
+
                         Simulation_Environment::getPostShockRatio(pre_shock, shock_pressure, post_shock);
                         
                         const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);           
@@ -100,7 +104,9 @@ void Test_SIC::_ic(FluidGrid& grid)
                     }
         }		
 	}	
-	cout << "done." << endl;
+	
+	if (VERBOSITY > 0)
+		cout << "done." << endl;
 }
 
 void Test_SIC::setup()
@@ -128,8 +134,5 @@ void Test_SIC::setup()
         _dump("restartedcondition.vti");
     }
     else
-    {
         _ic(*grid);
-    }
 }
-

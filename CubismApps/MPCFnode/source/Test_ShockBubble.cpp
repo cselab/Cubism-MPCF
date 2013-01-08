@@ -39,6 +39,7 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
 		numa_run_on_node(mynode);
 #endif
 		
+#pragma omp for
 		for(int i=0; i<(int)vInfo.size(); i++)
 		{
             BlockInfo info = vInfo[i];
@@ -50,6 +51,7 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
                     {
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
+                        
                         const double r = sqrt(pow(p[0]-Simulation_Environment::shock_pos-1.2*radius,2)+pow(p[1]-bubble_pos[1],2));
                         
                         const double bubble = Simulation_Environment::heaviside_smooth(r-radius);                                                                        
@@ -69,6 +71,7 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
                     }
         }		
 	}	
+	
 	cout << "done." << endl;
 }
 
@@ -105,16 +108,11 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     vol  += b(ix,iy,iz).G>0.5*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
                     r2Int += b(ix, iy, iz).rho*(1-min(max((b(ix,iy,iz).G-1/(Simulation_Environment::GAMMA1-2))/(1/(Simulation_Environment::GAMMA1-1)-1/(Simulation_Environment::GAMMA2-1)),(Real)0),(Real)1));
                     ke   += 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w);
-                    
-#ifndef _LIQUID_
-                    const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w))/b(ix,iy,iz).G;
-                    const double c = sqrt((1/b(ix,iy,iz).G+1)*pressure/b(ix, iy, iz).rho);
-#else
+     
                     const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w) - b(ix, iy, iz).P)/b(ix,iy,iz).G;
-                    const double c = sqrt((1/b(ix,iy,iz).G+1)*(pressure+b(ix,iy,iz).P/b(ix,iy,iz).G/(1/b(ix,iy,iz).G+1))/b(ix, iy, iz).rho);
-#endif
-                    
+                    const double c = sqrt((1/b(ix,iy,iz).G+1)*(pressure+b(ix,iy,iz).P/b(ix,iy,iz).G/(1/b(ix,iy,iz).G+1))/b(ix, iy, iz).rho);                    
                     const double velmag = sqrt(b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w)/b(ix, iy, iz).rho;
+                    
                     mach_max = max(mach_max, velmag/c);
                     p_max = max(p_max, pressure);
                 }
@@ -158,14 +156,11 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     
                     info.pos(x,ix,iy,iz);
                     
-                    if((ix+1)==FluidBlock::sizeX && (info.index[0]+1)==grid.getBlocksPerDimension(0)){
-                        
+                    if((ix+1)==FluidBlock::sizeX && (info.index[0]+1)==grid.getBlocksPerDimension(0))
+                    {    
                         const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
-#ifndef _LIQUID_
-                        p_wall = (b(ix, iy, iz).energy - ke)/b(ix, iy, iz).G;
-#else                    
+
                         p_wall = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
-#endif
                     }
                     
                     if (abs(b(ix,iy,iz).G-2.35)<0.1) {
@@ -176,11 +171,8 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                        !(Simulation_Environment::heaviside(lab(ix, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 && 
                          Simulation_Environment::heaviside(lab(ix+1, iy, iz).G-0.5*(1/(Simulation_Environment::GAMMA2-1)+1/(Simulation_Environment::GAMMA1-1)))==0 ) ) 
                     {                   
-#ifndef _LIQUID_
-                        const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w))/b(ix,iy,iz).G;                        
-#else
                         const double pressure = (b(ix, iy, iz).energy - 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w) - b(ix, iy, iz).P)/b(ix,iy,iz).G;
-#endif
+
                         velocities.push_back(pair<Real,Real>(sqrt(6.59*b(ix,iy,iz).rho*pressure),b(ix, iy, iz).u/b(ix, iy, iz).rho));
                     }
                 }
@@ -188,9 +180,10 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     
     std::sort(velocities.begin(), velocities.end(), sort_pred());
     std::sort(iso_gamma.begin(),iso_gamma.end());
-    
+
     if (velocities.size()>0) fprintf(f2, "%d %f %e %e %f\n", step_id, t, velocities.front().second, velocities.back().second, velocities.front().first);
     if (iso_gamma.size()>0) fprintf(f4, "%d %e %f %f\n", step_id, t, iso_gamma.front(), iso_gamma.back());
+
     fprintf(f3, "%d %e %e\n", step_id, t, p_wall);
     
     fclose(f4);
@@ -226,11 +219,8 @@ void Test_ShockBubble::_analysis(FluidGrid& grid, const int step_id)
                     
                     const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
                     
-#ifndef _LIQUID_
-                    const double pressure = (b(ix, iy, iz).energy - ke)/b(ix, iy, iz).G;
-#else                    
                     const double pressure = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
-#endif                    
+
                     fprintf(f, "%e %e\n", x[0], pressure);
                 }
     }    
@@ -258,11 +248,7 @@ void Test_ShockBubble::_analysis(FluidGrid& grid, const int step_id)
                     info.pos(x,ix,iy,iz);
                     
                     const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho;
-#ifndef _LIQUID_
-		    const double pressure = (b(ix, iy, iz).energy - ke)/b(ix, iy, iz).G;
-#else
                     const double pressure = (b(ix, iy, iz).energy - ke -  b(ix, iy, iz).P)/b(ix, iy, iz).G;
-#endif
                     
                     fprintf(f, "%e %e\n", x[1], pressure);
                 }
@@ -323,35 +309,7 @@ void Test_ShockBubble::run()
 	}
     
     cout << "Finishing run ...";
-    
-    ifstream file("integrals.dat");
-    
-    int c = 0;
-    string line;
-    while( getline(file, line) ) c++;
-    
-    file.clear();
-    file.seekg (0, ios::beg);
-    
-    vector<float> max_pressures(c);
-    
-    for(int i = 0; i < c; i++)
-    {
-        assert(file.good());
         
-        float eatthis;
-        for(int j=0; j<13; ++j)
-            file >> eatthis;
-        
-        file >> max_pressures[i];
-    }
-    
-    sort(max_pressures.begin(), max_pressures.end());
-    
-    FILE * f = fopen("fitness", "w");
-    fprintf(f, "%e", max_pressures.back());
-    fclose(f);
-    
 	std::stringstream streamer;
 	streamer<<"data-"<<step_id<<".vti";
 	if (DUMPPERIOD < 1e5) _dump(streamer.str());
@@ -391,14 +349,11 @@ void Test_ShockBubble::setup()
 	
 	stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY, &profiler, Simulation_Environment::PC1, Simulation_Environment::PC2, bAWK);
 	
-    
 	if(bRESTART)
 	{
 		_restart();
 		_dump("restartedcondition.vti");
 	}
 	else
-	{
 		_ic(*grid);
-	}
 }

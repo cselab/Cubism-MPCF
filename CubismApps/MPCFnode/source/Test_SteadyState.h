@@ -59,8 +59,8 @@ public:
 	void paint();
 	void setup();
 	void verbosity(int v) { VERBOSITY = v; }
-	Real get_time() {return t;}
-	int get_stepid() {return step_id;}
+	Real get_time() const { return t; }
+	int get_stepid() const { return step_id; }
     
 	Test_SteadyState(const int argc, const char ** argv);
 	virtual ~Test_SteadyState() { }

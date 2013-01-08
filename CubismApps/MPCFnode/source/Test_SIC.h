@@ -20,7 +20,7 @@ class Test_SIC: public Test_ShockBubble
 public:	
 	Test_SIC(const int argc, const char ** argv): Test_ShockBubble(argc, argv) { }
 
-	  void setup();
+	void setup();
 };
 
 
@@ -51,12 +51,8 @@ public:
         b.rho = post_shock[0];
         b.u = post_shock[0]*post_shock[1];
         b.G = 1./(6.59-1);
-#ifdef _LIQUID_
         b.P = 4.049e4*b.G*6.59;
         b.energy = post_shock[2]*b.G + b.P + 0.5*post_shock[0]*post_shock[1]*post_shock[1];
-#else
-        b.energy = post_shock[2]*b.G + 0.5*post_shock[0]*post_shock[1]*post_shock[1];
-#endif
         
         if (info.index[0]==0)           bc.template applyBC_dirichlet<0,0>(b);
         if (info.index[0]==this->NX-1)  bc.template applyBC_absorbing_better_faces<0,1>();
@@ -64,6 +60,7 @@ public:
         if (info.index[1]==this->NY-1)  bc.template applyBC_absorbing_better_faces<1,1>();
         if (info.index[2]==0)           bc.template applyBC_absorbing_better_faces<2,0>();
         if (info.index[2]==this->NZ-1)  bc.template applyBC_absorbing_better_faces<2,1>();
+
         const bool bEdgeXY = (info.index[0]==0 || info.index[0]==this->NX-1) && (info.index[1]==0 || info.index[1]==this->NY-1);
         const bool bEdgeYZ = (info.index[1]==0 || info.index[1]==this->NY-1) && (info.index[2]==0 || info.index[2]==this->NZ-1);
         const bool bEdgeZX = (info.index[2]==0 || info.index[2]==this->NZ-1) && (info.index[0]==0 || info.index[0]==this->NX-1);

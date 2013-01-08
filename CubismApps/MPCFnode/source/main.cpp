@@ -8,7 +8,10 @@
  */
 
 #include <iostream>
+
+#ifdef _SSE_
 #include <xmmintrin.h>
+#endif
 
 #ifdef _USE_NUMA_
 #include <numa.h>
@@ -16,10 +19,7 @@
 #endif
 
 #include "Test_SteadyState.h"
-#include "Test_ShockTube.h"
 #include "Test_ShockBubble.h"
-#include "Test_CVT.h"
-#include "Test_TG.h"
 #include "Test_SIC.h"
 
 using namespace std;
@@ -59,7 +59,7 @@ struct VisualSupport
 		glutInit(&argc, const_cast<char **>(argv));
 		glutInitWindowSize(800,800);
 		glutInitWindowPosition(0, 0);
-		glutInitDisplayMode(GLUT_DEPTH| GLUT_STENCIL |GLUT_RGBA | GLUT_DOUBLE );
+		glutInitDisplayMode(GLUT_DEPTH | GLUT_STENCIL |GLUT_RGBA | GLUT_DOUBLE );
 		
 		glutCreateWindow("MPCF-node");
 		
@@ -94,26 +94,20 @@ int main (int argc, const char ** argv)
 	ArgumentParser parser(argc, argv);	
 	const bool bFlush2Zero = parser("-f2z").asBool(true);
 	
+#ifdef _SSE_
 	if (bFlush2Zero)
-	{
 #pragma omp parallel
-		{
-			_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-		}
+	{
+		_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 	}
+#endif
 	
 	Environment::setup(max(1, parser("-nthreads").asInt()));
     
 	if( parser("-sim").asString() == "steady" )
 		sim = new Test_SteadyState(argc, argv);
-	else if( parser("-sim").asString() == "sod" )
-		sim = new Test_ShockTube(argc, argv);
 	else if( parser("-sim").asString() == "sb" )
 		sim = new Test_ShockBubble(argc, argv);
-	else if( parser("-sim").asString() == "cvt" )
-		sim = new Test_CVT(argc, argv);
-    else if( parser("-sim").asString() == "tg" )
-        sim = new Test_TG(argc, argv);
     else if( parser("-sim").asString() == "sic" )
         sim = new Test_SIC(argc, argv);
     else

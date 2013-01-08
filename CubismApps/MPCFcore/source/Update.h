@@ -58,3 +58,12 @@ public:
 		printEndLine();
 	}
 };
+
+#ifdef _SSE_
+//dummy implementation for now
+class Update_SSE : public Update_CPP
+{
+public:		
+	Update_SSE(Real b=1): Update_CPP(b) {}
+};
+#endif

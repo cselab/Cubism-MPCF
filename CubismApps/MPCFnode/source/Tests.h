@@ -11,20 +11,14 @@
 //#include "Test_ShockTube.h"
 //typedef BlockLab<FluidBlock, tbb::scalable_allocator> Lab;
 
-#ifdef _USE_CVT_
-#include "Test_CVT.h"
-typedef BlockLab_CVT<FluidBlock, tbb::scalable_allocator> Lab;
-
-#else
 
 //#include "Test_ShockBubble.h"
 //typedef BlockLabBubble<FluidBlock, tbb::scalable_allocator> Lab;
 
 #include "Test_SIC.h"
-typedef BlockLabCollapse<FluidBlock, tbb::scalable_allocator> Lab;
-
-#endif
-
+//maybe replace it with std::allocator
+//typedef BlockLabCollapse<FluidBlock, tbb::scalable_allocator> Lab;
+typedef BlockLabCollapse<FluidBlock, std::allocator> Lab;
 
 //typedef BlockLabBubbleYZSymmetric<FluidBlock, tbb::scalable_allocator> Lab;
 

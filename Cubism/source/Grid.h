@@ -13,11 +13,6 @@
 #include <fstream>
 #include <cassert>
 
-#include <tbb/blocked_range.h>
-#include <tbb/parallel_for.h>
-#include <tbb/partitioner.h>
-#include <tbb/cache_aligned_allocator.h>
-
 #ifdef _USE_NUMA_
 #include <numa.h>
 #include <omp.h>
@@ -25,7 +20,7 @@
 #include "BlockInfo.h"
 
 //hello git
-template <typename Block, template<typename X> class allocator=tbb::cache_aligned_allocator>
+template <typename Block, template<typename X> class allocator=std::allocator>
 class Grid
 {
 	Block * m_blocks;

@@ -179,9 +179,7 @@ public:
 					(*this)(ix,iy,iz).w        = ((dir==2)? -1:1)*source.w;
 					(*this)(ix,iy,iz).energy   = source.energy;
 					(*this)(ix,iy,iz).G = source.G;
-#ifdef _LIQUID_
                     (*this)(ix,iy,iz).P = source.P;
-#endif
 				}
 	}
 	
@@ -200,9 +198,7 @@ public:
 					(*this)(ix,iy,iz).w        = p.w;
 					(*this)(ix,iy,iz).energy   = p.energy;
 					(*this)(ix,iy,iz).G        = p.G;
-#ifdef _LIQUID_
                     (*this)(ix,iy,iz).P        = p.P;
-#endif
 				}
 	}
     
@@ -221,10 +217,8 @@ public:
 					(*this)(ix,iy,iz).v        = p.v;
 					(*this)(ix,iy,iz).w        = p.w;
 					(*this)(ix,iy,iz).G        = p.G;
-#ifdef _LIQUID_
                     pc = p.P;
                     (*this)(ix,iy,iz).P        = p.P;
-#endif
                     /// time is scaled by tc = R0/c_L, R0=0.1 equivalent to 50microns, domain size: 500microns
                     Real c_L                 = sqrt((1/p.G+1)*(pc+10)/p.rho);//speed of sound
                     Real p_ratio             = 1000;

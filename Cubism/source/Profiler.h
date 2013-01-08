@@ -21,15 +21,17 @@
 
 using namespace std;
 
-#include <tbb/tick_count.h>
-namespace tbb { class tick_count; }
+#include <sys/time.h>
+//#include <tbb/tick_count.h>
+//namespace tbb { class tick_count; }
 
 const bool bVerboseProfiling = false;
 
 class ProfileAgent
 {
-	typedef tbb::tick_count ClockTime;
-
+//	typedef tbb::tick_count ClockTime;
+	typedef timeval ClockTime;
+	
 	enum ProfileAgentState{ ProfileAgentState_Created, ProfileAgentState_Started, ProfileAgentState_Stopped};
 
 	ClockTime m_tStart, m_tEnd;

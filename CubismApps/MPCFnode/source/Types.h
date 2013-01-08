@@ -15,7 +15,6 @@ typedef float Real;
 typedef double Real;
 #endif
 
-#include <tbb/scalable_allocator.h>
 #include <fstream>
 #include "math.h"
 
@@ -24,7 +23,7 @@ using namespace std;
 #include <Grid.h>
 #include <GridMorton.h>
 #include <BlockLab.h>
-#include <BlockProcessing.h>
+//#include <BlockProcessing.h>
 #include <Profiler.h>
 #include <ArgumentParser.h>
 #include <SerializerIO.h>
@@ -36,15 +35,6 @@ using namespace std;
 
 #include "BoundaryConditions.h"
 
-#ifndef _LIQUID_
-#define SETUP_MARKERS_IC \
-const double mix_gamma = 1 + (G2*G1)/(G1*bubble+G2*(1-bubble)); \
-b(ix, iy, iz).G  = 1./(mix_gamma-1); \
-const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho; \
-b(ix, iy, iz).energy   = pressure*b(ix, iy, iz).G + ke;
-
-#else
-
 #define SETUP_MARKERS_IC \
 const double mix_gamma = 1 + (G2*G1)/(G1*bubble+G2*(1-bubble)); \
 const double mix_pinf  = (mix_gamma-1)/mix_gamma * (F1/G1*(1-bubble) + F2/G2*bubble); \
@@ -52,8 +42,6 @@ b(ix, iy, iz).G  = 1./(mix_gamma-1); \
 b(ix, iy, iz).P = mix_gamma*mix_pinf/(mix_gamma-1); \
 const double ke = 0.5*(pow(b(ix, iy, iz).u,2)+pow(b(ix, iy, iz).v,2)+pow(b(ix, iy, iz).w,2))/b(ix, iy, iz).rho; \
 b(ix, iy, iz).energy   = pressure*b(ix, iy, iz).G + b(ix, iy, iz).P + ke;
-
-#endif
 
 struct sort_pred {
     bool operator()(const std::pair<Real,Real> &left, const std::pair<Real,Real> &right) {
@@ -121,49 +109,21 @@ public:
 
 struct FluidElement
 {
-#ifndef _LIQUID_
-	Real rho, u, v, w, energy, G;
-#else
     Real rho, u, v, w, energy, G, P;
-#endif
-    
-#ifndef _LIQUID_
-	void clear() { rho = u = v = w = energy = G = 0; }
-#else
+
     void clear() { rho = u = v = w = energy = G = P = 0; }
-#endif
 };
 
 struct StreamerGridPointASCII
 {
 	void operate(const FluidElement& input, ofstream& output) const 
 	{
-#ifndef _LIQUID_
-		output << input.rho << " " << input.u << " " << input.v << " " << 
-        input.w << " " << input.energy << " " << input.G << endl;
-#else
         output << input.rho << " " << input.u << " " << input.v << " " << 
         input.w << " " << input.energy << " " << input.G << " " << input.P << endl;
-#endif
 	}
 	
 	void operate(ifstream& input, FluidElement& output) const 
 	{
-#ifndef _LIQUID_
-		input >> output.rho;
-		input >> output.u;
-		input >> output.v;
-		input >> output.w;
-		input >> output.energy;
-		input >> output.G;
-		
-		cout << "reading: " <<  output.rho << " " 
-		<<  output.u << " " 
-		<<  output.v << " " 
-		<<  output.w << " " 
-		<<  output.energy << " " 
-		<<  output.G << "\n" ;
-#else
 		input >> output.rho;
 		input >> output.u;
 		input >> output.v;
@@ -179,26 +139,13 @@ struct StreamerGridPointASCII
 		<<  output.energy << " " 
         <<  output.G << " " 
 		<<  output.P << "\n" ;
-#endif
 	}
 };
 
 struct StreamerGridPoint //dummy
 {
-#ifndef _LIQUID_
-	static const int channels = 6;
-	void operate(const FluidElement& input, Real output[6]) const
-	{
-		output[0] = input.rho;
-		assert(input.rho >= 0);
-		output[1] = input.u/input.rho;
-		output[2] = input.v/input.rho;
-		output[3] = input.w/input.rho;
-		output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)/input.G;
-		output[5] = input.G;		
-	}
-#else
     static const int channels = 7;
+
 	void operate(const FluidElement& input, Real output[7]) const
 	{
 		output[0] = input.rho;
@@ -210,12 +157,12 @@ struct StreamerGridPoint //dummy
 		output[5] = input.G;		
   		output[6] = input.P;		
 	}
-#endif
 };
 
 struct StreamerDensity
 {
 	static const int channels = 1;
+
 	void operate(const FluidElement& input, Real output[1]) const
 	{
 		output[0] = input.rho;
@@ -225,6 +172,7 @@ struct StreamerDensity
 struct StreamerXVelocity
 {
 	static const int channels = 1;
+
 	void operate(const FluidElement& input, Real output[1]) const
 	{
 		output[0] = input.u/input.rho;
@@ -234,6 +182,7 @@ struct StreamerXVelocity
 struct StreamerYVelocity
 {
 	static const int channels = 1;
+
 	void operate(const FluidElement& input, Real output[1]) const
 	{
 		output[0] = input.v/input.rho;
@@ -243,19 +192,17 @@ struct StreamerYVelocity
 struct StreamerPressure
 {
 	static const int channels = 1;
+
 	void operate(const FluidElement& input, Real output[1]) const
 	{
-#ifndef _LIQUID_        
-		output[0] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)/input.G;
-#else
         output[0] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
-#endif
 	}
 };
 
 struct StreamerG
 {
 	static const int channels = 1;
+
 	void operate(const FluidElement& input, Real output[1]) const
 	{
 		output[0] = input.G;
@@ -267,6 +214,7 @@ struct FluidBlock
 	static const int sizeX = _BLOCKSIZE_;
 	static const int sizeY = _BLOCKSIZE_;
 	static const int sizeZ = _BLOCKSIZE_;
+
 	static const int gptfloats = sizeof(FluidElement)/sizeof(Real);
 	
 	typedef FluidElement ElementType;
@@ -274,11 +222,7 @@ struct FluidBlock
 	
 	FluidElement __attribute__((aligned(_ALIGNBYTES_))) data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
     
-#ifndef _LIQUID_
-	Real __attribute__((aligned(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][6];
-#else
 	Real __attribute__((aligned(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][7];
-#endif
     
 	void clear_data()
 	{
@@ -289,11 +233,8 @@ struct FluidBlock
     
 	void clear_tmp()
 	{    
-#ifndef _LIQUID_
-		const int N = sizeX*sizeY*sizeZ*6;
-#else
-        const int N = sizeX*sizeY*sizeZ*7;
-#endif
+        const int N = sizeX * sizeY * sizeZ * 7;
+
         Real * const e = &tmp[0][0][0][0];
         for(int i=0; i<N; ++i) e[i] = 0;
 	}
@@ -359,16 +300,9 @@ struct StreamerDummy_HDF5
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;        
-#ifndef _LIQUID_        
-		output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho)/input.G;
-#else
         output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
-#endif        
 		output[5] = input.G;		
-        
-#ifdef _LIQUID_
         output[6] = input.P;		
-#endif
 	}
 	
 	void operate(const Real output[9], const int ix, const int iy, const int iz) const
@@ -380,16 +314,9 @@ struct StreamerDummy_HDF5
 		input.u = output[1]*output[0];
 		input.v = output[2]*output[0];
 		input.w = output[3]*output[0];
-#ifndef _LIQUID_        
-		input.energy = output[4]*output[5] + 0.5*output[0]*(output[1]*output[1]+output[2]*output[2]+output[3]*output[3]);
-#else
 		input.energy = output[4]*output[5] + 0.5*output[0]*(output[1]*output[1]+output[2]*output[2]+output[3]*output[3])+output[6];
-#endif 
-		input.G = output[5];		
-        
-#ifdef _LIQUID_
+		input.G = output[5];		        
   		input.P = output[6];		
-#endif
 	}
 	
 	static const char * getAttributeName() { return "Tensor"; } 
@@ -413,6 +340,6 @@ struct StreamerFromTemp_HDF5
 	static const char * getAttributeName() { return "Vector"; } 
 };
 
-typedef Grid<FluidBlock, tbb::scalable_allocator> FluidGrid;
-typedef BlockProcessing_TBB<FluidBlock> BlockProcessing;
-
+//typedef Grid<FluidBlock, tbb::scalable_allocator> FluidGrid;
+typedef Grid<FluidBlock, std::allocator> FluidGrid;
+//typedef BlockProcessing_TBB<FluidBlock> BlockProcessing;

@@ -30,13 +30,13 @@ ifeq "$(config)" "release"
 			CPPFLAGS += -fast
 		endif
 	else
-		OPTFLAGS += -O3  -msse -msse2  -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize
+		OPTFLAGS += -O3  -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize
 	endif
 else
 	ifeq "$(CC)" "icc"
 		CPPFLAGS += -g 
 	else
-		CPPFLAGS += -g -msse -msse2
+		CPPFLAGS += -g
 	endif
 endif
 
@@ -72,7 +72,7 @@ CPPFLAGS += -D_SP_COMP_
 endif 
 
 ifeq "$(sse)" "1"
-	CPPFLAGS += -D_SSE_
+	CPPFLAGS += -D_SSE_  -msse -msse2
 endif
 
 ifeq "$(omp)" "1"
@@ -231,7 +231,7 @@ VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubis
 .DEFAULT_GOAL := mpcf-cluster
 
 OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Convection_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o Histogram.o
-OBJECTS += Test_ShockBubble.o Test_CVT.o Test_SIC.o
+OBJECTS += Test_ShockBubble.o Test_SIC.o
 
 ifeq "$(sse)" "1"
 	ifeq "$(ap)" "double"

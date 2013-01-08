@@ -8,19 +8,18 @@
  */
 
 #include <iostream>
-#include <xmmintrin.h>
 #include <mpi.h>
+#ifdef _SSE_
+#include <xmmintrin.h>
+#endif
 
 #include <ArgumentParser.h>
 #include <Timer.h>
-#include <Types.h>
-#include <BlockProcessing.h>
+//#include <BlockProcessing.h>
 
-#include <Tests.h>
-
+#include "Tests.h"
 #include "Test_SteadyStateMPI.h"
 #include "Test_ShockBubbleMPI.h"
-#include "Test_CVTMPI.h"
 #include "Test_SICMPI.h"
 
 using namespace std;
@@ -31,7 +30,7 @@ int main (int argc, const char ** argv)
 {
 	MPI::Init();
 	
-	const bool isroot = MPI::COMM_WORLD.Get_rank()==0;
+	const bool isroot = MPI::COMM_WORLD.Get_rank() == 0;
 
 	if (isroot)
 		cout << "=================  MPCF cluster =================" << endl;
@@ -39,13 +38,14 @@ int main (int argc, const char ** argv)
 	ArgumentParser parser(argc, argv);	
 	const bool bFlush2Zero = parser("-f2z").asBool(true);
 	
+#ifdef _SSE_
 	if (bFlush2Zero)
-	{
 #pragma omp parallel
-		{
-			_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-		}
+	{
+		_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 	}
+	
+#endif
 
 	parser.set_strict_mode();
 	
@@ -55,14 +55,12 @@ int main (int argc, const char ** argv)
 	if (isroot)
 	  cout << "Dispatcher: " << parser("-dispatcher").asString() << endl;
 
-	Environment::setup(max(1, parser("-nthreads").asInt()));
+	//Environment::setup(max(1, parser("-nthreads").asInt()));
 
 	if( parser("-sim").asString() == "steady" )
 		sim = new Test_SteadyStateMPI(isroot, argc, argv);
 	else if( parser("-sim").asString() == "sb" )
 		sim = new Test_ShockBubbleMPI(isroot, argc, argv);
-	else if( parser("-sim").asString() == "cvt" )
-		sim = new Test_CVTMPI(isroot, argc, argv);
 	else if( parser("-sim").asString() == "sic" )
 		sim = new Test_SICMPI(isroot, argc, argv);
 	else 

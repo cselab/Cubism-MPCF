@@ -43,14 +43,14 @@ public:
         if (isroot) cout << "Dumping " << "..." ;
 
         const string path = parser("-fpath").asString(".");
-	DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, filename, path);
+		DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, filename, path);
         
         if (isroot) cout << "done." << endl;
     }
 
     void restart(G& grid)
     {
-      const string path = parser("-fpath").asString(".");
+		const string path = parser("-fpath").asString(".");
         
         {
             const string restart_status = path+"/restart.status";
@@ -96,31 +96,31 @@ public:
     
     void vp(G& grid, const int step_id, const bool bVP)
     {
-      if (bVP)
-	{
-      if (isroot) cout << "dumping MPI VP ..." ;
-       
-      const string path = parser("-fpath").asString(".");
- 
-        std::stringstream streamer;
-	streamer<<path;
-	streamer<<"/";
-        streamer<<"data";
-        streamer.setf(ios::dec | ios::right);
-        streamer.width(5);
-        streamer.fill('0');
-        streamer<<MPI::COMM_WORLD.Get_rank();
-        streamer<<"_";
-        streamer.setf(ios::dec | ios::right);
-        streamer.width(5);
-        streamer.fill('0');
-        streamer<<step_id;
-        
-        SerializerIO_VP<G, StreamerDensity> vp(BPDX, BPDY, BPDZ);
-        vp.Write(grid, streamer.str());
+		if (bVP)
+		{
+			if (isroot) cout << "dumping MPI VP ..." ;
+		   
+			const string path = parser("-fpath").asString(".");
+	 
+			std::stringstream streamer;
+			streamer<<path;
+			streamer<<"/";
+			streamer<<"data";
+			streamer.setf(ios::dec | ios::right);
+			streamer.width(5);
+			streamer.fill('0');
+			streamer<<MPI::COMM_WORLD.Get_rank();
+			streamer<<"_";
+			streamer.setf(ios::dec | ios::right);
+			streamer.width(5);
+			streamer.fill('0');
+			streamer<<step_id;
+			
+			SerializerIO_VP<G, StreamerDensity> vp(BPDX, BPDY, BPDZ);
+			vp.Write(grid, streamer.str());
 
-	if (isroot) cout << "done" << endl;
-	}
+			if (isroot) cout << "done" << endl;
+		}
     }
     
 	void setup()
@@ -144,13 +144,11 @@ public:
 		
 		mystepper = new FlowStep_LSRK3MPI< G >(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY);
 		
-		//NUMA touch
-		(*mystepper)(0);
+		//NUMA touch - was screwing up things on BGQ
+		//(*mystepper)(0);
 		
 		if(bRESTART)
-		{
 		  restart(*grid);
-		}
 		else
 		{
 			_ic(*grid);
@@ -162,15 +160,13 @@ public:
 	{
 		printf("HELLO RUN\n");
 		
-		while(t<TEND)
+		while(t < TEND)
 		{
             if (isroot) printf("Time is %f\n", t);
 			const Real dt = (*mystepper)(TEND-t);
-			t+=dt;
+			t += dt;
 		}
 		
         printf("Finishing RUN\n");
-       
-		exit(0);
 	}
 };

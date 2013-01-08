@@ -9,9 +9,9 @@
 #pragma once
 
 #include <limits>
-
-#include "Test_SteadyStateMPI.h"
 #include <Test_SIC.h>
+#include "Test_SteadyStateMPI.h"
+
 
 class Test_SICMPI: public Test_SIC
 {
@@ -114,7 +114,6 @@ public:
         
 		if (isroot) printf("Finishing RUN\n");
 		MPI_Finalize();
-		exit(0);
 	}
 };
 

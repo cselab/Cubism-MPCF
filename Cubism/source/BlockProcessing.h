@@ -36,7 +36,7 @@ namespace Environment
 		{
 			const int nthreads = threads==-1? 1 : threads;
 			init = new tbb::task_scheduler_init(nthreads);
-			printf("INITIALIZED THREADS=%d (HINT is %d)\n", nthreads, 1);
+			//printf("INITIALIZED THREADS=%d (HINT is %d)\n", nthreads, 1);
 		}
 	}
 }

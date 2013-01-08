@@ -7,6 +7,7 @@
  *
  */
 #pragma once
+
 #include <StencilInfo.h>
 
 #ifdef _USE_NUMA_
@@ -16,24 +17,20 @@
 
 #include "Types.h"
 
-namespace LSRK3data {
+namespace LSRK3data 
+{
 	extern Real gamma1;
 	extern Real gamma2 ;
 	extern Real smoothlength ;
 	extern int verbosity;
-	extern Profiler * profiler;
 	extern float PEAKPERF_CORE, PEAKBAND;
 	extern int NCORES, TLP;
     extern Real pc1;
     extern Real pc2 ;
 	extern string dispatcher;
-	extern bool bAffinity;
-	extern tbb::affinity_partitioner affinitypart;
 	extern int step_id;
 	extern int ReportFreq;
-	extern Real sten_sigma;
-    extern Real nu1, nu2;
-    
+	
 	template < typename Kernel , typename Lab>
 	struct FlowStep
 	{
@@ -44,21 +41,13 @@ namespace LSRK3data {
 		int stencil_start[3];
 		int stencil_end[3];
 		
-#ifndef _LIQUID_
-		FlowStep(Real a, Real dtinvh): a(a), dtinvh(dtinvh), stencil(-3,-3,-3,4,4,4, false, 6, 0,1,2,3,4,5)
-#else
         FlowStep(Real a, Real dtinvh): a(a), dtinvh(dtinvh), stencil(-3,-3,-3,4,4,4, false, 7, 0,1,2,3,4,5,6)
-#endif
 		{
 			stencil_start[0] = stencil_start[1] = stencil_start[2] = -3;		
 			stencil_end[0] = stencil_end[1] = stencil_end[2] = 4;
 		}
 
-#ifndef _LIQUID_		
-		FlowStep(const FlowStep& c): a(c.a), dtinvh(c.dtinvh), stencil(-3,-3,-3,4,4,4, false, 6, 0,1,2,3,4,5)
-#else
 		FlowStep(const FlowStep& c): a(c.a), dtinvh(c.dtinvh), stencil(-3,-3,-3,4,4,4, false, 7, 0,1,2,3,4,5,6)
-#endif
 		{
 			stencil_start[0] = stencil_start[1] = stencil_start[2] = -3;		
 			stencil_end[0] = stencil_end[1] = stencil_end[2] = 4;
@@ -88,29 +77,19 @@ namespace LSRK3data {
 		
 		Update(float b, BlockInfo * ary): b(b), ary(ary) { }
 		Update(const Update& c): b(c.b), ary(c.ary) { } 
-		
-		void operator()(blocked_range<int> range) const
-		{
-			Kernel kernel(b);
-			for(int r=range.begin(); r<range.end(); ++r)
-			{
-				FluidBlock & block = *(FluidBlock *)ary[r].ptrBlock; 
-				kernel.compute(&block.tmp[0][0][0][0], &block.data[0][0][0].rho, block.gptfloats);
-			}
-		}
-        
+	    
 		void omp(const int N)
 		{
 #pragma omp parallel
 			{
 #ifdef _USE_NUMA_
-   const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
-                        const int mynode = omp_get_thread_num() / cores_per_node;
-                        numa_run_on_node(mynode);
+				const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
+                const int mynode = omp_get_thread_num() / cores_per_node;
+                numa_run_on_node(mynode);
 #endif
                 Kernel kernel(b);
                 
-#pragma omp for schedule(static)
+#pragma omp for schedule(runtime)
                 for(int r=0; r<N; ++r)
                 {
                     FluidBlock & block = *(FluidBlock *)ary[r].ptrBlock;
@@ -119,72 +98,6 @@ namespace LSRK3data {
 			}
 		}
 	};
-    
-    template < typename Kernel , typename Lab>
-    struct SurfaceTension
-    {
-        StencilInfo stencil;
-        Real sigma, dtinvh;
-        int stencil_start[3];
-        int stencil_end[3];
-        
-        SurfaceTension(const Real _dtinvh, const Real _sigma=0): dtinvh(_dtinvh), sigma(_sigma), stencil(-1,-1,-1,2,2,2, true, 5, 0,1,2,3,5)
-        {
-            stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
-            stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
-        }
-        
-        SurfaceTension(const SurfaceTension& c): dtinvh(c.dtinvh), sigma(c.sigma), stencil(-1,-1,-1,2,2,2, true, 5, 0,1,2,3,5)
-        {
-            stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
-            stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
-        }
-        
-        inline void operator()(Lab& lab, const BlockInfo& info, FluidBlock& o) const
-        {
-	  Kernel kernel(1, dtinvh, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), info.h_gridpoint, LSRK3data::smoothlength, sigma);
-            
-            const Real * const srcfirst = &lab(-1,-1,-1).rho;
-            const int labSizeRow = lab.template getActualSize<0>();
-            const int labSizeSlice = labSizeRow*lab.template getActualSize<1>();
-            Real * const destfirst = &o.tmp[0][0][0][0];
-            kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice,
-                           destfirst, FluidBlock::gptfloats, FluidBlock::sizeX, FluidBlock::sizeX*FluidBlock::sizeY);
-        }
-    };
-    
-    template < typename Kernel, typename Lab >
-    struct Diffusion
-    {  
-        StencilInfo stencil;
-        Real nu1, nu2, dtinvh;
-        int stencil_start[3];
-        int stencil_end[3];
-        
-        Diffusion(const Real _dtinvh, const Real _nu1=0, const Real _nu2=0): dtinvh(_dtinvh), nu1(_nu1), nu2(_nu2), stencil(-1,-1,-1,2,2,2, true, 5, 0,1,2,3,5)
-        {
-            stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
-            stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
-        }
-        
-        Diffusion(const Diffusion& c): dtinvh(c.dtinvh), nu1(c.nu1), nu2(c.nu2), stencil(-1,-1,-1,2,2,2, true, 5, 0,1,2,3,5)
-        {
-            stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
-            stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
-        }
-        
-        inline void operator()(Lab& lab, const BlockInfo& info, FluidBlock& o) const
-        {         
-            Kernel kernel(1, nu1, nu2, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), info.h_gridpoint, LSRK3data::smoothlength, dtinvh);
-            
-            const Real * const srcfirst = &lab(-1,-1,-1).rho;
-            const int labSizeRow = lab.template getActualSize<0>();
-            const int labSizeSlice = labSizeRow*lab.template getActualSize<1>();
-            Real * const destfirst =  &o.tmp[0][0][0][0];
-            kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice, 
-                           destfirst, FluidBlock::gptfloats, FluidBlock::sizeX, FluidBlock::sizeX*FluidBlock::sizeY);
-        }
-    };
 }
 
 class FlowStep_LSRK3
@@ -197,7 +110,9 @@ protected:
     Real smoothlength, h;
     Real current_time;
     Real PEAKPERF_CORE, PEAKBAND;
+    
     string blockdispatcher;
+    
     const int verbosity;
     Real pc1, pc2;
     
@@ -206,7 +121,6 @@ protected:
     Real _computeSOS(bool bAwk=false);
     
     ArgumentParser parser;
-    BlockProcessing block_processing;
     Profiler * profiler;
     
 public:

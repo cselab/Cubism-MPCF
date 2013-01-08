@@ -228,7 +228,7 @@ endif
 VPATH := ../source/ ../../MPCFcore/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-node
 
-OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockTube.o Test_ShockBubble.o Test_CVT.o Convection_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o SurfaceTension_CPP.o DivTensor_CPP.o Diffusion_CPP.o Test_TG.o Test_SIC.o
+OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockBubble.o Convection_CPP.o Update.o MaxSpeedOfSound.o Profiler.o Types.o Test_SIC.o
 
 ifeq "$(sse)" "1"
 	ifeq "$(ap)" "double"
