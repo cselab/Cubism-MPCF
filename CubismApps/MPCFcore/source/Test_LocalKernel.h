@@ -31,14 +31,14 @@ protected:
 					block(ix, iy, iz).s.v = drand48()+iy;
 					block(ix, iy, iz).s.w = drand48()+(ix*iy/(double) _BLOCKSIZE_);
 					block(ix, iy, iz).s.s = drand48()+1+(iy*iz)/(double) _BLOCKSIZE_;
-					block(ix, iy, iz).s.levelset = -1 +  (iz+ix+iy)/(double) _BLOCKSIZE_;
+					//block(ix, iy, iz).s.levelset = -1 +  (iz+ix+iy)/(double) _BLOCKSIZE_;
 					
 					block(ix, iy, iz).dsdt.r = drand48()+iz;
 					block(ix, iy, iz).dsdt.u = drand48()+ix;
 					block(ix, iy, iz).dsdt.v = drand48()+iy;
 					block(ix, iy, iz).dsdt.w = drand48()+(ix*iy/(double) _BLOCKSIZE_);
 					block(ix, iy, iz).dsdt.s = drand48()+1+(iy*iz)/(double) _BLOCKSIZE_;
-					block(ix, iy, iz).dsdt.levelset = -1 +  (iz+ix+iy)/(double) _BLOCKSIZE_;
+					//block(ix, iy, iz).dsdt.levelset = -1 +  (iz+ix+iy)/(double) _BLOCKSIZE_;
 				}
 	}
 	
@@ -61,7 +61,7 @@ protected:
 			block(ix, iy, iz).s.u = u;
 			block(ix, iy, iz).s.v = v;
 			block(ix, iy, iz).s.w = w;
-			block(ix, iy, iz).s.levelset = s;
+			//block(ix, iy, iz).s.levelset = s;
 			block(ix, iy, iz).s.s = l;
 			
 			c++;
@@ -278,4 +278,87 @@ public:
 		
 		printf("\tGAIN-OVER-GOLD: %.2fX\n", tGOLD/tCOMPUTE);
 	}
+	
+	
+	template<typename TUPDATE>
+	void profile_update(TUPDATE& kernel, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
+	{
+		int COUNT = 0;
+		
+#pragma omp parallel 
+		{
+#pragma omp critical
+			{
+				COUNT++;
+			}
+		}
+		
+		//measure performance
+		float tCOMPUTE = 0;
+		
+#pragma omp parallel
+		{
+			Block * block = new Block[NBLOCKS];
+
+			for(int i=0; i<NBLOCKS; i++)
+				_initialize(block[i]);
+			
+			Timer timer;
+					
+#pragma omp barrier
+			const double t = _benchmarkUP(kernel, NBLOCKS, NTIMES);
+
+			delete [] block;
+			
+#pragma omp critical
+				{
+					tCOMPUTE += t;
+				}	
+		}
+		
+		tCOMPUTE /= COUNT;
+		
+		kernel.printflops(PEAKPERF, PEAKBAND, 1, 1, NTIMES, tCOMPUTE, false);
+	}	
+	
+	template<typename TSOS>
+	void profile_maxsos(TSOS& kernel, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
+	{
+		int COUNT = 0;
+		
+#pragma omp parallel 
+		{
+#pragma omp critical
+			{
+				COUNT++;
+			}
+		}
+		
+		//measure performance
+		float tCOMPUTE = 0;
+		
+#pragma omp parallel
+		{
+			Block * block = new Block[NBLOCKS];
+
+			for(int i=0; i<NBLOCKS; i++)
+				_initialize(block[i]);
+			
+			Timer timer;
+					
+#pragma omp barrier
+			const double t = _benchmarkSOS(kernel, NBLOCKS, NTIMES);
+
+			delete [] block;
+			
+#pragma omp critical
+				{
+					tCOMPUTE += t;
+				}	
+		}
+		
+		tCOMPUTE /= COUNT;
+		
+		kernel.printflops(PEAKPERF, PEAKBAND, 1, 1, NTIMES, tCOMPUTE, false);
+	}	
 };

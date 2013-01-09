@@ -29,7 +29,7 @@ class Test_Convection
 		out[1] = p.s.u/out[0];
 		out[2] = p.s.v/out[0];
 		out[3] = p.s.w/out[0];
-        out[4] = (p.s.s - (p.s.u*p.s.u+p.s.v*p.s.v+p.s.w*p.s.w)*(((Real)0.5)/p.s.r) - P)/G;
+        out[4] = (p.s.s - (p.s.u*p.s.u+p.s.v*p.s.v+p.s.w*p.s.w)*(((Real)0.5)/p.s.r) - p.s.P)/p.s.G;
 		out[5] = p.s.G;
         out[6] = p.s.P;
 
@@ -50,6 +50,8 @@ class Test_Convection
 	void _gold(TestLab& lab, Block& block, const Real h);
 	void _print(Block& block);
 
+	Real dtinvh;
+	
 public:
 	
 	template<typename FS> void accuracy(FS& fs, double accuracy=1e-4, bool bAwk=false)
@@ -220,7 +222,7 @@ public:
 			for(int i=0; i<NBLOCKS; i++)
 				_initialize(lab[i], block[i]);
 			
-			float tCOMPUTE = 0;
+			//float tCOMPUTE = 0;
 			
 			const double t = _benchmark(fs, NBLOCKS, NTIMES);
 			
@@ -232,6 +234,8 @@ public:
 			delete block;
 			delete lab;	
 		}
+		
+		tCOMPUTE /= COUNT;
 		
 		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE);
 	}

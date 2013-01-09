@@ -573,7 +573,7 @@ void Test_Convection::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
 				
 				Real fluxN[6], fluxS[6], fluxW[6], fluxE[6], fluxB[6], fluxF[6];
 				
-				FluxBuilder_HLLE<> flux_builder(h_gridpoint, gamma1, gamma2);
+				FluxBuilder_HLLE<> flux_builder(h_gridpoint, 1.666666666, 1.4);
 				flux_builder.buildUsingPrimitives<0>(SIDES_WE_LEFT , fluxW);
 				flux_builder.buildUsingPrimitives<0>(SIDES_WE_RIGHT, fluxE);
 				flux_builder.buildUsingPrimitives<1>(SIDES_NS_DOWN , fluxS);
@@ -610,6 +610,6 @@ void Test_Convection::_gold(TestLab& lab, Block& block, const Real h_gridpoint)
 				block(ix, iy, iz).dsdt.v = RHS[2];
 				block(ix, iy, iz).dsdt.w = RHS[3];
 				block(ix, iy, iz).dsdt.s = RHS[4];
-				block(ix, iy, iz).dsdt.levelset = RHS[5];
+				//block(ix, iy, iz).dsdt.levelset = RHS[5];
 			}
 }

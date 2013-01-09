@@ -10,6 +10,7 @@ sse ?= 1
 avx ?= 0
 omp ?= 0
 align ?= 16
+bgq ?= 0
 
 CPPFLAGS+= $(extra)
 
@@ -26,7 +27,12 @@ ifeq "$(config)" "release"
 			CPPFLAGS += -fast
 		endif
 	else
-		CPPFLAGS += -O3 -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize 
+		ifeq "$(bgq)" "1"
+			OPTFLAGS += -O3 -qarch=qp -qtune=qp -qhot -qstrict -qsource -qlist -qreport -DNDEBUG
+		else
+			OPTFLAGS += -O3  -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize
+		endif
+		#CPPFLAGS += -O3 -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize 
 	endif
 else
 	CPPFLAGS += -g
@@ -63,8 +69,13 @@ ifeq "$(omp)" "1"
 		CPPFLAGS += -fopenmp
 		LIBS += -fopenmp
 	else
-		CPPFLAGS += -openmp
-		LIBS += -openmp
+		ifeq "$(bgq)" "1"
+			CPPFLAGS += -qsmp=omp
+			OPTFLAGS += -qsmp=omp
+		else
+			CPPFLAGS += -fopenmp
+			OPTFLAGS += -fopenmp
+		endif
 	endif
 endif
 
@@ -79,7 +90,13 @@ CPPFLAGS += -I../../../Cubism/source
 
 LIBS += -lm -lstdc++
 
-OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o DivTensor_CPP.o Diffusion_CPP.o Test_Diffusion.o SurfaceTension_CPP.o Test_SurfaceTension.o 
+ifeq "$(bgq)" "1"
+	LIBS += /gpfs/DDNgpfs1/walkup/mpi_trace/bgq/lib/libmpihpm.a \
+			/bgsys/drivers/ppcfloor/bgpm/lib/libbgpm.a \
+			-L/bgsys/drivers/ppcfloor/spi/lib -lSPI_upci_cnk
+endif
+
+OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o 
 
 ifeq "$(sse)" "1"
 	ifeq "$(ap)" "double"
@@ -96,13 +113,10 @@ VPATH := ../source/
 .DEFAULT_GOAL := mpcf-core
 
 mpcf-core: $(OBJECTS)
-	$(CC) $^ -o $@ $(LIBS)
-
-FlowStep_AVX_diego.o: FlowStep_AVX_diego.cpp
-	$(CC)  $(CPPFLAGS) $(DIEGO_AVXGCC_ISSUE) -c $^ -o $@
+	$(CC) $(OPTFLAGS) $(CPPFLAGS) $^ -o $@ $(LIBS)
 
 %.o: %.cpp
-	$(CC)  $(CPPFLAGS) -c $^ -o $@
+	$(CC) $(OPTFLAGS) $(CPPFLAGS) -c $^ -o $@
 
 clean:
 	rm -f *.o mpcf-core

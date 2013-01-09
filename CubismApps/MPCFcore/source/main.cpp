@@ -121,19 +121,27 @@ int main (int argc, const char ** argv)
 	{
 		if (kernel == "Convection_CPP" || kernel == "all")
 			testing(Test_Convection(), Convection_CPP(0, 1), info);		
+		
+		if (kernel == "Update_CPP" || kernel == "all")
+		{
+			Test_LocalKernel lt;
+			Update_CPP update_kernel;
+			lt.profile_update(update_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+		}
+		
+		if (kernel == "MaxSOS_CPP" || kernel == "all")
+		{
+			Test_LocalKernel lt;
+			MaxSpeedOfSound_CPP maxsos_kernel;
+			lt.profile_maxsos(maxsos_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+		}
 	}
 	
 	//SSE kernels
 #if defined(_SSE_) && _ALIGNBYTES_ % 16 == 0
 	{
 		if (kernel == "Convection_SSE" || kernel == "all")
-			testing(Test_Convection(), Convection_SSE(0, 1, 2.5, 2.1, 1, 0, 0), info);
-				
-		if (kernel == "MaxSpeedOfSound_SSE" || kernel == "all")
-			comparing(Test_LocalKernel(), MaxSpeedOfSound_CPP(2.5, 2.1, 1, 0, 0), MaxSpeedOfSound_SSE(2.5, 2.1, 1, 0, 0), info);
-		
-		if (kernel == "Update_SSE" | kernel == "all")
-			comparing(Test_LocalKernel(), Update_CPP(), Update_SSE(), info);
+			testing(Test_Convection(), Convection_SSE(0, 1), info);
 	}
 #endif
 	
