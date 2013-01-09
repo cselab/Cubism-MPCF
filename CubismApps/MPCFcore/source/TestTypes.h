@@ -13,11 +13,7 @@
 
 #include "common.h"
 
-#ifndef _LIQUID_
-struct StateVector { Real r, u, v, w, s, G;};
-#else
 struct StateVector { Real r, u, v, w, s, G, P;};
-#endif
 
 //union GP { StateVector s; StateVector dsdt; };
 struct GP {StateVector s; StateVector dsdt;};
@@ -29,7 +25,7 @@ struct MatrixGP
 	static const int LZ = _LZ;
 	
 	//char screwup_alignment;
-	GP __attribute__((aligned(16))) data[_LZ][_LY][_LX];
+	GP __attribute__((__aligned__(16))) data[_LZ][_LY][_LX];
 	
 	
 	inline GP& operator()(const int ix, const int iy, const int iz)
@@ -48,13 +44,8 @@ struct MatrixGP
 	
 	void compare(MatrixGP& block, double accuracy, string kernelname, bool compare_dsdt=true)
 	{
-#ifndef _LIQUID_
-		double maxe[6]={0,0,0,0,0,0};
-		double sume[6]={0,0,0,0,0,0};
-#else
-		double maxe[6]={0,0,0,0,0,0,0};
-		double sume[6]={0,0,0,0,0,0,0};
-#endif
+		double maxe[7]={0,0,0,0,0,0,0};
+		double sume[7]={0,0,0,0,0,0,0};
 		
 		for(int iz = 0; iz<_BLOCKSIZE_; iz++)
 			for(int iy = 0; iy<_BLOCKSIZE_; iy++)
@@ -70,49 +61,6 @@ struct MatrixGP
 						b = block(ix, iy, iz).s;
 					}
                     
-#ifndef _LIQUID_
-					const double s[6]  = {
-						b.r ,
-						b.u ,
-						b.v ,
-						b.w ,
-						b.s ,
-						b.G
-					};
-                                        
-					for(int i=0; i<6; ++i)
-						assert(!isnan(s[i]));
-					
-                    const double e[6]  = {
-						b.r - a.r,
-						b.u - a.u,
-						b.v - a.v,
-						b.w - a.w,
-						b.s - a.s,
-						b.levelset - a.levelset
-					};
-                    
-                    for(int i=0; i<6; ++i)
-						assert(!isnan(e[i]));
-					
-					for(int i=0; i<6; i++)
-						if (fabs(e[i])/fabs(s[i])>accuracy && fabs(e[i])>accuracy) printf("significant error at %d %d %d %d -> e=%e (rel is %e, values are %e %e)\n", ix, iy, iz, i, e[i], e[i]/s[i],s[i],s[i]-e[i]);
-					
-					for(int i=0; i<6; i++)
-						maxe[i] = max(fabs(e[i]), maxe[i]);
-					
-					for(int i=0; i<6; i++)
-						sume[i] += fabs(e[i]);        
-                    
-                    printf("\tLinf discrepancy:\t");
-                    for(int i=0; i<6; i++)
-                        printf("%.2e ", maxe[i]);
-                    
-                    printf("\n\tL1 (dh=1):       \t");
-                    for(int i=0; i<6; i++)
-                        printf("%.2e ", sume[i]);
-                    printf("\n");
-#else
                     const double s[7]  = {
 						b.r ,
 						b.u ,
@@ -153,7 +101,6 @@ struct MatrixGP
                     for(int i=0; i<7; i++)
                         printf("%.2e ", sume[i]);
                     printf("\n");
-#endif
 				}
 	}
 };

@@ -24,14 +24,6 @@ typedef double Real;
 #endif
 
 //C++ related functions
-template<typename X> inline X mysqrt(X x){ abort(); return sqrt(x);}
-template<>  inline float mysqrt<float>(float x){ return sqrtf(x);}
-template<>  inline double mysqrt<double>(double x){ return sqrt(x);}
-
-template<typename X> inline X myabs(X x){ abort(); return sqrt(x);}
-template<>  inline float myabs<float>(float x){ return fabsf(x);}
-template<>  inline double myabs<double>(double x){ return fabs(x);}
-
 //che cos'e' questo odore? - non era un sospiro.
 inline Real heaviside(const Real phi, const Real inv_h) //11 FLOP
 {

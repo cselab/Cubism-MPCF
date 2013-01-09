@@ -96,9 +96,7 @@ omega2 *(F_1_3*d + F_5_6*c + M_1_6*b)	);
 
 void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts,
 					  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const G
-#ifdef _LIQUID_
 					  , float * const P
-#endif
 )
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5f);
@@ -142,14 +140,9 @@ void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const in
 			
 			_mm_store_ps(G + DESTID, dataB1);
 
-#ifndef _LIQUID_
-			_mm_store_ps(p + DESTID,
-                                     (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho))/dataB1);
-#else
 			_mm_store_ps(P + DESTID, dataC1);
 			_mm_store_ps(p + DESTID,
                                      (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho) - dataC1)/dataB1);
-#endif
 		}
 	}
 	
@@ -158,9 +151,7 @@ void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const in
 
 void Convection_SSE::_sse_convert(const float * const gptfirst, const int gptfloats, const int rowgpts,
 								  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const G
-#ifdef _LIQUID_
 				  , float * const P
-#endif
 )
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5f);
@@ -204,12 +195,8 @@ void Convection_SSE::_sse_convert(const float * const gptfirst, const int gptflo
 			
 			_mm_store_ps(G + DESTID, dataB1);
 			
-#ifndef _LIQUID_
-			_mm_store_ps(p + DESTID, (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho))/dataB1);
-#else
 			_mm_store_ps(P + DESTID, dataC1);
 			_mm_store_ps(p + DESTID, (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho) - dataC1)/dataB1);
-#endif
 		}
 	}
 	
@@ -533,9 +520,7 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 								 const float * const v2m, const float * const v2p,
 								 const float * const pm, const float * const pp,
 								 const float * const Gm, const float * const Gp, 
-#ifdef _LIQUID_
 				 const float * const Pm, const float * const Pp,
-#endif
 								 const float * const am, const float * const ap,
 								 float * const out)
 {
@@ -555,15 +540,9 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #define v2minus  _mm_load_ps(v2m + ID)
 #define pminus  _mm_load_ps(pm + ID)
 #define Gminus _mm_load_ps(Gm + ID)
-#ifdef _LIQUID_
 #define Pminus _mm_load_ps(Pm +ID)
-#endif
 
-#ifndef _LIQUID_
-		  const __m128 eminus = pminus*Gminus + F_1_2*rminus*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus);
-#else
 		  const __m128 eminus = pminus*Gminus + F_1_2*rminus*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus) + Pminus;
-#endif
 
 #define rplus  _mm_load_ps(rp + ID)
 #define  vdplus  _mm_load_ps(vdp + ID)
@@ -571,15 +550,9 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #define v2plus  _mm_load_ps(v2p + ID)
 #define pplus  _mm_load_ps(pp + ID)
 #define Gplus  _mm_load_ps(Gp + ID)
-#ifdef _LIQUID_
 #define Pplus _mm_load_ps(Pp +ID)
-#endif
 
-#ifndef _LIQUID_
-                  const __m128 eplus = pplus*Gplus + F_1_2*rplus*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus);
-#else
 		  const __m128 eplus = pplus*Gplus + F_1_2*rplus*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus) + Pplus;
-#endif
 
 			const __m128 fminus = vdminus*(pminus + eminus);
 			const __m128 fpluss = vdplus *(pplus + eplus);
@@ -618,19 +591,15 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #undef flagother
 #undef fother
 
-#ifdef _LIQUID_
 #undef Pminus
 #undef Pplus
-#endif
 }
 
 void Convection_SSE::_sse_char_vel(const float * const rm, const float * const rp, 
 								   const float * const vm, const float * const vp,
 								   const float * const pm, const float * const pp,
 								   const float * const Gm, const float * const Gp, 
-#ifdef _LIQUID_
 				   const float * const Pm, const float * const Pp,
-#endif
 								   float * const outm, float * const outp)
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5);
@@ -644,13 +613,8 @@ void Convection_SSE::_sse_char_vel(const float * const rm, const float * const r
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix+=4)
 		{
-#ifndef _LIQUID_
-		  const __m128 cminus = _mm_sqrt_ps((F_1/_mm_load_ps(Gm + ID)+F_1)* _mm_max_ps(_mm_load_ps(pm + ID)/_mm_load_ps(rm + ID), _mm_setzero_ps()));
-		  const __m128 cplus  = _mm_sqrt_ps((F_1/_mm_load_ps(Gp + ID)+F_1)* _mm_max_ps(_mm_load_ps(pp + ID)/_mm_load_ps(rp + ID), _mm_setzero_ps()));
-#else
-                  const __m128 cminus = _mm_sqrt_ps((F_1/_mm_load_ps(Gm + ID)+F_1)* _mm_max_ps((_mm_load_ps(pm + ID)+_mm_load_ps(Pm + ID))/_mm_load_ps(rm + ID), _mm_setzero_ps()));
-						    const __m128 cplus  = _mm_sqrt_ps((F_1/_mm_load_ps(Gp + ID)+F_1)* _mm_max_ps((_mm_load_ps(pp + ID)+_mm_load_ps(Pp + ID))/_mm_load_ps(rp + ID), _mm_setzero_ps()));
-#endif
+			const __m128 cminus = _mm_sqrt_ps((F_1/_mm_load_ps(Gm + ID)+F_1)* _mm_max_ps((_mm_load_ps(pm + ID)+_mm_load_ps(Pm + ID))/_mm_load_ps(rm + ID), _mm_setzero_ps()));
+			const __m128 cplus  = _mm_sqrt_ps((F_1/_mm_load_ps(Gp + ID)+F_1)* _mm_max_ps((_mm_load_ps(pp + ID)+_mm_load_ps(Pp + ID))/_mm_load_ps(rp + ID), _mm_setzero_ps()));
 
 		  _mm_store_ps(outm + ID, _mm_min_ps(_mm_load_ps(vm + ID) - cminus, _mm_load_ps(vm + ID) - cplus));
 		  _mm_store_ps(outp + ID, _mm_max_ps(_mm_load_ps(vp + ID) + cminus, _mm_load_ps(vp + ID) + cplus));

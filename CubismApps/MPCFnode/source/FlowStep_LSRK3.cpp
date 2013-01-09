@@ -119,23 +119,23 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
         }
     }
     
-    static const int CHUNKSIZE = 64*1024/sizeof(Real);
+    //static const int CHUNKSIZE = 64*1024/sizeof(Real);
     Real global_sos = local_sos[0];
-    /*
+    
     #pragma omp parallel
     {
-		Real mymax = local_sos[0];
+	    Real mymax = local_sos[0];
 		
-		#pragma omp for
-		for(int i=0; i<N; ++i)
-			mymax = max(local_sos[i], mymax);
+#pragma omp for schedule(runtime)
+	    for(int i=0; i<N; ++i)
+		    mymax = max(local_sos[i], mymax);
 			
-		#pragma omp critical
-		{
-			global_sos = max(global_sos, mymax);
-		}
-	}*/
-    
+#pragma omp critical
+	    {
+		    global_sos = max(global_sos, mymax);
+	    }
+    }
+   /* 
 #pragma omp parallel for schedule(static)
     for(size_t i=0; i<N; i+= CHUNKSIZE)
     {
@@ -148,7 +148,7 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
         {
             global_sos = max(global_sos, mymax);
         }
-    }		
+    }*/		
     
     free(tmp);
     

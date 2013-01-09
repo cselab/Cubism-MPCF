@@ -9,7 +9,6 @@
 #pragma once
 
 #include <cstdio>		
-#include <algorithm>
 
 #include "common.h"
 #include "SOA2D.h"
@@ -17,7 +16,7 @@
 class MaxSpeedOfSound_CPP
 {
 public:
-	Real compute(const Real * const src, const int gptfloats);
+	Real compute(const Real * const src, const int gptfloats) const;
 	
 	static void printflops(const float PEAKPERF_CORE, const float PEAKBAND, const int NCORES, const int NT, const int NBLOCKS, float MEASUREDTIME, const bool bAwk=false)
 	{

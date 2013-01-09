@@ -19,7 +19,7 @@ protected:
 	
 	Real m_b;
 	
-	bool _is_aligned(const void * const ptr, unsigned int alignment)
+	inline bool _is_aligned(const void * const ptr, unsigned int alignment) const
 	{
 		return ((size_t)ptr) % alignment == 0;
 	}
@@ -28,7 +28,7 @@ public:
 	
 	Update_CPP(Real b=1): m_b(b) {}
 	
-	void compute(const Real * const src, Real * const dst, const int gptfloats);
+	void compute(const Real * const src, Real * const dst, const int gptfloats) const;
 	
 	static void printflops(const float PEAKPERF_CORE, const float PEAKBAND, const size_t NCORES, const size_t NT, const size_t NBLOCKS, const float MEASUREDTIME, const bool bAwk=false)
 	{

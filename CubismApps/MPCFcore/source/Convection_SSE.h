@@ -42,9 +42,7 @@ protected:
 								 & w.ring.ref().ref(-4,-3),
 								 & p.ring.ref().ref(-4,-3),
 								 & G.ring.ref().ref(-4,-3)
-#ifdef _LIQUID_
 					     , & P.ring.ref().ref(-4,-3)
-#endif
 );
 		else
 			_sse_convert(gptfirst, gptfloats, rowgpts, 
@@ -54,9 +52,7 @@ protected:
 						 & w.ring.ref().ref(-4,-3),
 						 & p.ring.ref().ref(-4,-3),
 						 & G.ring.ref().ref(-4,-3)
-#ifdef _LIQUID_
 				     , & P.ring.ref().ref(-4,-3)
-#endif
 );
 	}
 	
@@ -110,17 +106,13 @@ protected:
 				 const TempSOA& v2minus, const TempSOA& v2plus,
 				 const TempSOA& pminus, const TempSOA& pplus,
 				 const TempSOA& Gminus, const TempSOA& Gplus, 
-#ifdef _LIQUID_
 		     const TempSOA& Pminus, const TempSOA& Pplus,
-#endif
 				 const TempSOA& aminus, const TempSOA& aplus,
 				 TempSOA& out)
 	{
 		_sse_hlle_e(rminus.ptr(0,0), rplus.ptr(0,0), vdminus.ptr(0,0), vdplus.ptr(0,0), v1minus.ptr(0,0), v1plus.ptr(0,0),
 					v2minus.ptr(0,0), v2plus.ptr(0,0), pminus.ptr(0,0), pplus.ptr(0,0), Gminus.ptr(0,0), Gplus.ptr(0,0), 
-#ifdef _LIQUID_
 			    Pminus.ptr(0,0), Pplus.ptr(0,0),
-#endif
 					aminus.ptr(0,0), aplus.ptr(0,0), &out.ref(0,0));
 	}
 	
@@ -128,16 +120,12 @@ protected:
 				   const TempSOA& vminus, const TempSOA& vplus,
 				   const TempSOA& pminus, const TempSOA& pplus,
 				   const TempSOA& Gminus, const TempSOA& Gplus, 
-#ifdef _LIQUID_
 		       const TempSOA& Pminus, const TempSOA& Pplus,
-#endif
 				   TempSOA& out_minus, TempSOA& out_plus)
 	{
 		_sse_char_vel(rminus.ptr(0,0), rplus.ptr(0,0), vminus.ptr(0,0), vplus.ptr(0,0), 
 					  pminus.ptr(0,0), pplus.ptr(0,0), Gminus.ptr(0,0), Gplus.ptr(0,0), 
-#ifdef _LIQUID_
 			      Pminus.ptr(0,0), Pplus.ptr(0,0),
-#endif
 					  &out_minus.ref(0,0), &out_plus.ref(0,0));
 	}
 	
@@ -149,9 +137,7 @@ protected:
 		_sse_xrhsadd(w.flux().ptr(0,0), &w.rhs.ref(0,0));
 		_sse_xrhsadd(p.flux().ptr(0,0), &p.rhs.ref(0,0));
 		_sse_xrhsadd(G.flux().ptr(0,0), &G.rhs.ref(0,0));
-#ifdef _LIQUID_
 		_sse_xrhsadd(P.flux().ptr(0,0), &P.rhs.ref(0,0));
-#endif
 	}
 	
 	void _yrhs()
@@ -162,9 +148,7 @@ protected:
 		_sse_yrhsadd(w.flux().ptr(0,0), &w.rhs.ref(0,0));
 		_sse_yrhsadd(p.flux().ptr(0,0), &p.rhs.ref(0,0));
 		_sse_yrhsadd(G.flux().ptr(0,0), &G.rhs.ref(0,0));
-#ifdef _LIQUID_
 		_sse_yrhsadd(P.flux().ptr(0,0), &P.rhs.ref(0,0));
-#endif
 	}
 	
 	void _zrhs()
@@ -175,25 +159,16 @@ protected:
 		_sse_zrhsadd(w.flux(-1).ptr(0,0), w.flux(0).ptr(0,0), &w.rhs.ref(0,0));
 		_sse_zrhsadd(p.flux(-1).ptr(0,0), p.flux(0).ptr(0,0), &p.rhs.ref(0,0));
 		_sse_zrhsadd(G.flux(-1).ptr(0,0), G.flux(0).ptr(0,0), &G.rhs.ref(0,0));
-#ifdef _LIQUID_
 		_sse_zrhsadd(P.flux(-1).ptr(0,0), P.flux(0).ptr(0,0), &P.rhs.ref(0,0));
-#endif
 	}
 
 	//these methods are called by the methods declared/defined above
-#ifndef _LIQUID_
-	void _sse_convert_aligned(const Real * const gptfirst, const int gptfloats, const int rowgpts,
-							  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G);
-	
-	void _sse_convert(const Real * const gptfirst, const int gptfloats, const int rowgpts,
-					  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G);
-#else
 	void _sse_convert_aligned(const Real * const gptfirst, const int gptfloats, const int rowgpts,
 				  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G, Real * const P);
 
         void _sse_convert(const Real * const gptfirst, const int gptfloats, const int rowgpts,
 			  Real * const rho, Real * const u, Real * const v, Real * const w, Real * const p, Real * const G, Real * const P);
-#endif	
+
 	void _sse_xweno_minus(const Real * const in, Real * const out) const;	
 	void _sse_xweno_pluss(const Real * const in, Real * const out) const;
 	void _sse_yweno_minus(const Real * const in, Real * const out);	
@@ -224,9 +199,7 @@ protected:
 					 const Real * const v2minus, const Real * const v2plus,
 					 const Real * const pminus, const Real * const pplus,
 					 const Real * const Gminus, const Real * const Gplus, 
-#ifdef _LIQUID_
 			 const Real * const Pminus, const Real * const Pplus,
-#endif
 					 const Real * const aminus, const Real * const aplus,
 					 Real * const out);
 	
@@ -234,9 +207,7 @@ protected:
 					   const Real * const vminus, const Real * const vplus,
 					   const Real * const pminus, const Real * const pplus,
 					   const Real * const Gminus, const Real * const Gplus, 
-#ifdef _LIQUID_
 			   const Real * const Pminus, const Real * const Pplus,
-#endif
 					   Real * const out_minus, Real * const out_plus);
 	
 	void _sse_xrhsadd(const Real * const flux, Real * const rhs);	

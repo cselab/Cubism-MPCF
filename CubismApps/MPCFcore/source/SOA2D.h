@@ -25,7 +25,7 @@ struct SOA2D
 	
 	static const int PITCH = EX - SX;
 	
-	TReal __attribute__((aligned(_ALIGNBYTES_))) data[NY][PITCH];
+	TReal __attribute__((__aligned__(_ALIGNBYTES_))) data[NY][PITCH];
 	
 	SOA2D()
 	{

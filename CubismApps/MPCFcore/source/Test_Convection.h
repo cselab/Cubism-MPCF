@@ -23,24 +23,16 @@ using namespace std;
 
 class Test_Convection
 {
-	void _toPrimitive(GP& p, Real out[6]) 
+	void _toPrimitive(GP& p, Real out[7]) 
 	{
 		out[0] = p.s.r;
 		out[1] = p.s.u/out[0];
 		out[2] = p.s.v/out[0];
 		out[3] = p.s.w/out[0];
-#ifndef _LIQUID_
-		out[4] = (p.s.s - (p.s.u*p.s.u+p.s.v*p.s.v+p.s.w*p.s.w)*(((Real)0.5)/p.s.r))/G;
-#else
         out[4] = (p.s.s - (p.s.u*p.s.u+p.s.v*p.s.v+p.s.w*p.s.w)*(((Real)0.5)/p.s.r) - P)/G;
-#endif
-        
 		out[5] = p.s.G;
-        
-#ifdef _LIQUID_
         out[6] = p.s.P;
-#endif
-		
+
 		assert(p.s.r>0);
 		assert(!isnan(p.s.r));
 		assert(!isnan(p.s.u));
@@ -48,16 +40,9 @@ class Test_Convection
 		assert(!isnan(p.s.w));
 		assert(!isnan(p.s.s));
 		assert(!isnan(p.s.G));
-
-#ifdef _LIQUID_
         assert(!isnan(p.s.P));
-#endif
-        
-#ifndef _LIQUID_
-		for(int i=0; i<6; i++)
-#else
+
   		for(int i=0; i<7; i++)
-#endif
 			assert(!isnan(out[i]));
 	}
 	

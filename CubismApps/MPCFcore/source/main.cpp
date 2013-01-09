@@ -14,30 +14,25 @@
 #endif
 
 #include <iostream>
+
+#ifdef _SSE_
 #include <xmmintrin.h>
+#endif
 
 #include <ArgumentParser.h>
 
 #include "TestTypes.h"
 #include "Test_Convection.h"
-#include "Test_Diffusion.h"
-#include "Test_SurfaceTension.h"
 #include "Test_LocalKernel.h"
 
 #include "Convection_CPP.h"
 #include "Update.h"
 #include "MaxSpeedOfSound.h"
-#include "SurfaceTension_CPP.h"
-#include "Diffusion_CPP.h"
 #ifdef _SSE_
 #include "Convection_SSE.h"
-#include "Diffusion_SSE.h"
-#include "SurfaceTension_SSE.h"
 #endif
 #ifdef _AVX_
 #include "Convection_AVX.h"
-#include "SurfaceTension_AVX.h"
-#include "Diffusion_AVX.h"
 #endif
 
 using namespace std;
@@ -91,9 +86,14 @@ int main (int argc, const char ** argv)
 	ArgumentParser parser(argc, argv);
 	
 	//enable/disable the handling of denormalized numbers
+#ifdef _SSE_
 	if (parser("-f2z").asBool(false))
+	#pragma omp parallel
+	{
 		_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-	
+	}
+#endif	
+
 	//kernel name
 	const string kernel = parser("-kernel").asString("all");
 	
@@ -120,13 +120,7 @@ int main (int argc, const char ** argv)
 	//C++ kernels
 	{
 		if (kernel == "Convection_CPP" || kernel == "all")
-			testing(Test_Convection(), Convection_CPP(0, 1), info);
-		
-		if (kernel == "Diffusion_CPP" || kernel == "all")
-			testing(Test_Diffusion(), Diffusion_CPP(1, 1, 2, 1/(2.1-1), 1/(2.1-1), 1, 1, 1), info);
-		
-		if (kernel == "SurfaceTension_CPP" || kernel == "all")
-			testing(Test_SurfaceTension(), SurfaceTension_CPP(1, 1, 1/(2.5-1), 1/(2.1-1), 1, 1, 1), info);
+			testing(Test_Convection(), Convection_CPP(0, 1), info);		
 	}
 	
 	//SSE kernels
@@ -134,13 +128,7 @@ int main (int argc, const char ** argv)
 	{
 		if (kernel == "Convection_SSE" || kernel == "all")
 			testing(Test_Convection(), Convection_SSE(0, 1, 2.5, 2.1, 1, 0, 0), info);
-		
-		if (kernel == "Diffusion_SSE" || kernel == "all")
-			testing(Test_Diffusion(), Diffusion_SSE(1, 1, 2, 1/(2.1-1), 1/(2.1-1), 1, 1, 1), info);
 				
-		if (kernel == "SurfaceTension_SSE" || kernel == "all")
-			testing(Test_SurfaceTension(), SurfaceTension_SSE(1, 1, 1/(2.5-1), 1/(2.1-1), 1, 1, 1), info);
-		
 		if (kernel == "MaxSpeedOfSound_SSE" || kernel == "all")
 			comparing(Test_LocalKernel(), MaxSpeedOfSound_CPP(2.5, 2.1, 1, 0, 0), MaxSpeedOfSound_SSE(2.5, 2.1, 1, 0, 0), info);
 		
@@ -155,11 +143,6 @@ int main (int argc, const char ** argv)
 		if (kernel == "Convection_AVX" || kernel == "all")
 			testing(Test_Convection(), Convection_AVX(0, 1, 2.5, 2.1, 1, 0, 0), info);
 		
-		if (kernel == "Diffusion_AVX" || kernel == "all")
-			testing(Test_Diffusion(), Diffusion_AVX(1, 1, 2, 1/(2.1-1), 1/(2.1-1), 1, 1, 1), info);
-
-		if (kernel == "SurfaceTension_AVX" || kernel == "all")
-			testing(Test_SurfaceTension(), SurfaceTension_AVX(1, 1, 1/(2.5-1), 1/(2.1-1), 1, 1, 1), info);			
 	}
 #endif
 	

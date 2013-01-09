@@ -14,17 +14,13 @@
 #include "common.h"
 #include "Update.h"
 
-void Update_CPP::compute(const Real * const src, Real * const dst, const int gptfloats)
+void Update_CPP::compute(const Real * const src, Real * const dst, const int gptfloats) const
 {
-	assert(gptfloats >= 6);
+	assert(gptfloats >= 7);
 	
-	const int N=_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*gptfloats;
+	const int N = _BLOCKSIZE_ * _BLOCKSIZE_ * _BLOCKSIZE_ * gptfloats;
 	
 	for(int i=0; i<N; i+=gptfloats)
-#ifndef _LIQUID_        
-		for(int comp=0;comp<6;comp++)
-#else
-        for(int comp=0;comp<7;comp++)
-#endif
-            dst[i+comp] += m_b*src[i+comp];
+        for(int comp = 0; comp < 7; comp++)
+            dst[i+comp] += m_b * src[i+comp];
 }

@@ -621,15 +621,22 @@ class SynchronizerMPI
 	{
 		if (NBYTES>0)
 		{
-			Real * ret_val = (Real *)_mm_malloc(NBYTES, ALIGN);
+			//Real * ret_val = (Real *)_mm_malloc(NBYTES, ALIGN);
+			Real * ret_val = NULL;
+			
+			int error = posix_memalign((void**)&ret_val, std::max(8, ALIGN), NBYTES);
+			
+			assert(error == 0);
+     
 			all_mallocs.push_back(ret_val);
+			
 			return ret_val;
 		}
 		
 		return NULL;
 	}
 	
-	void _myfree(Real *& ptr) {if (ptr!=NULL) {_mm_free(ptr); ptr=NULL;} }
+	void _myfree(Real *& ptr) {if (ptr!=NULL) { free(ptr); ptr=NULL;} }
 	
 	//forbidden methods
 	SynchronizerMPI(const SynchronizerMPI& c):cube(-1,-1,-1), synchID(-1), isroot(true){ abort(); }

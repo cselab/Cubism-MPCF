@@ -30,14 +30,15 @@ ifeq "$(config)" "release"
 			CPPFLAGS += -fast
 		endif
 	else
-		OPTFLAGS += -O3 -msse -msse2 -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize
+		ifeq "$(bgq)" "1"
+			OPTFLAGS += -O3 -qarch=qp -qtune=qp -qhot -qstrict -qsource -qlist -qreport -DNDEBUG
+		else
+			OPTFLAGS += -O3  -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize
+		endif
+		#OPTFLAGS += -O3 -msse -msse2 -fstrict-aliasing -fschedule-insns2 -falign-functions=16 -DNDEBUG -ftree-vectorize
 	endif
 else
-	ifeq "$(CC)" "icc"
-		CPPFLAGS += -g 
-	else
-		CPPFLAGS += -g -msse -msse2
-	endif
+	CPPFLAGS += -g 
 endif
 
 ifeq "$(CC)" "icc"
@@ -85,7 +86,7 @@ ifeq "$(ap)" "float"
 endif 
 
 ifeq "$(sse)" "1"
-	CPPFLAGS += -D_SSE_
+	CPPFLAGS += -D_SSE_ -msse -msse2
 endif
 
 ifeq "$(omp)" "1"
@@ -93,15 +94,18 @@ ifeq "$(omp)" "1"
 		CPPFLAGS += -openmp	
 		OPTFLAGS += -openmp
 	else
-		CPPFLAGS += -fopenmp
-		OPTFLAGS += -fopenmp
+		ifeq "$(bgq)" "1"
+			CPPFLAGS += -qsmp=omp
+			OPTFLAGS += -qsmp=omp
+		else
+			CPPFLAGS += -fopenmp
+			OPTFLAGS += -fopenmp
+		endif
 	endif	
 endif
 
 vtk-inc ?=/usr/local/include/vtk-5.2/ 
 vtk-lib ?=/usr/local/lib/vtk-5.2/ 
-tbb-inc ?=/Users/paralleluser/tbb22_012oss/include/
-tbb-lib ?=/Users/paralleluser/tbb22_012oss/ia32/cc4.0.1_os10.5.4/lib/
 numa-inc ?=/cluster/work/infk/diegor/numactl-2.0.8-rc4 
 numa-lib ?=/cluster/work/infk/diegor/numactl-2.0.8-rc4
 hdf-inc ?=.
@@ -110,15 +114,11 @@ hdf-lib ?=.
 ifeq "$(shell hostname)" "reynolds.inf.ethz.ch"
 	vtk-inc =/usr/local/include/vtk-5.6/
 	vtk-lib =/usr/local/lib/vtk-5.6/
-	tbb-inc =/Users/babak/tbb30_196oss/include/
-	tbb-lib =/Users/babak/tbb30_196oss/lib/
 endif
 
 ifeq "$(shell hostname)" "silvio"
 	vtk-inc = /usr/include/vtk-5.6/
 	vtk-lib = /usr/lib/vtk-5.6/
-	tbb-inc = /home/hbabak/my_packages/tbb30_196oss/include/
-	tbb-lib = /home/hbabak/my_packages/tbb30_196oss/build/linux_intel64_icc_cc4.4.5_libc2.11.3_kernel2.6.36_release/
 	hdf-inc = /home/hbabak/hdf5-1.8.8_gcc_serial/include/
 	hdf-lib = /home/hbabak/hdf5-1.8.8_gcc_serial/lib/
 	numa-inc = /home/hbabak/numactl-2.0.7/include/
@@ -128,8 +128,6 @@ endif
 ifneq "$(findstring brutus,$(shell hostname))" ""
 	vtk-inc = /cluster/work/infk/cconti/VTK5.8_gcc/include/vtk-5.8/
 	vtk-lib = /cluster/work/infk/cconti/VTK5.8_gcc/lib/vtk-5.8/
-	tbb-inc = /cluster/apps/intel/Compiler/11.1/069/tbb/include/
-	tbb-lib = /cluster/apps/intel/Compiler/11.1/069/tbb/lib/intel64/
 	hdf-inc = /cluster/work/infk/hbabak/apps/hdf5-1.8.8_gcc_serial/include/
 	hdf-lib = /cluster/work/infk/hbabak/apps/hdf5-1.8.8_gcc_serial/lib/
 	numa-inc = /cluster/work/infk/hbabak/numactl-2.0.7/include/
@@ -139,8 +137,6 @@ endif
 ifneq "$(findstring rosa,$(shell hostname))" ""
         vtk-inc = /users/petrosk/VTK/include/vtk-5.8/
         vtk-lib = /users/petrosk/VTK/lib/vtk-5.8/
-        tbb-inc = /apps/rosa/intel/composerxe-2011.3.174/tbb/include/
-        tbb-lib = /apps/rosa/intel/composerxe-2011.3.174/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21/
 	ifeq "$(CC)" "icc"
 		hdf-inc = /users/petrosk/hdf5-1.8.8_icc_serial/include/
 		hdf-lib = /users/petrosk/hdf5-1.8.8_icc_serial/lib/
@@ -155,8 +151,6 @@ endif
 ifneq "$(findstring todi,$(shell hostname))" ""
         vtk-inc = /users/petrosk/VTK/include/vtk-5.8/
         vtk-lib = /users/petrosk/VTK/lib/vtk-5.8/
-        tbb-inc = /apps/rosa/intel/composerxe-2011.3.174/tbb/include/
-        tbb-lib = /apps/rosa/intel/composerxe-2011.3.174/tbb/lib/intel64/cc4.1.0_libc2.4_kernel2.6.16.21/
 	ifeq "$(CC)" "icc"
 		hdf-inc = /users/petrosk/hdf5-1.8.8_icc_serial/include/
 		hdf-lib = /users/petrosk/hdf5-1.8.8_icc_serial/lib/
@@ -170,21 +164,21 @@ endif
 
 CPPFLAGS += -D_ALIGNBYTES_=$(align) -D_BLOCKSIZE_=$(bs) -D_BLOCKSIZEX_=$(bs) -D_BLOCKSIZEY_=$(bs) -D_BLOCKSIZEZ_=$(bs) -DWENOEPS=$(weps) -DNTHREADS=$(nthreads)
 CPPFLAGS += -I../../../Cubism/source/ -I../source -I../../MPCFcore/source/
-CPPFLAGS += -I$(vtk-inc) -I$(tbb-inc)
-
 
 ifeq "$(hdf)" "1"
 	CPPFLAGS += -I$(hdf-inc) -D_USE_HDF_
 	LIBS += -L$(hdf-lib) -lhdf5
 endif
 
-CPPFLAGS += -I$(tbb-inc) -I$(hdf-inc)
+CPPFLAGS +=  -I$(hdf-inc)
 
 LIBS += -lstdc++ -lm -lrt
 
-LIBS += -L$(tbb-lib) \
-	-ltbb \
-	-ltbbmalloc
+ifeq "$(bgq)" "1"
+	LIBS += /gpfs/DDNgpfs1/walkup/mpi_trace/bgq/lib/libmpihpm.a \
+			/bgsys/drivers/ppcfloor/bgpm/lib/libbgpm.a \
+			-L/bgsys/drivers/ppcfloor/spi/lib -lSPI_upci_cnk
+endif
 
 ifeq "$(vtk)" "1"
 	CPPFLAGS += -I$(vtk-inc) -D_USE_VTK_
@@ -249,7 +243,7 @@ endif
 
 
 mpcf-node: $(OBJECTS)
-	$(CC) $(OPTFLAGS) $(extra) $^ -o $@ $(LIBS)
+	$(CC) $(OPTFLAGS) $(CPPFLAGS) $(extra) $^ -o $@ $(LIBS)
 
 FlowStep_SSE_diego.o: FlowStep_SSE_diego.cpp
 	$(CC) $(OPTFLAGS) $(CPPFLAGS) $(FSDIEGOEXTRA) -c $^ -o $@

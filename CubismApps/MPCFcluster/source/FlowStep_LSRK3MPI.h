@@ -11,24 +11,19 @@
 
 //#include <BlockProcessingMPI.h>
 #include <BlockLabMPI.h>
+#include <Histogram.h>
 
 #include <FlowStep_LSRK3.h>
 #include <Convection_CPP.h>
+#include <Update.h>
+
 #ifdef _SSE_
 #include <Convection_SSE.h>
-#include <SurfaceTension_SSE.h>
-#include <Diffusion_SSE.h>
 #endif
 #ifdef _AVX_
 #include <Convection_AVX.h>
-#include <SurfaceTension_AVX.h>
-#include <Diffusion_AVX.h>
 #endif
-#include <Update.h>
-#include <SurfaceTension_CPP.h>
-#include <Diffusion_CPP.h>
 
-#include "Histogram.h"
 
 typedef BlockLabMPI<Lab> LabMPI;
 

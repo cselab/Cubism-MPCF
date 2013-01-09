@@ -102,8 +102,7 @@ int main (int argc, const char ** argv)
 	}
 #endif
 	
-	Environment::setup(max(1, parser("-nthreads").asInt()));
-    
+	
 	if( parser("-sim").asString() == "steady" )
 		sim = new Test_SteadyState(argc, argv);
 	else if( parser("-sim").asString() == "sb" )

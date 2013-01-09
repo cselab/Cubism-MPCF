@@ -40,10 +40,7 @@ void Test_Convection::_initialize(TestLab& lab, Block& block)
 				lab(ix, iy, iz).s.w = (40+a*a+(c+3)*L + (a+3)*L*L)/(double)L/(double)L;
 				lab(ix, iy, iz).s.s = 100+b/(double)L;
 				lab(ix, iy, iz).s.G = (1+c+b*L + a*L*L)/(double)L;
-
-#ifdef _LIQUID_
                 lab(ix, iy, iz).s.P = (1+c+b*L + a*L*L)/(double)L;
-#endif
 			}
 		}
 	
@@ -59,10 +56,7 @@ void Test_Convection::_initialize(TestLab& lab, Block& block)
 				block(ix, iy, iz).dsdt.w = (ix*iy/(double)_BLOCKSIZE_);
 				block(ix, iy, iz).dsdt.s = 1+(iy*iz)/(double)_BLOCKSIZE_;
 				block(ix, iy, iz).dsdt.G = -1 +  (iz+ix+iy)/(double)_BLOCKSIZE_;
- 
-#ifdef _LIQUID_
                 block(ix, iy, iz).dsdt.P = -1 +  (iz+ix+iy)/(double)_BLOCKSIZE_;
-#endif
 			}
 }
 
@@ -73,11 +67,7 @@ void Test_Convection::_print(Block& block)
 			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
 			{
 				StateVector v = block(ix, iy, iz).dsdt;
-#ifndef _LIQUID_
-				printf("%d %15.15e %15.15e %15.15e %15.15e %15.15e %15.15e\n", ix+ iy*_BLOCKSIZE_ + iz*_BLOCKSIZE_*_BLOCKSIZE_, v.r, v.u, v.v, v.w, v.s, v.levelset);
-#else
                 printf("%d %15.15e %15.15e %15.15e %15.15e %15.15e %15.15e %15.15e\n", ix+ iy*_BLOCKSIZE_ + iz*_BLOCKSIZE_*_BLOCKSIZE_, v.r, v.u, v.v, v.w, v.s, v.G, v.P);
-#endif
 			}
 }
 
@@ -130,8 +120,7 @@ void weno(const Real input[6], Real sides[2])
 {
 	for(int i=0; i<6; i++)
 		assert(!isnan(input[i]));
-	
-	
+		
 	sides[0] = weno_minus(input[0],input[1],input[2],input[3],input[4]);
 	sides[1] = weno_plus(input[1],input[2],input[3],input[4],input[5]);
 	

@@ -45,11 +45,7 @@ public:
 protected:
 	
 	//Assumed input/output grid point type
-#ifndef _LIQUID_
-	struct AssumedType { Real r, u, v, w, s, G; }; 
-#else
 	struct AssumedType { Real r, u, v, w, s, G, P; }; 
-#endif
 	
 	//working dataset types
 	typedef SOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3> InputSOA; //associated with weno5
@@ -68,24 +64,19 @@ protected:
 	
 	WorkingSet<2> rho, u, v, p;
 	WorkingSet<4> w, G;
+	WorkingSet<4> P;
 	
 	//used for HLLE fluxes
 	RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 4> charvel;
 	
 	//used for the extra term
 	OutputSOA sumG, divu;
-	
-#ifdef _LIQUID_
-	WorkingSet<4>  P;
 	OutputSOA sumP;
-#endif	
 	
 	void _next() 
 	{ 
 		rho.ring.next(); u.ring.next(); v.ring.next(); w.ring.next(); p.ring.next(); G.ring.next();
-#ifdef _LIQUID_
 		P.ring.next();
-#endif
 	}
 	
 	void _flux_next()
@@ -94,11 +85,9 @@ protected:
 		
 		w.weno.next(); G.weno.next(); w.weno.next(); G.weno.next(); charvel.next(); charvel.next();
 		
-#ifdef _LIQUID_
 		P.flux.next();
 		P.weno.next();
         P.weno.next();
-#endif
 	}
     
 	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
@@ -111,30 +100,22 @@ protected:
 	virtual void _zweno_pluss(const int relid, const RingInputSOA& in, TempSOA& out);
 	
 	virtual void _xextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
-#ifdef _LIQUID_
 							 , const TempSOA& Pm, const TempSOA& Pp
-#endif
                              , const TempSOA& am, const TempSOA& ap);
     
 	virtual void _yextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
-#ifdef _LIQUID_
 							 , const TempSOA& Pm, const TempSOA& Pp
-#endif
                              , const TempSOA& am, const TempSOA& ap);
     
 	virtual void _zextraterm(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1, const TempSOA& Gm, const TempSOA& Gp
-#ifdef _LIQUID_
 							 , const TempSOA& Pm, const TempSOA& Pp
-#endif
                              , const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1);
 	
 	virtual void _char_vel(const TempSOA& rminus, const TempSOA& rplus, 
 						   const TempSOA& vminus, const TempSOA& vplus,
 						   const TempSOA& pminus, const TempSOA& pplus,
 						   const TempSOA& Gminus, const TempSOA& Gplus,
-#ifdef _LIQUID_
 						   const TempSOA& Pminus, const TempSOA& Pplus,						   
-#endif
 						   TempSOA& out_minus, TempSOA& out_plus);
 	
 	virtual void _hlle_rho(const TempSOA& rm, const TempSOA& rp,
@@ -159,9 +140,7 @@ protected:
 						 const TempSOA& v2minus, const TempSOA& v2plus,
 						 const TempSOA& pminus, const TempSOA& pplus,
 						 const TempSOA& Gminus, const TempSOA& Gplus, 
-#ifdef _LIQUID_
 						 const TempSOA& Pminus, const TempSOA& Pplus, 						 
-#endif
 						 const TempSOA& aminus, const TempSOA& aplus,
 						 TempSOA& out);
 	
