@@ -37,9 +37,11 @@ void Convection_CPP::compute(const Real * const srcfirst, const int srcfloats, c
 	for(int islice=0; islice<_BLOCKSIZE_; islice++)
 	{
 		_xflux(-2);
+        //_xflux_hllc(-2);
 		_xrhs();
 		
 		_yflux(-2);
+        //_yflux_hllc(-2);
 		_yrhs();
 		
 		_next();
@@ -339,29 +341,29 @@ void Convection_CPP::_xextraterm(const TempSOA& um, const TempSOA& up, const Tem
 }
 
 Real Convection_CPP::_u_hllc(const Real rho_minus, const Real rho_plus, const Real v_minus, const Real v_plus
-                             , const Real p_minus, const Real p_plus, const Real G_minus, const Real G_plus)
+                             , const Real p_minus, const Real p_plus, const Real G_minus, const Real G_plus, const Real P_minus, const Real P_plus)
 {
-    const Real a_minus = std::sqrt((1/G_minus+1)* max((p_minus)*((Real)1/rho_minus), (Real)0));//NOT CONSIDERING Pc HERE
-    const Real a_plus  = std::sqrt((1/G_plus+1)* max((p_plus)*((Real)1/rho_plus), (Real)0));//NOT CONSIDERING Pc HERE
+    const Real a_minus = std::sqrt((1/G_minus+1)* max((p_minus+P_minus/G_minus/(1/G_minus+1))*((Real)1/rho_minus), (Real)0));
+    const Real a_plus  = std::sqrt((1/G_plus +1)* max((p_plus +P_plus /G_plus /(1/G_plus +1))*((Real)1/rho_plus ), (Real)0));
     
     const Real rho_hat = 0.5*(rho_minus+rho_plus);
     const Real a_hat   = 0.5*(a_minus+a_plus);
     const Real rho_hat_a_hat = rho_hat*a_hat;
     
     const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
-    const Real p_star = 0.5*(p_minus+p_plus)+0.5*(v_minus-v_plus)*rho_hat_a_hat;
+    const Real p_star = 0.5*(p_minus+p_plus+(v_minus-v_plus)*rho_hat_a_hat);
     
-    const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//NOT CONSIDERING Pc HERE
-    const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//NOT CONSIDERING Pc HERE
+    const Real q_minus = (p_star <= p_minus)? 1 : sqrt(std::max((Real)0,(Real)(1+0.5*(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1))));//NOT CONSIDERING Pc HERE
+    const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(std::max((Real)0,(Real)(1+0.5*(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1))));//NOT CONSIDERING Pc HERE
     
-    const Real s_minus = std::min(v_minus - a_minus*q_minus, v_plus - a_plus*q_plus);
-    const Real s_plus  = std::max(v_minus + a_minus*q_minus, v_plus + a_plus*q_plus);
+    const Real s_minus = std::min((Real)0,v_minus - a_minus*q_minus);
+    const Real s_plus  = std::max((Real)0,v_plus  + a_plus *q_plus );
     
     const Real signum = (u_star > 0) ? 1 : ((u_star < 0) ? -1 : 0);
     
     const Real xi_minus = (s_minus-v_minus)/(s_minus-u_star);
     const Real xi_plus  = (s_plus -v_plus )/(s_plus -u_star);
-
+    
     const Real term1 = 0.5*(1+signum)*(v_minus+s_minus*(xi_minus-1));
     const Real term2 = 0.5*(1-signum)*(v_plus +s_plus *(xi_plus -1));
     
@@ -389,8 +391,11 @@ void Convection_CPP::_xextraterm_hllc(const TempSOA& rm, const TempSOA& rp
             Real G_minus = Gm(ix, iy);
 			Real G_plus  = Gp(ix, iy);
             
-            const Real u_hllc_minus = _u_hllc(rho_minus, rho_plus, v_minus, v_plus, p_minus, p_plus, G_minus, G_plus);
-
+            Real P_minus = Pm(ix, iy);
+			Real P_plus  = Pp(ix, iy);
+            
+            const Real u_hllc_minus = _u_hllc(rho_minus, rho_plus, v_minus, v_plus, p_minus, p_plus, G_minus, G_plus, P_minus, P_plus);
+            
             rho_minus = rm(ix+1, iy);
 			rho_plus  = rp(ix+1, iy);
             
@@ -403,7 +408,10 @@ void Convection_CPP::_xextraterm_hllc(const TempSOA& rm, const TempSOA& rp
             G_minus = Gm(ix+1, iy);
             G_plus  = Gp(ix+1, iy);
             
-            const Real u_hllc_plus = _u_hllc(rho_minus, rho_plus, v_minus, v_plus, p_minus, p_plus, G_minus, G_plus);
+            P_minus = Pm(ix+1, iy);
+            P_plus  = Pp(ix+1, iy);
+            
+            const Real u_hllc_plus = _u_hllc(rho_minus, rho_plus, v_minus, v_plus, p_minus, p_plus, G_minus, G_plus, P_minus, P_plus);
             
 			divu.ref(ix, iy) = u_hllc_plus-u_hllc_minus;
         }
@@ -424,6 +432,61 @@ void Convection_CPP::_yextraterm(const TempSOA& um, const TempSOA& up, const Tem
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
 			divu.ref(ix, iy) += (ap(iy+1, ix)*um(iy+1, ix)-am(iy+1, ix)*up(iy+1, ix))/(ap(iy+1, ix)-am(iy+1, ix))-(ap(iy, ix)*um(iy, ix)-am(iy, ix)*up(iy, ix))/(ap(iy, ix)-am(iy, ix));
+	
+	for(int iy=0; iy<OutputSOA::NY; iy++)
+		for(int ix=0; ix<OutputSOA::NX; ix++)
+			sumG.ref(ix, iy) += Gp(iy, ix) + Gm(iy+1, ix);
+	
+	for(int iy=0; iy<OutputSOA::NY; iy++)
+		for(int ix=0; ix<OutputSOA::NX; ix++)
+			sumP.ref(ix, iy) += Pp(iy, ix) + Pm(iy+1, ix);
+}
+
+void Convection_CPP::_yextraterm_hllc(const TempSOA& rm, const TempSOA& rp
+                                      , const TempSOA& vm, const TempSOA& vp
+                                      , const TempSOA& pm, const TempSOA& pp
+                                      , const TempSOA& Gm, const TempSOA& Gp
+                                      , const TempSOA& Pm, const TempSOA& Pp)
+{
+	for(int iy=0; iy<OutputSOA::NY; iy++)
+		for(int ix=0; ix<OutputSOA::NX; ix++)
+        {
+            Real rho_minus = rm(iy, ix);
+			Real rho_plus  = rp(iy, ix);
+            
+            Real v_minus = vm(iy, ix);
+			Real v_plus  = vp(iy, ix);
+            
+            Real p_minus = pm(iy, ix);
+			Real p_plus  = pp(iy, ix);
+            
+            Real G_minus = Gm(iy, ix);
+			Real G_plus  = Gp(iy, ix);
+            
+            Real P_minus = Pm(iy, ix);
+			Real P_plus  = Pp(iy, ix);
+            
+            const Real u_hllc_minus = _u_hllc(rho_minus, rho_plus, v_minus, v_plus, p_minus, p_plus, G_minus, G_plus, P_minus, P_plus);
+            
+            rho_minus = rm(iy+1, ix);
+			rho_plus  = rp(iy+1, ix);
+            
+            v_minus = vm(iy+1, ix);
+			v_plus  = vp(iy+1, ix);
+            
+            p_minus = pm(iy+1, ix);
+			p_plus  = pp(iy+1, ix);
+            
+            G_minus = Gm(iy+1, ix);
+            G_plus  = Gp(iy+1, ix);
+            
+            P_minus = Pm(iy+1, ix);
+            P_plus  = Pp(iy+1, ix);
+            
+            const Real u_hllc_plus = _u_hllc(rho_minus, rho_plus, v_minus, v_plus, p_minus, p_plus, G_minus, G_plus, P_minus, P_plus);
+            
+			divu.ref(ix, iy) += (u_hllc_plus-u_hllc_minus);
+        }
 	
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix++)
@@ -464,10 +527,57 @@ void Convection_CPP::_char_vel(const TempSOA& rm, const TempSOA& rp,
 			const Real cminus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy)+Pm(ix,iy)/Gm(ix,iy)/(1/Gm(ix,iy)+1))*((Real)1/rm(ix, iy)), (Real)0));
 			const Real cplus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy)+Pp(ix,iy)/Gp(ix,iy)/(1/Gp(ix,iy)+1))*((Real)1/rp(ix, iy)), (Real)0));
             
-            outm.ref(ix, iy) = min(vm(ix, iy) - cminus, vp(ix, iy) - cplus);
-            outp.ref(ix, iy) = max(vm(ix, iy) + cminus, vp(ix, iy) + cplus);
+            outm.ref(ix, iy) = std::min((Real)0, vm(ix, iy) - cminus);//min(vm(ix, iy) - cminus, vp(ix, iy) - cplus);
+            outp.ref(ix, iy) = std::max((Real)0, vp(ix, iy) + cplus );//max(vm(ix, iy) + cminus, vp(ix, iy) + cplus);//TESTING
 		}
 	
+}
+
+void Convection_CPP::_char_vel_hllc(const TempSOA& rm, const TempSOA& rp,
+                                    const TempSOA& vm, const TempSOA& vp,
+                                    const TempSOA& pm, const TempSOA& pp,
+                                    const TempSOA& Gm, const TempSOA& Gp,
+                                    const TempSOA& Pm, const TempSOA& Pp,
+                                    TempSOA& outm, TempSOA& outp, TempSOA& out_star)
+{
+	for(int iy=0; iy<TempSOA::NY; iy++)
+		for(int ix=0; ix<TempSOA::NX; ix++)
+		{
+            const Real rho_minus = rm(ix, iy);
+			const Real rho_plus  = rp(ix, iy);
+            
+            const Real v_minus = vm(ix, iy);
+			const Real v_plus  = vp(ix, iy);
+            
+            const Real p_minus = pm(ix, iy);
+			const Real p_plus  = pp(ix, iy);
+            
+            const Real G_minus = Gm(ix, iy);
+			const Real G_plus  = Gp(ix, iy);
+            
+            const Real P_minus = Pm(ix, iy);
+			const Real P_plus  = Pp(ix, iy);
+            
+            const Real a_minus = std::sqrt((1/G_minus+1)* max((p_minus+P_minus/G_minus/(1/G_minus+1))*((Real)1/rho_minus), (Real)0));
+			const Real a_plus  = std::sqrt((1/G_plus +1)* max((p_plus +P_plus /G_plus /(1/G_plus +1))*((Real)1/rho_plus ), (Real)0));
+            
+            const Real rho_hat = 0.5*(rho_minus+rho_plus);
+            const Real a_hat   = 0.5*(a_minus+a_plus);
+            const Real rho_hat_a_hat = rho_hat*a_hat;
+            
+            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
+            const Real p_star = 0.5*(p_minus+p_plus+(v_minus-v_plus)*rho_hat_a_hat);
+            
+            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+0.5*(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//I NEED Pc HERE?
+            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+0.5*(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//I NEED Pc HERE?
+            
+            const Real s_minus = v_minus - a_minus*q_minus;
+            const Real s_plus  = v_plus  + a_plus *q_plus;
+            
+            out_star.ref(ix, iy) = u_star;
+            outm.ref(ix, iy) = std::min((Real)0,s_minus);
+            outp.ref(ix, iy) = std::max((Real)0,s_plus );
+        }
 }
 
 void Convection_CPP::_hlle_rho(const TempSOA& rm, const TempSOA& rp,
@@ -495,8 +605,8 @@ void Convection_CPP::_hlle_rho(const TempSOA& rm, const TempSOA& rp,
 
 void Convection_CPP::_hllc_rho(const TempSOA& rm, const TempSOA& rp,
 							   const TempSOA& vm, const TempSOA& vp,
-                               const TempSOA& pm, const TempSOA& pp,
-                               const TempSOA& Gm, const TempSOA& Gp,
+                               const TempSOA& sm, const TempSOA& sp,
+                               const TempSOA& star,
 							   TempSOA& out) //? FLOP
 {
 	for(int iy=0; iy<TempSOA::NY; iy++)
@@ -508,27 +618,9 @@ void Convection_CPP::_hllc_rho(const TempSOA& rm, const TempSOA& rp,
             const Real v_minus = vm(ix, iy);
 			const Real v_plus  = vp(ix, iy);
             
-            const Real p_minus = pm(ix, iy);
-			const Real p_plus  = pp(ix, iy);
-            
-            const Real G_minus = Gm(ix, iy);
-			const Real G_plus  = Gp(ix, iy);
-            
-            const Real a_minus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy))*((Real)1/rm(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-			const Real a_plus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy))*((Real)1/rp(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-            
-            const Real rho_hat = 0.5*(rho_minus+rho_plus);
-            const Real a_hat   = 0.5*(a_minus+a_plus);
-            const Real rho_hat_a_hat = rho_hat*a_hat;
-            
-            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
-            const Real p_star = 0.5*(p_minus+p_plus)+0.5*(v_minus-v_plus)*rho_hat_a_hat;
-            
-            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//NOT CONSIDERING Pc HERE
-            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//NOT CONSIDERING Pc HERE
-            
-            const Real s_minus = v_minus - a_minus*q_minus;
-            const Real s_plus  = v_plus  + a_plus *q_plus;
+            const Real s_minus = sm(ix, iy);
+            const Real s_plus  = sp(ix, iy);
+            const Real u_star = star(ix,iy);
             
             const Real q_star_minus = rho_minus*(s_minus-v_minus)/(s_minus-u_star);
             const Real q_star_plus  = rho_plus *(s_plus -v_plus )/(s_plus -u_star);
@@ -549,10 +641,9 @@ void Convection_CPP::_hllc_rho(const TempSOA& rm, const TempSOA& rp,
 }
 
 void Convection_CPP::_hllc_phi(const TempSOA& phim, const TempSOA& phip,
-                               const TempSOA& rm, const TempSOA& rp,
 							   const TempSOA& vm, const TempSOA& vp,
-                               const TempSOA& pm, const TempSOA& pp,
-                               const TempSOA& Gm, const TempSOA& Gp,
+                               const TempSOA& sm, const TempSOA& sp,
+                               const TempSOA& star,
 							   TempSOA& out) //? FLOP
 {
 	for(int iy=0; iy<TempSOA::NY; iy++)
@@ -561,33 +652,12 @@ void Convection_CPP::_hllc_phi(const TempSOA& phim, const TempSOA& phip,
             const Real phi_minus = phim(ix, iy);
 			const Real phi_plus  = phip(ix, iy);
             
-            const Real rho_minus = rm(ix, iy);
-			const Real rho_plus  = rp(ix, iy);
-            
             const Real v_minus = vm(ix, iy);
 			const Real v_plus  = vp(ix, iy);
             
-            const Real p_minus = pm(ix, iy);
-			const Real p_plus  = pp(ix, iy);
-            
-            const Real G_minus = Gm(ix, iy);
-			const Real G_plus  = Gp(ix, iy);
-            
-            const Real a_minus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy))*((Real)1/rm(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-			const Real a_plus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy))*((Real)1/rp(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-            
-            const Real rho_hat = 0.5*(rho_minus+rho_plus);
-            const Real a_hat   = 0.5*(a_minus+a_plus);
-            const Real rho_hat_a_hat = rho_hat*a_hat;
-            
-            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
-            const Real p_star = 0.5*(p_minus+p_plus)+0.5*(v_minus-v_plus)*rho_hat_a_hat;
-            
-            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//NOT CONSIDERING Pc HERE
-            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//NOT CONSIDERING Pc HERE
-            
-            const Real s_minus = v_minus - a_minus*q_minus;
-            const Real s_plus  = v_plus  + a_plus *q_plus;
+            const Real s_minus = sm(ix, iy);
+            const Real s_plus  = sp(ix, iy);
+            const Real u_star = star(ix,iy);
             
             const Real q_star_minus = phi_minus*(s_minus-v_minus)/(s_minus-u_star);
             const Real q_star_plus  = phi_plus *(s_plus -v_plus )/(s_plus -u_star);
@@ -638,8 +708,8 @@ void Convection_CPP::_hlle_vel(const TempSOA& rm, const TempSOA& rp,
 void Convection_CPP::_hllc_vel(const TempSOA& rm, const TempSOA& rp,
                                const TempSOA& vm, const TempSOA& vp,
                                const TempSOA& vdm, const TempSOA& vdp,
-                               const TempSOA& pm, const TempSOA& pp,
-                               const TempSOA& Gm, const TempSOA& Gp,
+                               const TempSOA& sm, const TempSOA& sp,
+                               const TempSOA& star,
                                TempSOA& out) //? FLOP
 {
     for(int iy=0; iy<TempSOA::NY; iy++)
@@ -654,27 +724,9 @@ void Convection_CPP::_hllc_vel(const TempSOA& rm, const TempSOA& rp,
             const Real vd_minus = vdm(ix, iy);
 			const Real vd_plus  = vdp(ix, iy);
             
-            const Real p_minus = pm(ix, iy);
-			const Real p_plus  = pp(ix, iy);
-            
-            const Real G_minus = Gm(ix, iy);
-			const Real G_plus  = Gp(ix, iy);
-            
-            const Real a_minus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy))*((Real)1/rm(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-			const Real a_plus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy))*((Real)1/rp(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-            
-            const Real rho_hat = 0.5*(rho_minus+rho_plus);
-            const Real a_hat   = 0.5*(a_minus+a_plus);
-            const Real rho_hat_a_hat = rho_hat*a_hat;
-            
-            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
-            const Real p_star = 0.5*(p_minus+p_plus)+0.5*(v_minus-v_plus)*rho_hat_a_hat;
-            
-            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//NOT CONSIDERING Pc HERE
-            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//NOT CONSIDERING Pc HERE
-            
-            const Real s_minus = v_minus - a_minus*q_minus;
-            const Real s_plus  = v_plus  + a_plus *q_plus;
+            const Real s_minus = sm(ix, iy);
+            const Real s_plus  = sp(ix, iy);
+            const Real u_star = star(ix,iy);
             
             const Real q_star_minus = rho_minus*vd_minus*(s_minus-v_minus)/(s_minus-u_star);
             const Real q_star_plus  = rho_plus *vd_plus *(s_plus -v_plus )/(s_plus -u_star);
@@ -728,7 +780,8 @@ void Convection_CPP::_hlle_pvel(const TempSOA& rm, const TempSOA& rp,
 void Convection_CPP::_hllc_pvel(const TempSOA& rm, const TempSOA& rp,
                                 const TempSOA& vm, const TempSOA& vp,
                                 const TempSOA& pm, const TempSOA& pp,
-                                const TempSOA& Gm, const TempSOA& Gp,
+                                const TempSOA& sm, const TempSOA& sp,
+                                const TempSOA& star,
                                 TempSOA& out) //? FLOP
 {
     for(int iy=0; iy<TempSOA::NY; iy++)
@@ -743,24 +796,9 @@ void Convection_CPP::_hllc_pvel(const TempSOA& rm, const TempSOA& rp,
             const Real p_minus = pm(ix, iy);
 			const Real p_plus  = pp(ix, iy);
             
-            const Real G_minus = Gm(ix, iy);
-			const Real G_plus  = Gp(ix, iy);
-            
-            const Real a_minus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy))*((Real)1/rm(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-			const Real a_plus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy))*((Real)1/rp(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-            
-            const Real rho_hat = 0.5*(rho_minus+rho_plus);
-            const Real a_hat   = 0.5*(a_minus+a_plus);
-            const Real rho_hat_a_hat = rho_hat*a_hat;
-            
-            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
-            const Real p_star = 0.5*(p_minus+p_plus+(v_minus-v_plus)*rho_hat_a_hat);
-            
-            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//NOT CONSIDERING Pc HERE
-            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//NOT CONSIDERING Pc HERE
-            
-            const Real s_minus = v_minus - a_minus*q_minus;
-            const Real s_plus  = v_plus  + a_plus *q_plus;
+            const Real s_minus = sm(ix, iy);
+            const Real s_plus  = sp(ix, iy);
+            const Real u_star = star(ix,iy);
             
             const Real q_star_minus = rho_minus*u_star*(s_minus-v_minus)/(s_minus-u_star);
             const Real q_star_plus  = rho_plus *u_star*(s_plus -v_plus )/(s_plus -u_star);
@@ -831,6 +869,8 @@ void Convection_CPP::_hllc_e(const TempSOA& rm, const TempSOA& rp,
                              const TempSOA& pm, const TempSOA& pp,
                              const TempSOA& Gm, const TempSOA& Gp,
                              const TempSOA& Pm, const TempSOA& Pp,
+                             const TempSOA& sm, const TempSOA& sp,
+                             const TempSOA& star,
                              TempSOA& out) //? FLOP
 {
     for(int iy=0; iy<TempSOA::NY; iy++)
@@ -857,21 +897,9 @@ void Convection_CPP::_hllc_e(const TempSOA& rm, const TempSOA& rp,
             const Real P_minus = Pm(ix, iy);
 			const Real P_plus  = Pp(ix, iy);
             
-            const Real a_minus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy))*((Real)1/rm(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-			const Real a_plus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy))*((Real)1/rp(ix, iy)), (Real)0));//NOT CONSIDERING Pc HERE
-            
-            const Real rho_hat = 0.5*(rho_minus+rho_plus);
-            const Real a_hat   = 0.5*(a_minus+a_plus);
-            const Real rho_hat_a_hat = rho_hat*a_hat;
-            
-            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
-            const Real p_star = 0.5*(p_minus+p_plus)+0.5*(v_minus-v_plus)*rho_hat_a_hat;
-            
-            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//NOT CONSIDERING Pc HERE
-            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//NOT CONSIDERING Pc HERE
-            
-            const Real s_minus = v_minus - a_minus*q_minus;
-            const Real s_plus  = v_plus  + a_plus *q_plus;
+            const Real s_minus = sm(ix, iy);
+            const Real s_plus  = sp(ix, iy);
+            const Real u_star = star(ix,iy);
             
             const Real e_minus = p_minus*G_minus + ((Real)0.5)*rho_minus*(v_minus*v_minus + v1_minus*v1_minus + v2_minus*v2_minus) + P_minus;
             const Real e_plus  = p_plus *G_plus  + ((Real)0.5)*rho_plus *(v_plus *v_plus  + v1_plus *v1_plus  + v2_plus *v2_plus)  + P_plus;
@@ -941,7 +969,7 @@ void Convection_CPP::_copyback(Real * const gptfirst, const int gptfloats, const
             rhs.w = a*rhs.w - dtinvh*w.rhs(ix, iy);
             rhs.s = a*rhs.s - dtinvh*p.rhs(ix, iy);
             rhs.G = a*rhs.G - dtinvh*(G.rhs(ix, iy) - divu(ix,iy)*sumG(ix,iy)*factor2);
-            rhs.P = 0;//a*rhs.P - dtinvh*(P.rhs(ix, iy) - divu(ix,iy)*sumP(ix,iy)*factor2);
+            rhs.P = a*rhs.P - dtinvh*(P.rhs(ix, iy) - divu(ix,iy)*sumP(ix,iy)*factor2);
         }
 }
 
@@ -961,25 +989,48 @@ void Convection_CPP::_xflux(const int relid)
     _xweno_pluss(G.ring(relid), G.weno.ref(1));
     _xweno_minus(P.ring(relid), P.weno.ref(0));
     _xweno_pluss(P.ring(relid), P.weno.ref(1));
+    
     _char_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
-    //_xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
+    _xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
+    
+    _hlle_rho(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), rho.flux.ref());
+    _hlle_pvel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), u.flux.ref());
+    _hlle_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), v.flux.ref());
+    _hlle_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), w.flux.ref());
+    _hlle_e(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), p.flux.ref());
+    
+    _hlle_rho(G.weno(0), G.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), G.flux.ref());
+    _hlle_rho(P.weno(0), P.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), P.flux.ref());
+}
+
+void Convection_CPP::_xflux_hllc(const int relid)
+{
+    _xweno_minus(rho.ring(relid), rho.weno.ref(0));
+    _xweno_pluss(rho.ring(relid), rho.weno.ref(1));
+    _xweno_minus(u.ring(relid), u.weno.ref(0));
+    _xweno_pluss(u.ring(relid), u.weno.ref(1));
+    _xweno_minus(v.ring(relid), v.weno.ref(0));
+    _xweno_pluss(v.ring(relid), v.weno.ref(1));
+    _xweno_minus(w.ring(relid), w.weno.ref(0));
+    _xweno_pluss(w.ring(relid), w.weno.ref(1));
+    _xweno_minus(p.ring(relid), p.weno.ref(0));
+    _xweno_pluss(p.ring(relid), p.weno.ref(1));
+    _xweno_minus(G.ring(relid), G.weno.ref(0));
+    _xweno_pluss(G.ring(relid), G.weno.ref(1));
+    _xweno_minus(P.ring(relid), P.weno.ref(0));
+    _xweno_pluss(P.ring(relid), P.weno.ref(1));
+    
+    _char_vel_hllc(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1), star.ref(0));
     _xextraterm_hllc(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1));
     
-    //_hlle_rho(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), rho.flux.ref());
-    _hllc_rho(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), rho.flux.ref());
-    //_hlle_pvel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), u.flux.ref());
-    _hllc_pvel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), u.flux.ref());
-    //_hlle_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), v.flux.ref());
-    _hllc_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), v.flux.ref());
-    //_hlle_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), w.flux.ref());
-    _hllc_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), w.flux.ref());
-    //_hlle_e(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), p.flux.ref());
-    _hllc_e(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), p.flux.ref());
+    _hllc_rho(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), star(0), rho.flux.ref());
+    _hllc_pvel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), star(0), u.flux.ref());
+    _hllc_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), star(0), v.flux.ref());
+    _hllc_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), star(0), w.flux.ref());
+    _hllc_e(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), star(0), p.flux.ref());
     
-    //_hlle_rho(G.weno(0), G.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), G.flux.ref());
-    _hllc_phi(G.weno(0), G.weno(1), rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), G.flux.ref());
-    //_hlle_rho(P.weno(0), P.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), P.flux.ref());
-    //_hllc_phi(P.weno(0), P.weno(1), rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.flux.ref());
+    _hllc_phi(G.weno(0), G.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), star(0), G.flux.ref());
+    _hllc_phi(P.weno(0), P.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), star(0), P.flux.ref());
 }
 
 void Convection_CPP::_yflux(const int relid)
@@ -998,6 +1049,7 @@ void Convection_CPP::_yflux(const int relid)
     _yweno_pluss(G.ring(relid), G.weno.ref(1));
     _yweno_minus(P.ring(relid), P.weno.ref(0));
     _yweno_pluss(P.ring(relid), P.weno.ref(1));
+    
     _char_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
     _yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
     
@@ -1009,6 +1061,36 @@ void Convection_CPP::_yflux(const int relid)
     
     _hlle_rho(G.weno(0), G.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), G.flux.ref());
     _hlle_rho(P.weno(0), P.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), P.flux.ref());
+}
+
+void Convection_CPP::_yflux_hllc(const int relid)
+{
+    _yweno_minus(rho.ring(relid), rho.weno.ref(0));
+    _yweno_pluss(rho.ring(relid), rho.weno.ref(1));
+    _yweno_minus(u.ring(relid), u.weno.ref(0));
+    _yweno_pluss(u.ring(relid), u.weno.ref(1));
+    _yweno_minus(v.ring(relid), v.weno.ref(0));
+    _yweno_pluss(v.ring(relid), v.weno.ref(1));
+    _yweno_minus(w.ring(relid), w.weno.ref(0));
+    _yweno_pluss(w.ring(relid), w.weno.ref(1));
+    _yweno_minus(p.ring(relid), p.weno.ref(0));
+    _yweno_pluss(p.ring(relid), p.weno.ref(1));
+    _yweno_minus(G.ring(relid), G.weno.ref(0));
+    _yweno_pluss(G.ring(relid), G.weno.ref(1));
+    _yweno_minus(P.ring(relid), P.weno.ref(0));
+    _yweno_pluss(P.ring(relid), P.weno.ref(1));
+    
+    _char_vel_hllc(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1), star.ref(0));
+    _yextraterm_hllc(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1));
+    
+    _hllc_rho(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), star(0), rho.flux.ref());
+    _hllc_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), star(0), u.flux.ref());
+    _hllc_pvel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), star(0), v.flux.ref());
+    _hllc_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), star(0), w.flux.ref());
+    _hllc_e(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), star(0), p.flux.ref());
+    
+    _hllc_phi(G.weno(0), G.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), star(0), G.flux.ref());
+    _hllc_phi(P.weno(0), P.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), star(0), P.flux.ref());
 }
 
 void Convection_CPP::_zflux(const int relid)
@@ -1025,9 +1107,9 @@ void Convection_CPP::_zflux(const int relid)
     _zweno_pluss(relid, p.ring, p.weno.ref(1));
     _zweno_minus(relid, G.ring, G.weno.ref(0));
     _zweno_pluss(relid, G.ring, G.weno.ref(1));
-    
     _zweno_minus(relid, P.ring, P.weno.ref(0));
     _zweno_pluss(relid, P.ring, P.weno.ref(1));
+    
     _char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
     _zextraterm(w.weno(-2), w.weno(-1),w.weno(0), w.weno(1), G.weno(0), G.weno(-1), P.weno(0), P.weno(-1), charvel(-2), charvel(-1), charvel(0), charvel(1));
     
