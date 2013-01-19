@@ -91,6 +91,9 @@ protected:
 		P.flux.next();
 		P.weno.next();
         P.weno.next();
+        
+        //TESTING
+        star.next();
 	}
     
 	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
@@ -147,21 +150,26 @@ protected:
 						 const TempSOA& Pminus, const TempSOA& Pplus,
 						 const TempSOA& aminus, const TempSOA& aplus,
 						 TempSOA& out);
-
-    virtual Real _u_hllc(const Real rho_minus, const Real rho_plus, const Real v_minus, const Real v_plus
-                         , const Real p_minus, const Real p_plus, const Real G_minus, const Real G_plus, const Real P_minus, const Real P_plus);
     
-    virtual void _xextraterm_hllc(const TempSOA& rm, const TempSOA& rp
-                                  , const TempSOA& vm, const TempSOA& vp
-                                  , const TempSOA& pm, const TempSOA& pp
+    virtual Real _u_hllc(const Real v_minus, const Real v_plus, const Real s_minus, const Real s_plus, const Real star);
+    
+    virtual void _xextraterm_hllc(const TempSOA& vm, const TempSOA& vp
                                   , const TempSOA& Gm, const TempSOA& Gp
-                                  , const TempSOA& Pm, const TempSOA& Pp);
-
-    virtual void _yextraterm_hllc(const TempSOA& rm, const TempSOA& rp
-                                  , const TempSOA& vm, const TempSOA& vp
-                                  , const TempSOA& pm, const TempSOA& pp
+                                  , const TempSOA& Pm, const TempSOA& Pp
+                                  , const TempSOA& sm, const TempSOA& sp
+                                  , const TempSOA& star);
+    
+    virtual void _yextraterm_hllc(const TempSOA& vm, const TempSOA& vp
                                   , const TempSOA& Gm, const TempSOA& Gp
-                                  , const TempSOA& Pm, const TempSOA& Pp);
+                                  , const TempSOA& Pm, const TempSOA& Pp
+                                  , const TempSOA& sm, const TempSOA& sp
+                                  , const TempSOA& star);
+    
+    virtual void _zextraterm_hllc(const TempSOA& v0m, const TempSOA& v0p, const TempSOA& v1m, const TempSOA& v1p
+                                  , const TempSOA& Gm, const TempSOA& Gp
+                                  , const TempSOA& Pm, const TempSOA& Pp
+                                  , const TempSOA& s0m, const TempSOA& s0p , const TempSOA& s1m, const TempSOA& s1p
+                                  , const TempSOA& star0, const TempSOA& star1);
     
     virtual void _char_vel_hllc(const TempSOA& rm, const TempSOA& rp,
                                 const TempSOA& vm, const TempSOA& vp,
@@ -217,6 +225,7 @@ protected:
 	
     virtual void _xflux_hllc(const int relid);
     virtual void _yflux_hllc(const int relid);
+    virtual void _zflux_hllc(const int relid);
     
 	virtual void _xrhs();
 	virtual void _yrhs();
