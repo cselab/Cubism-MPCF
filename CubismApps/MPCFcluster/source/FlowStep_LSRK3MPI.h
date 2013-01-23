@@ -28,7 +28,7 @@
 typedef BlockLabMPI<Lab> LabMPI;
 
 //profile information
-namespace LSRK3MPIdata 
+namespace LSRK3MPIdata
 {
     double t_fs = 0, t_up = 0;
     double t_synch_fs = 0, t_bp_fs = 0;
@@ -40,15 +40,15 @@ namespace LSRK3MPIdata
     void notify(double avg_time_rhs, double avg_time_update, const size_t NBLOCKS, const size_t NTIMES)
     {
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
-				histogram.consolidate();
-			
+            histogram.consolidate();
+        
 		histogram.notify("FLOWSTEP", (float)avg_time_rhs);
 		histogram.notify("UPDATE", (float)avg_time_update);
 		histogram.notify("STEPID", (float)LSRK3data::step_id);
 		
 		histogram.notify("NSYNCH", (float)nsynch/NTIMES);
 		nsynch = 0;
-
+        
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
 		{
 			double global_t_synch_fs = 0, global_t_bp_fs = 0;
@@ -86,7 +86,7 @@ namespace LSRK3MPIdata
 				cout << "===========================STAGE===========================" << endl;
 				cout << "Synch done in "<< global_counter/NRANKS/(double)LSRK3data::ReportFreq << " passes" << endl;
 				cout << "SYNCHRONIZER FLOWSTEP "<< global_t_synch_fs/NRANKS/(double)LSRK3data::ReportFreq << " s" << endl;
-				cout << "BP FLOWSTEP "<< global_t_bp_fs/NRANKS/(double)LSRK3data::ReportFreq << " s" << endl;      
+				cout << "BP FLOWSTEP "<< global_t_bp_fs/NRANKS/(double)LSRK3data::ReportFreq << " s" << endl;
 				cout << "======================================================" << endl;
 				
 				Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, NBLOCKS*NRANKS, global_t_fs/(double)LSRK3data::ReportFreq/NRANKS);
@@ -97,10 +97,10 @@ namespace LSRK3MPIdata
 }
 
 template<typename Lab, typename Operator, typename TGrid>
-void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t=0, bool tensorial=false) 
-{    
+void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t=0, bool tensorial=false)
+{
 #pragma omp parallel
-    {       
+    {
         vector<BlockInfo>myInfo = vInfo;
         BlockInfo * ary = &myInfo.front();
         
@@ -113,7 +113,7 @@ void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t=
         mylab.prepare(grid, synch);
         
 #pragma omp for schedule(runtime)
-        for(int i=0; i<N; i++) 
+        for(int i=0; i<N; i++)
         {
             mylab.load(ary[i], t);
             myrhs(mylab, ary[i], *(FluidBlock*)ary[i].ptrBlock);
@@ -139,7 +139,7 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 	
 	template<typename Kflow, typename Kupdate>
 	struct LSRKstepMPI
-	{	       
+	{
 		LSRKstepMPI(TGrid& grid, Real dtinvh, const Real current_time)
 		{
 			vector<BlockInfo> vInfo = grid.getBlocksInfo();
@@ -158,20 +158,20 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 		
 		pair<double, double> step(TGrid& grid, vector<BlockInfo>& vInfo, Real a, Real b, Real dtinvh, const Real current_time)
 		{
-			Timer timer;	
-            LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);   
-                    
-            timer.start();            
+			Timer timer;
+            LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
+            
+            timer.start();
 			
             SynchronizerMPI& synch = ((TGrid&)grid).sync(rhs);
             
 			while (!synch.done())
-			{			
+			{
 				Timer timer2;
-				  
+                
 				timer2.start();
 				vector<BlockInfo> avail = synch.avail(LSRK3MPIdata::GSYNCH);
-				LSRK3MPIdata::t_synch_fs += timer2.stop();                           
+				LSRK3MPIdata::t_synch_fs += timer2.stop();
 				
 				timer2.start();
 				_process< LabMPI >(avail, rhs, (TGrid&)grid, current_time);
@@ -180,7 +180,7 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 				LSRK3MPIdata::counter++;
 				LSRK3MPIdata::nsynch++;
 			}
-
+            
             const double totalRHS = timer.stop();
 			
 			LSRK3data::Update<Kupdate> update(b, &vInfo.front());
@@ -196,9 +196,9 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 	};
 	
 public:
-
+    
 	FlowStep_LSRK3MPI(TGrid & grid, const Real CFL, const Real gamma1, const Real gamma2, ArgumentParser& parser, const int verbosity, Profiler* profiler=NULL, const Real pc1=0, const Real pc2=0):
-		FlowStep_LSRK3(grid, CFL, gamma1, gamma2, parser, verbosity, profiler, pc1, pc2), grid(grid) 
+    FlowStep_LSRK3(grid, CFL, gamma1, gamma2, parser, verbosity, profiler, pc1, pc2), grid(grid)
     {
         if (verbosity>=1) cout << "GSYNCH " << parser("-gsync").asInt(LSRK3data::TLP) << endl;
     }
@@ -209,19 +209,25 @@ public:
         
         //here we just check stuff and compute the next dt
         if (verbosity>=1 && LSRK3data::step_id==0)
-            cout << "Grid spacing and smoothing length are: " << h << ", " << smoothlength << endl; 
+        {
+            cout << "Grid spacing and smoothing length are: " << h << ", " << smoothlength << endl;
+        }
+            
+        LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(LSRK3data::TLP);
+            
+        const Real maxSOS = _computeSOS();
+        double dt = min(max_dt, CFL*h/maxSOS);
         
-		LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(LSRK3data::TLP);
+        if (MPI::COMM_WORLD.Get_rank()==0)
+        {
+            cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";
+        }
         
-		const Real maxSOS = _computeSOS();
-		double dt = min(max_dt, CFL*h/maxSOS);
-		
-		if (verbosity>=1)
-		{
-			cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";   
-			cout << "dt is "<< dt << "\n";
-			cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
-		}
+        if (verbosity>=1)
+        {            
+            cout << "dt is "<< dt << "\n";
+            cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
+        }
         
         if (maxSOS>1e6)
         {
@@ -235,27 +241,32 @@ public:
             
             return 0;
         }
-		
+        
         //now we perform an entire RK step
-		if (parser("-kernels").asString("cpp")=="cpp")
-			LSRKstepMPI<Convection_CPP, Update_CPP>(grid, dt/h, current_time);
+        if (parser("-kernels").asString("cpp")=="cpp")
+        {
+            LSRKstepMPI<Convection_CPP, Update_CPP>(grid, dt/h, current_time);
+        }
 #ifdef _SSE_
-		else if (parser("-kernels").asString("cpp")=="sse")
-			LSRKstepMPI<Convection_SSE, Update_SSE>(grid, dt/h, current_time);
+        else if (parser("-kernels").asString("cpp")=="sse")
+        {
+            LSRKstepMPI<Convection_SSE, Update_SSE>(grid, dt/h, current_time);
+        }
 #endif
 #ifdef _AVX_
-    	else if (parser("-kernels").asString("cpp")=="avx")
-			LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
+        else if (parser("-kernels").asString("cpp")=="avx")
+        {
+            LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
+        }
 #endif
-		else
-		{
-			cout << "combination not supported yet" << endl;
-			MPI::COMM_WORLD.Abort(1);
-		}
-		
-		LSRK3data::step_id++; current_time+=dt;
-		
-		return dt;
-	}
+        else
+        {
+            cout << "combination not supported yet" << endl;
+            MPI::COMM_WORLD.Abort(1);
+        }
+        
+        LSRK3data::step_id++; current_time+=dt;
+        
+        return dt;
+        }
 };
-

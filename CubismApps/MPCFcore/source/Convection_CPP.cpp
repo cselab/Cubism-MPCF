@@ -525,8 +525,8 @@ void Convection_CPP::_char_vel(const TempSOA& rm, const TempSOA& rp,
 			const Real cminus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy)+Pm(ix,iy)/Gm(ix,iy)/(1/Gm(ix,iy)+1))*((Real)1/rm(ix, iy)), (Real)0));
 			const Real cplus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy)+Pp(ix,iy)/Gp(ix,iy)/(1/Gp(ix,iy)+1))*((Real)1/rp(ix, iy)), (Real)0));
             
-            outm.ref(ix, iy) = std::min((Real)0, vm(ix, iy) - cminus);//min(vm(ix, iy) - cminus, vp(ix, iy) - cplus);
-            outp.ref(ix, iy) = std::max((Real)0, vp(ix, iy) + cplus );//max(vm(ix, iy) + cminus, vp(ix, iy) + cplus);//TESTING
+            outm.ref(ix, iy) = std::min((Real)0, vm(ix, iy) - cminus);
+            outp.ref(ix, iy) = std::max((Real)0, vp(ix, iy) + cplus );
 		}
 	
 }
@@ -566,8 +566,8 @@ void Convection_CPP::_char_vel_hllc(const TempSOA& rm, const TempSOA& rp,
             const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
             const Real p_star = 0.5*(p_minus+p_plus+(v_minus-v_plus)*rho_hat_a_hat);
             
-            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+0.5*(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));//I NEED Pc HERE?
-            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+0.5*(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));//I NEED Pc HERE?
+            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+0.5*(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));
+            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+0.5*(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));
             
             const Real s_minus = v_minus - a_minus*q_minus;
             const Real s_plus  = v_plus  + a_plus *q_plus;

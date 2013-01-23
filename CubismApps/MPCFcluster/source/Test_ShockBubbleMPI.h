@@ -116,7 +116,7 @@ public:
         {
             FILE * f = fopen("integrals.dat", "a");
             fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3, 
-                    g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke, g_r2Int*h3, g_mach_max, g_p_max);
+                    g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke*h3, g_r2Int*h3, g_mach_max, g_p_max);
             fclose(f);
         }
         

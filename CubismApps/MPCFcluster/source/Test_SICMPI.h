@@ -91,7 +91,8 @@ public:
 				profiler.printSummary();
             
             profiler.push_start("DUMP STATISTICS");
-            t_sbmpi->dumpStatistics(*grid, step_id, t, dt);
+            if (step_id%ANALYSISPERIOD==0)
+                t_sbmpi->dumpStatistics(*grid, step_id, t, dt);
             profiler.pop_stop();
             
             profiler.push_start("DUMP ANALYSIS");
