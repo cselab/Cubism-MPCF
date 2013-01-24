@@ -181,14 +181,6 @@ void Convection_CPP::_convert(const Real * const gptfirst, const int gptfloats, 
 			p.ref(dx, dy) = (pt.s - (pt.u*pt.u + pt.v*pt.v + pt.w*pt.w)*(((Real)0.5)/pt.r)-pt.P)/pt.G;
 			G.ref(dx, dy) = pt.G;
 			P.ref(dx, dy) = pt.P;
-			
-			/*assert(!isnan(rho.ref(dx, dy)));
-             assert(!isnan(u.ref(dx, dy)));
-             assert(!isnan(v.ref(dx, dy)));
-             assert(!isnan(w.ref(dx, dy)));
-             assert(!isnan(p.ref(dx, dy)));
-             assert(!isnan(G.ref(dx, dy)));*/
-			//assert(!isnan(P.ref(dx, dy)));
 		}
 }
 
@@ -623,8 +615,8 @@ void Convection_CPP::_hllc_rho(const TempSOA& rm, const TempSOA& rp,
             const Real q_star_minus = rho_minus*(s_minus-v_minus)/(s_minus-u_star);
             const Real q_star_plus  = rho_plus *(s_plus -v_plus )/(s_plus -u_star);
             
-            const Real fminus = vm(ix, iy)*rm(ix, iy);
-			const Real fplus  = vp(ix, iy)*rp(ix, iy);
+            const Real fminus = v_minus*rho_minus;
+			const Real fplus  = v_plus*rho_plus;
             
             const Real f_star_minus = fminus + s_minus*(q_star_minus-rho_minus);
             const Real f_star_plus  = fplus  + s_plus *(q_star_plus -rho_plus );

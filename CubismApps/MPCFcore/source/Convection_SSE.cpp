@@ -45,7 +45,7 @@ const __m128 alpha2 = F_3_10*better_rcp(is2*is2); \
 const __m128 inv_alpha = better_rcp(alpha0+alpha1+alpha2); \
 const __m128 omega0=alpha0 * inv_alpha; \
 const __m128 omega1=alpha1 * inv_alpha; \
-const __m128 omega2= one-omega0-omega1; 
+const __m128 omega2= one-omega0-omega1;
 
 #else
 
@@ -56,10 +56,10 @@ const __m128 alpha2 = F_3_10/(is2*is2);		   \
 const __m128 inv_alpha = better_rcp(alpha0+alpha1+alpha2); \
 const __m128 omega0=alpha0 * inv_alpha; \
 const __m128 omega1=alpha1 * inv_alpha; \
-const __m128 omega2= one-omega0-omega1; 
+const __m128 omega2= one-omega0-omega1;
 #endif
 
-#else 
+#else
 
 #define WENO_OMEGAS \
 const __m128 alpha0 = F_1_10 / (is0*is0); \
@@ -68,7 +68,7 @@ const __m128 alpha2 = F_3_10 / (is2*is2); \
 const __m128 inv_alpha = one / (alpha0+alpha1+alpha2); \
 const __m128 omega0 = alpha0 * inv_alpha; \
 const __m128 omega1 = alpha1 * inv_alpha; \
-const __m128 omega2 = one - omega0 - omega1; 
+const __m128 omega2 = one - omega0 - omega1;
 
 #endif
 
@@ -95,9 +95,9 @@ omega2 *(F_1_3*d + F_5_6*c + M_1_6*b)	);
 #include "Convection_SSE.h"
 
 void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const int gptfloats, const int rowgpts,
-					  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const G
-					  , float * const P
-)
+                                          float * const rho, float * const u, float * const v, float * const w, float * const p, float * const G
+                                          , float * const P
+                                          )
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5f);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5f);
@@ -128,7 +128,7 @@ void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const in
 			
 			_mm_store_ps(rho + DESTID, dataA0);
 #ifdef _PREC_DIV_
-			const __m128 inv_rho = F_1/dataA0;			
+			const __m128 inv_rho = F_1/dataA0;
 #else
 			const __m128 inv_rho = better_rcp(dataA0);
 #endif
@@ -139,10 +139,10 @@ void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const in
 			_MM_TRANSPOSE4_PS(dataA1, dataB1, dataC1, dataD1);
 			
 			_mm_store_ps(G + DESTID, dataB1);
-
+            
 			_mm_store_ps(P + DESTID, dataC1);
 			_mm_store_ps(p + DESTID,
-                                     (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho) - dataC1)/dataB1);
+                         (dataA1 - (dataB0*dataB0 + dataC0*dataC0 + dataD0*dataD0)*(F_1_2*inv_rho) - dataC1)/dataB1);
 		}
 	}
 	
@@ -151,8 +151,8 @@ void Convection_SSE::_sse_convert_aligned(const float * const gptfirst, const in
 
 void Convection_SSE::_sse_convert(const float * const gptfirst, const int gptfloats, const int rowgpts,
 								  float * const rho, float * const u, float * const v, float * const w, float * const p, float * const G
-				  , float * const P
-)
+                                  , float * const P
+                                  )
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5f);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5f);
@@ -183,7 +183,7 @@ void Convection_SSE::_sse_convert(const float * const gptfirst, const int gptflo
 			
 			_mm_store_ps(rho + DESTID, dataA0);
 #ifdef _PREC_DIV_
-			const __m128 inv_rho = F_1/dataA0;			
+			const __m128 inv_rho = F_1/dataA0;
 #else
 			const __m128 inv_rho = better_rcp(dataA0);
 #endif
@@ -211,8 +211,8 @@ void Convection_SSE::_sse_xweno_minus(const float * const in, float * const out)
 	
 	for(int dy=0; dy<TempSOA::NY; dy++)
 		for(int dx=0; dx<TempSOA::NX; dx+=4)
-		{			
-			const __m128 W = _mm_load_ps(&in[dx + SX*dy]); 
+		{
+			const __m128 W = _mm_load_ps(&in[dx + SX*dy]);
 			const __m128 C = _mm_load_ps(&in[dx+4 + SX*dy]);
 			const __m128 E = _mm_load_ps(&in[dx+8 + SX*dy]);
 			
@@ -236,8 +236,8 @@ void Convection_SSE::_sse_xweno_pluss(const float * const in, float * const out)
 	
 	for(int dy=0; dy<TempSOA::NY; dy++)
 		for(int dx=0; dx<TempSOA::NX; dx+=4)
-		{			
-			const __m128 W = _mm_load_ps(&in[dx + SX*dy]); 
+		{
+			const __m128 W = _mm_load_ps(&in[dx + SX*dy]);
 			const __m128 C = _mm_load_ps(&in[dx+4 + SX*dy]);
 			const __m128 E = _mm_load_ps(&in[dx+8 + SX*dy]);
 			
@@ -254,7 +254,7 @@ void Convection_SSE::_sse_xweno_pluss(const float * const in, float * const out)
 }
 
 void Convection_SSE::_sse_yweno_minus(const float * const in, float * const out)
-{	
+{
 	WENO_CONSTANTS
 	
 	static const int SX = InputSOA::PITCH;
@@ -264,7 +264,7 @@ void Convection_SSE::_sse_yweno_minus(const float * const in, float * const out)
 		const float * ptr = &in[dy];
 		
 		for(int dx=0; dx<TempSOA::NX; dx++)
-		{			
+		{
 			const __m128 a = _mm_load_ps(ptr + dx*SX);
 			const __m128 b = _mm_load_ps(ptr + dx*SX + SX);
 			const __m128 c = _mm_load_ps(ptr + dx*SX + 2*SX);
@@ -301,7 +301,7 @@ void Convection_SSE::_sse_yweno_minus(const float * const in, float * const out)
 }
 
 void Convection_SSE::_sse_yweno_pluss(const float * const in, float * const out)
-{	
+{
 	WENO_CONSTANTS
 	
 	static const int SX = InputSOA::PITCH;
@@ -311,7 +311,7 @@ void Convection_SSE::_sse_yweno_pluss(const float * const in, float * const out)
 		const float * ptr = &in[dy];
 		
 		for(int dx=0; dx<TempSOA::NX; dx++)
-		{			
+		{
 			const __m128 b = _mm_load_ps(ptr + dx*SX + SX);
 			const __m128 c = _mm_load_ps(ptr + dx*SX + 2*SX);
 			const __m128 d = _mm_load_ps(ptr + dx*SX + 3*SX);
@@ -348,8 +348,8 @@ void Convection_SSE::_sse_yweno_pluss(const float * const in, float * const out)
 	}
 }
 
-void Convection_SSE::_sse_zweno_minus(const float * const a_, const float * const b_, 
-									  const float * const c_, const float * const d_, 
+void Convection_SSE::_sse_zweno_minus(const float * const a_, const float * const b_,
+									  const float * const c_, const float * const d_,
 									  const float * const e_ , float * const out) const
 {
 	WENO_CONSTANTS
@@ -358,7 +358,7 @@ void Convection_SSE::_sse_zweno_minus(const float * const a_, const float * cons
 	
 	for(int dy=0; dy<TempSOA::NY; dy++)
 		for(int dx=0; dx<TempSOA::NX; dx+=4)
-		{			
+		{
 			const __m128 a = _mm_load_ps(a_ + dx + SX*dy);
 			const __m128 b = _mm_load_ps(b_ + dx + SX*dy);
 			const __m128 c = _mm_load_ps(c_ + dx + SX*dy);
@@ -368,11 +368,11 @@ void Convection_SSE::_sse_zweno_minus(const float * const a_, const float * cons
 			WENO_MINUS
 			
 			_mm_store_ps(&out[dx + TempSOA::PITCH*dy], recdata);
-		}	
+		}
 }
 
-void Convection_SSE::_sse_zweno_pluss(const float * const b_, const float * const c_, 
-									  const float * const d_, const float * const e_, 
+void Convection_SSE::_sse_zweno_pluss(const float * const b_, const float * const c_,
+									  const float * const d_, const float * const e_,
 									  const float * const f_ , float * const out) const
 {
 	WENO_CONSTANTS
@@ -381,7 +381,7 @@ void Convection_SSE::_sse_zweno_pluss(const float * const b_, const float * cons
 	
 	for(int dy=0; dy<TempSOA::NY; dy++)
 		for(int dx=0; dx<TempSOA::NX; dx+=4)
-		{			
+		{
 			const __m128 b = _mm_load_ps(b_ + dx + SX*dy);
 			const __m128 c = _mm_load_ps(c_ + dx + SX*dy);
 			const __m128 d = _mm_load_ps(d_ + dx + SX*dy);
@@ -391,7 +391,30 @@ void Convection_SSE::_sse_zweno_pluss(const float * const b_, const float * cons
 			WENO_PLUS
 			
 			_mm_store_ps(&out[dx + TempSOA::PITCH*dy], recdata);
-		}	
+		}
+}
+
+void Convection_SSE::_sse_u_hllc(const float * const in_v_minus, const float * const in_v_plus, const float * const in_s_minus, const float * const in_s_plus, const float * const in_u_star, float * const out_u_hllc)
+{
+    const __m128 v_minus = _mm_load_ps(in_v_minus);
+    const __m128 v_plus = _mm_load_ps(in_v_plus);
+    const __m128 s_minus = _mm_load_ps(in_s_minus);
+    const __m128 s_plus = _mm_load_ps(in_s_plus);
+    const __m128 u_star = _mm_load_ps(in_u_star);
+    
+    const __m128 flag_pos = _mm_cmpgt_ps(u_star, _mm_setzero_ps());
+    const __m128 not_flag_neg = _mm_cmpge_ps(u_star, _mm_setzero_ps());
+    const __m128 flagother = _mm_andnot_ps(flag_pos, not_flag_neg);
+    
+    const __m128 signum = _3ORPS_(_mm_and_ps(flag_pos, _mm_set_ps1(1.)), _mm_andnot_ps(not_flag_neg, _mm_set_ps1(-1.)), _mm_and_ps(flagother, _mm_setzero_ps()));
+    
+    const __m128 xi_minus = (s_minus-v_minus)/(s_minus-u_star);
+    const __m128 xi_plus  = (s_plus -v_plus )/(s_plus -u_star);
+    
+    const __m128 term1 = _mm_set_ps1(0.5)*(_mm_set_ps1(1.)+signum)*(v_minus+s_minus*(xi_minus-_mm_set_ps1(1.)));
+    const __m128 term2 = _mm_set_ps1(0.5)*(_mm_set_ps1(1.)-signum)*(v_plus +s_plus *(xi_plus -_mm_set_ps1(1.)));
+    
+    _mm_store_ps(out_u_hllc,term1+term2);
 }
 
 void Convection_SSE::_sse_hlle_rho(const float * const rm, const float * const rp,
@@ -401,13 +424,13 @@ void Convection_SSE::_sse_hlle_rho(const float * const rm, const float * const r
 {
 	static const int P = TempSOA::PITCH;
 	
-#define ID (ix + P*iy)	
+#define ID (ix + P*iy)
 	
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix+=4)
 		{
 			const __m128 flagminus	= _mm_cmpgt_ps(_mm_load_ps(am + ID),_mm_setzero_ps());
-			const __m128 nonflagplus  = _mm_cmpge_ps(_mm_load_ps(ap + ID),_mm_setzero_ps()); 
+			const __m128 nonflagplus  = _mm_cmpge_ps(_mm_load_ps(ap + ID),_mm_setzero_ps());
 			const __m128 flagother	= _mm_andnot_ps(flagminus, nonflagplus);
 			
 			const __m128 rminus = _mm_load_ps(rm + ID);
@@ -419,7 +442,7 @@ void Convection_SSE::_sse_hlle_rho(const float * const rm, const float * const r
 #define aminus _mm_load_ps(am + ID)
 #define apluss _mm_load_ps(ap + ID)
 			
-#ifdef _PREC_DIV_						
+#ifdef _PREC_DIV_
 			const __m128 fother = (apluss*fminus-aminus*fpluss+aminus*apluss*(rpluss-rminus))/(apluss-aminus);
 #else
 			const __m128 fother = (apluss*fminus-aminus*fpluss+aminus*apluss*(rpluss-rminus))*better_rcp(apluss-aminus);
@@ -431,6 +454,88 @@ void Convection_SSE::_sse_hlle_rho(const float * const rm, const float * const r
 #undef apluss
 }
 
+void Convection_SSE::_sse_hllc_rho(const float * const rm, const float * const rp,
+								   const float * const vm, const float * const vp,
+								   const float * const sm, const float * const sp,
+								   const float * const star, float * const out)
+{
+	static const int P = TempSOA::PITCH;
+	
+#define ID (ix + P*iy)
+	
+	for(int iy=0; iy<TempSOA::NY; iy++)
+		for(int ix=0; ix<TempSOA::NX; ix+=4)
+		{
+            const __m128 rho_minus = _mm_load_ps(rm + ID);
+			const __m128 rho_plus  = _mm_load_ps(rp + ID);
+            
+            const __m128 v_minus = _mm_load_ps(vm + ID);
+			const __m128 v_plus  = _mm_load_ps(vp + ID);
+            
+            const __m128 s_minus = _mm_load_ps(sm + ID);
+            const __m128 s_plus  = _mm_load_ps(sp + ID);
+            const __m128 u_star = _mm_load_ps(star + ID);
+            
+            const __m128 q_star_minus = rho_minus*(s_minus-v_minus)/(s_minus-u_star);
+            const __m128 q_star_plus  = rho_plus *(s_plus -v_plus )/(s_plus -u_star);
+            
+            const __m128 fminus = v_minus*rho_minus;
+			const __m128 fplus  = v_plus*rho_plus;
+            
+            const __m128 f_star_minus = fminus + s_minus*(q_star_minus-rho_minus);
+            const __m128 f_star_plus  = fplus  + s_plus *(q_star_plus -rho_plus );
+            
+            const __m128 flagminus	= _mm_cmpgt_ps(s_minus,_mm_setzero_ps());
+			const __m128 flagplus  = _mm_cmplt_ps(s_plus,_mm_setzero_ps());
+			const __m128 flagother_minus = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmpge_ps(u_star,_mm_setzero_ps()),_mm_cmple_ps(s_minus,_mm_setzero_ps())));
+            const __m128 flagother_plus  = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmplt_ps(u_star,_mm_setzero_ps()),_mm_cmpge_ps(s_plus,_mm_setzero_ps())));
+            
+			_mm_store_ps(out + ID, _4ORPS_(_mm_and_ps(flagminus, fminus), _mm_and_ps(flagplus, fplus), _mm_and_ps(flagother_minus, f_star_minus), _mm_and_ps(flagother_plus,f_star_plus)));
+		}
+#undef ID
+}
+
+void Convection_SSE::_sse_hllc_phi(const float * const phim, const float * const phip,
+								   const float * const vm, const float * const vp,
+								   const float * const sm, const float * const sp,
+								   const float * const star, float * const out)
+{
+	static const int P = TempSOA::PITCH;
+	
+#define ID (ix + P*iy)
+	
+	for(int iy=0; iy<TempSOA::NY; iy++)
+		for(int ix=0; ix<TempSOA::NX; ix+=4)
+		{
+            const __m128 phi_minus = _mm_load_ps(phim + ID);
+			const __m128 phi_plus  = _mm_load_ps(phip + ID);
+            
+            const __m128 v_minus = _mm_load_ps(vm + ID);
+			const __m128 v_plus  = _mm_load_ps(vp + ID);
+            
+            const __m128 s_minus = _mm_load_ps(sm + ID);
+            const __m128 s_plus  = _mm_load_ps(sp + ID);
+            const __m128 u_star = _mm_load_ps(star + ID);
+            
+            const __m128 q_star_minus = phi_minus*(s_minus-v_minus)/(s_minus-u_star);
+            const __m128 q_star_plus  = phi_plus *(s_plus -v_plus )/(s_plus -u_star);
+            
+            const __m128 fminus = v_minus*phi_minus;
+			const __m128 fplus  = v_plus*phi_plus;
+            
+            const __m128 f_star_minus = fminus + s_minus*(q_star_minus-phi_minus);
+            const __m128 f_star_plus  = fplus  + s_plus *(q_star_plus -phi_plus );
+            
+            const __m128 flagminus	= _mm_cmpgt_ps(s_minus,_mm_setzero_ps());
+			const __m128 flagplus  = _mm_cmplt_ps(s_plus,_mm_setzero_ps());
+			const __m128 flagother_minus = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmpge_ps(u_star,_mm_setzero_ps()),_mm_cmple_ps(s_minus,_mm_setzero_ps())));
+            const __m128 flagother_plus  = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmplt_ps(u_star,_mm_setzero_ps()),_mm_cmpge_ps(s_plus,_mm_setzero_ps())));
+            
+			_mm_store_ps(out + ID, _4ORPS_(_mm_and_ps(flagminus, fminus), _mm_and_ps(flagplus, fplus), _mm_and_ps(flagother_minus, f_star_minus), _mm_and_ps(flagother_plus,f_star_plus)));
+		}
+#undef ID
+}
+
 void Convection_SSE::_sse_hlle_vel(const float * const rm, const float * const rp,
 								   const float * const vm, const float * const vp,
 								   const float * const vdm, const float * const vdp,
@@ -439,13 +544,13 @@ void Convection_SSE::_sse_hlle_vel(const float * const rm, const float * const r
 {
 	static const int P = TempSOA::PITCH;
 	
-#define ID (ix + P*iy)	
+#define ID (ix + P*iy)
 	
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix+=4)
 		{
 			const __m128 flagminus	= _mm_cmpgt_ps(_mm_load_ps(am + ID),_mm_setzero_ps());
-			const __m128 nonflagplus  = _mm_cmpge_ps(_mm_load_ps(ap + ID),_mm_setzero_ps()); 
+			const __m128 nonflagplus  = _mm_cmpge_ps(_mm_load_ps(ap + ID),_mm_setzero_ps());
 			const __m128 flagother	= _mm_andnot_ps(flagminus, nonflagplus);
 			
 			const __m128 uminus = _mm_load_ps(vm + ID)*_mm_load_ps(rm + ID);
@@ -457,7 +562,7 @@ void Convection_SSE::_sse_hlle_vel(const float * const rm, const float * const r
 #define aminus _mm_load_ps(am + ID)
 #define apluss _mm_load_ps(ap + ID)
 			
-#ifdef _PREC_DIV_						
+#ifdef _PREC_DIV_
 			const __m128 fother = (apluss*fminus-aminus*fpluss+aminus*apluss*(upluss-uminus))/(apluss-aminus);
 #else
 			const __m128 fother = (apluss*fminus-aminus*fpluss+aminus*apluss*(upluss-uminus))*better_rcp(apluss-aminus);
@@ -467,6 +572,52 @@ void Convection_SSE::_sse_hlle_vel(const float * const rm, const float * const r
 #undef ID
 #undef aminus
 #undef apluss
+}
+
+void Convection_SSE::_sse_hllc_vel(const float * const rm, const float * const rp,
+								   const float * const vm, const float * const vp,
+								   const float * const vdm, const float * const vdp,
+								   const float * const sm, const float * const sp,
+                                   const float * const star,
+								   float * const out)
+{
+	static const int P = TempSOA::PITCH;
+	
+#define ID (ix + P*iy)
+	
+	for(int iy=0; iy<TempSOA::NY; iy++)
+		for(int ix=0; ix<TempSOA::NX; ix+=4)
+		{
+            const __m128 rho_minus = _mm_load_ps(rm + ID);
+			const __m128 rho_plus  = _mm_load_ps(rp + ID);
+            
+            const __m128 v_minus = _mm_load_ps(vm + ID);
+			const __m128 v_plus  = _mm_load_ps(vp + ID);
+            
+            const __m128 vd_minus = _mm_load_ps(vdm + ID);
+			const __m128 vd_plus  = _mm_load_ps(vdp + ID);
+            
+            const __m128 s_minus = _mm_load_ps(sm + ID);
+            const __m128 s_plus  = _mm_load_ps(sp + ID);
+            const __m128 u_star = _mm_load_ps(star + ID);
+            
+            const __m128 q_star_minus = rho_minus*vd_minus*(s_minus-v_minus)/(s_minus-u_star);
+            const __m128 q_star_plus  = rho_plus *vd_plus *(s_plus -v_plus )/(s_plus -u_star);
+            
+            const __m128 fminus = v_minus*vd_minus*rho_minus;
+			const __m128 fplus  = v_plus *vd_plus *rho_plus ;
+            
+            const __m128 f_star_minus = fminus + s_minus*(q_star_minus-rho_minus*vd_minus);
+            const __m128 f_star_plus  = fplus  + s_plus *(q_star_plus -rho_plus *vd_plus );
+            
+            const __m128 flagminus	= _mm_cmpgt_ps(s_minus,_mm_setzero_ps());
+			const __m128 flagplus  = _mm_cmplt_ps(s_plus,_mm_setzero_ps());
+			const __m128 flagother_minus = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmpge_ps(u_star,_mm_setzero_ps()),_mm_cmple_ps(s_minus,_mm_setzero_ps())));
+            const __m128 flagother_plus  = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmplt_ps(u_star,_mm_setzero_ps()),_mm_cmpge_ps(s_plus,_mm_setzero_ps())));
+			
+            _mm_store_ps(out + ID, _4ORPS_(_mm_and_ps(flagminus, fminus), _mm_and_ps(flagplus, fplus), _mm_and_ps(flagother_minus, f_star_minus), _mm_and_ps(flagother_plus,f_star_plus)));
+		}
+#undef ID
 }
 
 void Convection_SSE::_sse_hlle_pvel(const float * const rm, const float * const rp,
@@ -479,7 +630,7 @@ void Convection_SSE::_sse_hlle_pvel(const float * const rm, const float * const 
 #define ID (ix + P*iy)
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix+=4)
-		{			
+		{
 #define myvminus _mm_load_ps(vm + ID)
 #define myvpluss _mm_load_ps(vp + ID)
 			
@@ -493,10 +644,10 @@ void Convection_SSE::_sse_hlle_pvel(const float * const rm, const float * const 
 #define apluss _mm_load_ps(ap + ID)
 			
 #define flagminus	_mm_cmpgt_ps(aminus,_mm_setzero_ps())
-#define nonflagplus _mm_cmpge_ps(apluss,_mm_setzero_ps()) 
-#define flagother	_mm_andnot_ps(flagminus, nonflagplus)		
+#define nonflagplus _mm_cmpge_ps(apluss,_mm_setzero_ps())
+#define flagother	_mm_andnot_ps(flagminus, nonflagplus)
 			
-#ifdef _PREC_DIV_						
+#ifdef _PREC_DIV_
 #define fother (apluss*fminus-aminus*fpluss+aminus*apluss*(upluss-uminus))/(apluss-aminus)
 #else
 #define fother (apluss*fminus-aminus*fpluss+aminus*apluss*(upluss-uminus))*better_rcp(apluss-aminus)
@@ -514,13 +665,57 @@ void Convection_SSE::_sse_hlle_pvel(const float * const rm, const float * const 
 #undef fother
 }
 
+void Convection_SSE::_sse_hllc_pvel(const float * const rm, const float * const rp,
+									const float * const vm, const float * const vp,
+									const float * const pm, const float * const pp,
+									const float * const sm, const float * const sp,
+                                    const float * const star,
+									float * const out)
+{
+	static const int P = TempSOA::PITCH;
+#define ID (ix + P*iy)
+	for(int iy=0; iy<TempSOA::NY; iy++)
+		for(int ix=0; ix<TempSOA::NX; ix+=4)
+		{
+            const __m128 rho_minus = _mm_load_ps(rm + ID);
+			const __m128 rho_plus  = _mm_load_ps(rp + ID);
+            
+            const __m128 v_minus = _mm_load_ps(vm + ID);
+			const __m128 v_plus  = _mm_load_ps(vp + ID);
+            
+            const __m128 p_minus = _mm_load_ps(pm + ID);
+            const __m128 p_plus  = _mm_load_ps(pp + ID);
+            
+            const __m128 s_minus = _mm_load_ps(sm + ID);
+            const __m128 s_plus  = _mm_load_ps(sp + ID);
+            const __m128 u_star = _mm_load_ps(star + ID);
+            
+            const __m128 q_star_minus = rho_minus*u_star*(s_minus-v_minus)/(s_minus-u_star);
+            const __m128 q_star_plus  = rho_plus *u_star*(s_plus -v_plus )/(s_plus -u_star);
+            
+            const __m128 fminus = v_minus*v_minus*rho_minus + p_minus;
+			const __m128 fplus  = v_plus *v_plus *rho_plus  + p_plus;
+            
+            const __m128 f_star_minus = fminus + s_minus*(q_star_minus-rho_minus*v_minus);
+            const __m128 f_star_plus  = fplus  + s_plus *(q_star_plus -rho_plus *v_plus );
+            
+            const __m128 flagminus	= _mm_cmpgt_ps(s_minus,_mm_setzero_ps());
+			const __m128 flagplus  = _mm_cmplt_ps(s_plus,_mm_setzero_ps());
+			const __m128 flagother_minus = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmpge_ps(u_star,_mm_setzero_ps()),_mm_cmple_ps(s_minus,_mm_setzero_ps())));
+            const __m128 flagother_plus  = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmplt_ps(u_star,_mm_setzero_ps()),_mm_cmpge_ps(s_plus,_mm_setzero_ps())));
+			
+            _mm_store_ps(out + ID, _4ORPS_(_mm_and_ps(flagminus, fminus), _mm_and_ps(flagplus, fplus), _mm_and_ps(flagother_minus, f_star_minus), _mm_and_ps(flagother_plus,f_star_plus)));
+        }
+#undef ID
+}
+
 void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 								 const float * const vdm, const float * const vdp,
 								 const float * const v1m, const float * const v1p,
 								 const float * const v2m, const float * const v2p,
 								 const float * const pm, const float * const pp,
-								 const float * const Gm, const float * const Gp, 
-				 const float * const Pm, const float * const Pp,
+								 const float * const Gm, const float * const Gp,
+                                 const float * const Pm, const float * const Pp,
 								 const float * const am, const float * const ap,
 								 float * const out)
 {
@@ -533,7 +728,7 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 	
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix+=4)
-		{			
+		{
 #define rminus  _mm_load_ps(rm + ID)
 #define vdminus  _mm_load_ps(vdm + ID)
 #define v1minus  _mm_load_ps(v1m + ID)
@@ -541,9 +736,9 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #define pminus  _mm_load_ps(pm + ID)
 #define Gminus _mm_load_ps(Gm + ID)
 #define Pminus _mm_load_ps(Pm +ID)
-
-		  const __m128 eminus = pminus*Gminus + F_1_2*rminus*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus) + Pminus;
-
+            
+            const __m128 eminus = pminus*Gminus + F_1_2*rminus*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus) + Pminus;
+            
 #define rplus  _mm_load_ps(rp + ID)
 #define  vdplus  _mm_load_ps(vdp + ID)
 #define  v1plus  _mm_load_ps(v1p + ID)
@@ -551,9 +746,9 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #define pplus  _mm_load_ps(pp + ID)
 #define Gplus  _mm_load_ps(Gp + ID)
 #define Pplus _mm_load_ps(Pp +ID)
-
-		  const __m128 eplus = pplus*Gplus + F_1_2*rplus*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus) + Pplus;
-
+            
+            const __m128 eplus = pplus*Gplus + F_1_2*rplus*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus) + Pplus;
+            
 			const __m128 fminus = vdminus*(pminus + eminus);
 			const __m128 fpluss = vdplus *(pplus + eplus);
 			
@@ -561,14 +756,14 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #define apluss _mm_load_ps(ap + ID)
 			
 #define flagminus	_mm_cmpgt_ps(aminus,_mm_setzero_ps())
-#define nonflagplus _mm_cmpge_ps(apluss,_mm_setzero_ps()) 
+#define nonflagplus _mm_cmpge_ps(apluss,_mm_setzero_ps())
 #define flagother	_mm_andnot_ps(flagminus, nonflagplus)
 			
-#ifdef _PREC_DIV_						
+#ifdef _PREC_DIV_
 #define fother	(apluss*fminus-aminus*fpluss+aminus*apluss*(eplus-eminus))/(apluss-aminus)
 #else
 #define fother	(apluss*fminus-aminus*fpluss+aminus*apluss*(eplus-eminus))*better_rcp(apluss-aminus)
-#endif		
+#endif
 			_mm_store_ps(out + ID, _3ORPS_(_mm_and_ps(flagminus, fminus), _mm_andnot_ps(nonflagplus, fpluss), _mm_and_ps(flagother, fother)));
 		}
 #undef ID
@@ -590,16 +785,82 @@ void Convection_SSE::_sse_hlle_e(const float * const rm, const float * const rp,
 #undef nonflagplus
 #undef flagother
 #undef fother
-
+    
 #undef Pminus
 #undef Pplus
 }
 
-void Convection_SSE::_sse_char_vel(const float * const rm, const float * const rp, 
+void Convection_SSE::_sse_hllc_e(const float * const rm, const float * const rp,
+								 const float * const vdm, const float * const vdp,
+								 const float * const v1m, const float * const v1p,
+								 const float * const v2m, const float * const v2p,
+								 const float * const pm, const float * const pp,
+								 const float * const Gm, const float * const Gp,
+                                 const float * const Pm, const float * const Pp,
+								 const float * const sm, const float * const sp,
+                                 const float * const star,
+								 float * const out)
+{
+	static const int P = TempSOA::PITCH;
+#define ID (ix + P*iy)
+	
+	const __m128 F_1_2 = _mm_set_ps1(0.5);
+	
+	for(int iy=0; iy<TempSOA::NY; iy++)
+		for(int ix=0; ix<TempSOA::NX; ix+=4)
+		{
+            const __m128 rho_minus = _mm_load_ps(rm + ID);
+			const __m128 rho_plus  = _mm_load_ps(rp + ID);
+
+            const __m128 v_minus = _mm_load_ps(vdm + ID);
+			const __m128 v_plus  = _mm_load_ps(vdp + ID);
+            
+            const __m128 v1_minus = _mm_load_ps(v1m + ID);
+			const __m128 v1_plus  = _mm_load_ps(v1p + ID);
+
+            const __m128 v2_minus = _mm_load_ps(v2m + ID);
+			const __m128 v2_plus  = _mm_load_ps(v2p + ID);
+
+            const __m128 p_minus = _mm_load_ps(pm + ID);
+            const __m128 p_plus  = _mm_load_ps(pp + ID);
+
+            const __m128 P_minus = _mm_load_ps(Pm + ID);
+            const __m128 P_plus  = _mm_load_ps(Pp + ID);
+            
+            const __m128 G_minus = _mm_load_ps(Gm + ID);
+            const __m128 G_plus  = _mm_load_ps(Gp + ID);
+            
+            const __m128 s_minus = _mm_load_ps(sm + ID);
+            const __m128 s_plus  = _mm_load_ps(sp + ID);
+            const __m128 u_star = _mm_load_ps(star + ID);
+                        
+            const __m128 e_minus = p_minus*G_minus + F_1_2*rho_minus*(v_minus*v_minus + v1_minus*v1_minus + v2_minus*v2_minus) + P_minus;
+            const __m128 e_plus  = p_plus *G_plus  + F_1_2*rho_plus *(v_plus *v_plus  + v1_plus *v1_plus  + v2_plus *v2_plus)  + P_plus;
+            
+            const __m128 q_star_minus = (s_minus-v_minus)/(s_minus-u_star)*(e_minus + (u_star-v_minus)*(rho_minus*u_star+p_minus/(s_minus-v_minus)));
+            const __m128 q_star_plus  = (s_plus -v_plus )/(s_plus -u_star)*(e_plus  + (u_star-v_plus )*(rho_plus *u_star+p_plus /(s_plus -v_plus )));
+            
+            const __m128 fminus = v_minus*(e_minus + p_minus);
+			const __m128 fplus  = v_plus *(e_plus  + p_plus );
+            
+            const __m128 f_star_minus = fminus + s_minus*(q_star_minus- e_minus);
+            const __m128 f_star_plus  = fplus  + s_plus *(q_star_plus - e_plus );
+            
+            const __m128 flagminus	= _mm_cmpgt_ps(s_minus,_mm_setzero_ps());
+			const __m128 flagplus  = _mm_cmplt_ps(s_plus,_mm_setzero_ps());
+			const __m128 flagother_minus = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmpge_ps(u_star,_mm_setzero_ps()),_mm_cmple_ps(s_minus,_mm_setzero_ps())));
+            const __m128 flagother_plus  = _mm_andnot_ps(_mm_or_ps(flagminus, flagplus), _mm_and_ps(_mm_cmplt_ps(u_star,_mm_setzero_ps()),_mm_cmpge_ps(s_plus,_mm_setzero_ps())));
+			
+            _mm_store_ps(out + ID, _4ORPS_(_mm_and_ps(flagminus, fminus), _mm_and_ps(flagplus, fplus), _mm_and_ps(flagother_minus, f_star_minus), _mm_and_ps(flagother_plus,f_star_plus)));
+        }
+#undef ID
+}
+
+void Convection_SSE::_sse_char_vel(const float * const rm, const float * const rp,
 								   const float * const vm, const float * const vp,
 								   const float * const pm, const float * const pp,
-								   const float * const Gm, const float * const Gp, 
-				   const float * const Pm, const float * const Pp,
+								   const float * const Gm, const float * const Gp,
+                                   const float * const Pm, const float * const Pp,
 								   float * const outm, float * const outp)
 {
 	const __m128 F_1_2 = _mm_set_ps1(0.5);
@@ -615,18 +876,76 @@ void Convection_SSE::_sse_char_vel(const float * const rm, const float * const r
 		{
 			const __m128 cminus = _mm_sqrt_ps((F_1/_mm_load_ps(Gm + ID)+F_1)* _mm_max_ps((_mm_load_ps(pm + ID)+_mm_load_ps(Pm + ID))/_mm_load_ps(rm + ID), _mm_setzero_ps()));
 			const __m128 cplus  = _mm_sqrt_ps((F_1/_mm_load_ps(Gp + ID)+F_1)* _mm_max_ps((_mm_load_ps(pp + ID)+_mm_load_ps(Pp + ID))/_mm_load_ps(rp + ID), _mm_setzero_ps()));
-
-		  _mm_store_ps(outm + ID, _mm_min_ps(_mm_load_ps(vm + ID) - cminus, _mm_load_ps(vm + ID) - cplus));
-		  _mm_store_ps(outp + ID, _mm_max_ps(_mm_load_ps(vp + ID) + cminus, _mm_load_ps(vp + ID) + cplus));
+            
+            _mm_store_ps(outm + ID, _mm_min_ps(_mm_load_ps(vm + ID) - cminus, _mm_setzero_ps()));
+            _mm_store_ps(outp + ID, _mm_max_ps(_mm_load_ps(vp + ID) + cplus , _mm_setzero_ps()));
 		}
 #undef ID
 }
 
+void Convection_SSE::_sse_char_vel_hllc(const float * const rm, const float * const rp,
+								   const float * const vm, const float * const vp,
+								   const float * const pm, const float * const pp,
+								   const float * const Gm, const float * const Gp,
+                                   const float * const Pm, const float * const Pp,
+								   float * const outm, float * const outp, float * const out_star)
+{
+	const __m128 F_1_2 = _mm_set_ps1(0.5);
+	const __m128 F_1 = _mm_set_ps1(1);
+    const __m128 F_2 = _mm_set_ps1(2);
+	
+	static const int P = TempSOA::PITCH;
+	
+#define ID (ix + P*iy)
+	
+	for(int iy=0; iy<TempSOA::NY; iy++)
+		for(int ix=0; ix<TempSOA::NX; ix+=4)
+		{
+            const __m128 rho_minus = _mm_load_ps(rm + ID);
+			const __m128 rho_plus  = _mm_load_ps(rp + ID);
+            
+            const __m128 v_minus = _mm_load_ps(vm + ID);
+			const __m128 v_plus  = _mm_load_ps(vp + ID);
+            
+            const __m128 p_minus = _mm_load_ps(pm + ID);
+            const __m128 p_plus  = _mm_load_ps(pp + ID);
+            
+            const __m128 P_minus = _mm_load_ps(Pm + ID);
+            const __m128 P_plus  = _mm_load_ps(Pp + ID);
+            
+            const __m128 G_minus = _mm_load_ps(Gm + ID);
+            const __m128 G_plus  = _mm_load_ps(Gp + ID);
+            
+            const __m128 a_minus = _mm_sqrt_ps((F_1/G_minus+F_1)* _mm_max_ps((p_minus+P_minus/G_minus/(F_1/G_minus+F_1))*(F_1/rho_minus), _mm_setzero_ps()));
+			const __m128 a_plus  = _mm_sqrt_ps((F_1/G_plus +F_1)* _mm_max_ps((p_plus +P_plus /G_plus /(F_1/G_plus +F_1))*(F_1/rho_plus ), _mm_setzero_ps()));
+            
+            const __m128 rho_hat = F_1_2*(rho_minus+rho_plus);
+            const __m128 a_hat   = F_1_2*(a_minus+a_plus);
+            const __m128 rho_hat_a_hat = rho_hat*a_hat;
+            
+            const __m128 u_star = F_1_2*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
+            const __m128 p_star = F_1_2*(p_minus+p_plus+(v_minus-v_plus)*rho_hat_a_hat);
+            
+            const __m128 flag_m = _mm_cmple_ps(p_star,p_minus);
+            const __m128 flag_p = _mm_cmple_ps(p_star,p_plus );
+            
+            const __m128 q_minus = _mm_or_ps(_mm_andnot_ps(flag_m, _mm_sqrt_ps(F_1+F_1_2*(F_2*G_minus+F_1)/(G_minus+F_1)*(p_star/p_minus-F_1))), _mm_and_ps(flag_m, F_1));
+            const __m128 q_plus  = _mm_or_ps(_mm_andnot_ps(flag_p, _mm_sqrt_ps(F_1+F_1_2*(F_2*G_plus +F_1)/(G_plus +F_1)*(p_star/p_plus -F_1))), _mm_and_ps(flag_p, F_1));
+            
+            const __m128 s_minus = v_minus - a_minus*q_minus;
+            const __m128 s_plus  = v_plus  + a_plus *q_plus;
+            
+            _mm_store_ps(out_star + ID, u_star);
+            _mm_store_ps(outm + ID, _mm_min_ps(s_minus, _mm_setzero_ps()));
+            _mm_store_ps(outp + ID, _mm_max_ps(s_plus , _mm_setzero_ps()));
+        }
+#undef ID
+}
 void Convection_SSE::_sse_xrhsadd(const float * const f, float * const r)
 {
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix+=4)
-			_mm_store_ps(r + ix + OutputSOA::PITCH*iy,  
+			_mm_store_ps(r + ix + OutputSOA::PITCH*iy,
 						 _mm_loadu_ps(f + ix + 1 + TempSOA::PITCH*iy) - _mm_load_ps(f + ix + TempSOA::PITCH*iy));
 }
 

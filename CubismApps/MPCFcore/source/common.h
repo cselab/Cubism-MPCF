@@ -195,6 +195,9 @@ inline __m128d getPC(const __m128d phi, const __m128d inv_smoothlength,
 
 #define _3ORPS_(a,b,c) _mm_or_ps(a, _mm_or_ps(b,c))
 #define _3ORPD_(a,b,c) _mm_or_pd(a, _mm_or_pd(b,c))
+
+#define _4ORPS_(a,b,c,d) _mm_or_ps(a, _mm_or_ps(b, _mm_or_ps(c,d)))
+#define _4ORPD_(a,b,c,d) _mm_or_pd(a, _mm_or_pd(b, _mm_or_pd(c,d)))
 #endif //SSE
 
 //AVX-related functions
