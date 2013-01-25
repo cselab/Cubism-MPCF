@@ -6,7 +6,7 @@ VPATH := ../source/ ../../MPCFcore/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-node
 
 OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockBubble.o  Types.o Test_SIC.o Test_1D.o
-OBJECTS += ../../MPCFcore/makefiles/Convection_CPP.o ../../MPCFcore/makefiles/Update.o ../../MPCFcore/makefiles/MaxSpeedOfSound.o 
+OBJECTS += ../../MPCFcore/makefiles/Convection_CPP.o ../../MPCFcore/makefiles/Update.o ../../MPCFcore/makefiles/MaxSpeedOfSound.o ../../MPCFcore/makefiles/DivTensor_CPP.o ../../MPCFcore/makefiles/Diffusion_CPP.o
 OBJECTS += Profiler.o 
 
 ifeq "$(sse)" "1"

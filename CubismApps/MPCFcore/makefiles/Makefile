@@ -17,7 +17,7 @@ include ../../Makefile.config
 
 ###############
 
-OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o 
+OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o DivTensor_CPP.o Diffusion_CPP.o
 
 ifeq "$(sse)" "1"
 	ifeq "$(ap)" "double"
