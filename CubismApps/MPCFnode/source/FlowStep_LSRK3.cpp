@@ -40,7 +40,8 @@ namespace LSRK3data
 	Real smoothlength = -1;
 	Real pc1 = 0;
     Real pc2 = 0;
-	
+	Real nu1 = 0, nu2 = 0;
+    
 	int verbosity;
 	int  NCORES, TLP;
 	float PEAKPERF_CORE, PEAKBAND;
@@ -242,6 +243,8 @@ void FlowStep_LSRK3::set_constants()
     LSRK3data::pc2 = pc2;
     LSRK3data::dispatcher = blockdispatcher;
     LSRK3data::ReportFreq = parser("-report").asInt(20);
+    LSRK3data::nu1    = parser("-nu1").asDouble(0);
+    LSRK3data::nu2    = parser("-nu2").asDouble(LSRK3data::nu1);
  }
 
 Real FlowStep_LSRK3::operator()(const Real max_dt)

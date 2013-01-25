@@ -30,7 +30,8 @@ namespace LSRK3data
 	extern string dispatcher;
 	extern int step_id;
 	extern int ReportFreq;
-	
+	extern Real nu1, nu2;
+    
 	template < typename Kernel , typename Lab>
 	struct FlowStep
 	{
@@ -67,6 +68,39 @@ namespace LSRK3data
 		}
 	};
 	
+    template < typename Kernel, typename Lab >
+    struct Diffusion
+    {
+        StencilInfo stencil;
+        Real nu1, nu2, dtinvh;
+        int stencil_start[3];
+        int stencil_end[3];
+        
+        Diffusion(const Real _dtinvh, const Real _nu1=0, const Real _nu2=0): dtinvh(_dtinvh), nu1(_nu1), nu2(_nu2), stencil(-1,-1,-1,2,2,2, true, 5, 0,1,2,3,5)
+        {
+            stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
+            stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
+        }
+        
+        Diffusion(const Diffusion& c): dtinvh(c.dtinvh), nu1(c.nu1), nu2(c.nu2), stencil(-1,-1,-1,2,2,2, true, 5, 0,1,2,3,5)
+        {
+            stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
+            stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
+        }
+        
+        inline void operator()(Lab& lab, const BlockInfo& info, FluidBlock& o) const
+        {
+            Kernel kernel(1, nu1, nu2, max((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), min((Real)1/(LSRK3data::gamma1-1), (Real)1/(LSRK3data::gamma2-1)), info.h_gridpoint, LSRK3data::smoothlength, dtinvh);
+            
+            const Real * const srcfirst = &lab(-1,-1,-1).rho;
+            const int labSizeRow = lab.template getActualSize<0>();
+            const int labSizeSlice = labSizeRow*lab.template getActualSize<1>();
+            Real * const destfirst =  &o.tmp[0][0][0][0];
+            kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice,
+                           destfirst, FluidBlock::gptfloats, FluidBlock::sizeX, FluidBlock::sizeX*FluidBlock::sizeY);
+        }
+    };
+    
 	template < typename Kernel >
 	struct Update
 	{

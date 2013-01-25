@@ -15,10 +15,12 @@
 
 #include <FlowStep_LSRK3.h>
 #include <Convection_CPP.h>
+#include <Diffusion_CPP.h>
 #include <Update.h>
 
 #ifdef _SSE_
 #include <Convection_SSE.h>
+#include <Diffusion_SSE.h>
 #endif
 #ifdef _AVX_
 #include <Convection_AVX.h>
@@ -36,7 +38,7 @@ namespace LSRK3MPIdata
     
     Histogram histogram;
     
-    template<typename Kflow, typename Kupdate>
+    template<typename Kflow, typename Kupdate, typename Diffusion_CPP>
     void notify(double avg_time_rhs, double avg_time_update, const size_t NBLOCKS, const size_t NTIMES)
     {
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
@@ -183,6 +185,20 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
             
             const double totalRHS = timer.stop();
 			
+            if(LSRK3data::nu1>0)
+            {
+                LSRK3data::Diffusion<Kdiff, Lab> diffusion(dtinvh, LSRK3data::nu1, LSRK3data::nu2);
+				
+                SynchronizerMPI& synch = ((TGrid&)grid).sync(diffusion);
+                
+				while (!synch.done())
+				{
+                    vector<BlockInfo> avail = synch.avail(LSRK3MPIdata::GSYNCH);
+                    
+                    _process< LabMPI >(avail, diffusion, (TGrid&)grid, current_time);
+                }
+            }
+            
 			LSRK3data::Update<Kupdate> update(b, &vInfo.front());
 			timer.start();
 			update.omp(vInfo.size());
@@ -211,62 +227,65 @@ public:
         if (verbosity>=1 && LSRK3data::step_id==0)
         {
             cout << "Grid spacing and smoothing length are: " << h << ", " << smoothlength << endl;
-        }
+            }
             
-        LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(LSRK3data::TLP);
+            LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(LSRK3data::TLP);
             
-        const Real maxSOS = _computeSOS();
-        double dt = min(max_dt, CFL*h/maxSOS);
-        
-        if (MPI::COMM_WORLD.Get_rank()==0)
-        {
-            cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";
-        }
-        
-        if (verbosity>=1)
-        {            
-            cout << "dt is "<< dt << "\n";
-            cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
-        }
-        
-        if (maxSOS>1e6)
-        {
-            cout << "Speed of sound is too high. Is it realistic?" << endl;
-            MPI::COMM_WORLD.Abort(1);
-        }
-        
-        if (dt<std::numeric_limits<double>::epsilon() * 1e1)
-        {
-            cout << "Last time step encountered." << endl;
+            const Real maxSOS = _computeSOS();
+            double dt = min(max_dt, CFL*h/maxSOS);
             
-            return 0;
-        }
-        
-        //now we perform an entire RK step
-        if (parser("-kernels").asString("cpp")=="cpp")
-        {
-            LSRKstepMPI<Convection_CPP, Update_CPP>(grid, dt/h, current_time);
-        }
+            if (MPI::COMM_WORLD.Get_rank()==0)
+            {
+                cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";
+            }
+            
+            if (LSRK3data::nu1>0)
+            dt = min(dt, (Real)(h*h/(12*max(LSRK3data::nu1,LSRK3data::nu2))) );
+            
+            if (verbosity>=1)
+            {
+                cout << "dt is "<< dt << "\n";
+                cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
+            }
+            
+            if (maxSOS>1e6)
+            {
+                cout << "Speed of sound is too high. Is it realistic?" << endl;
+                MPI::COMM_WORLD.Abort(1);
+            }
+            
+            if (dt<std::numeric_limits<double>::epsilon() * 1e1)
+            {
+                cout << "Last time step encountered." << endl;
+                
+                return 0;
+            }
+            
+            //now we perform an entire RK step
+            if (parser("-kernels").asString("cpp")=="cpp")
+            {
+                LSRKstepMPI<Convection_CPP, Update_CPP, Diffusion_CPP>(grid, dt/h, current_time);
+            }
 #ifdef _SSE_
-        else if (parser("-kernels").asString("cpp")=="sse")
-        {
-            LSRKstepMPI<Convection_SSE, Update_SSE>(grid, dt/h, current_time);
-        }
+            else if (parser("-kernels").asString("cpp")=="sse")
+            {
+                LSRKstepMPI<Convection_SSE, Update_SSE, Diffusion_SSE>(grid, dt/h, current_time);
+            }
 #endif
 #ifdef _AVX_
-        else if (parser("-kernels").asString("cpp")=="avx")
-        {
-            LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
-        }
+            else if (parser("-kernels").asString("cpp")=="avx")
+            {
+                LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
+            }
 #endif
-        else
-        {
-            cout << "combination not supported yet" << endl;
-            MPI::COMM_WORLD.Abort(1);
-        }
-        
-        LSRK3data::step_id++; current_time+=dt;
-        
-        return dt;
-        }
-};
+            else
+            {
+                cout << "combination not supported yet" << endl;
+                MPI::COMM_WORLD.Abort(1);
+            }
+            
+            LSRK3data::step_id++; current_time+=dt;
+            
+            return dt;
+            }
+            };
