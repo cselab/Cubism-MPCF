@@ -92,7 +92,6 @@ protected:
 		P.weno.next();
         P.weno.next();
         
-        //TESTING
         star.next();
 	}
     

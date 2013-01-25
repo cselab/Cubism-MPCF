@@ -31,25 +31,25 @@ void Convection_CPP::compute(const Real * const srcfirst, const int srcfloats, c
 	}
 	
 	_convert(srcfirst + 5*srcfloats*slicesrcs, srcfloats, rowsrcs);
-	//_zflux(-2);
-    _zflux_hllc(-2);
+	_zflux(-2);
+    //_zflux_hllc(-2);
 	_flux_next();
 	
 	for(int islice=0; islice<_BLOCKSIZE_; islice++)
 	{
-		//_xflux(-2);
-        _xflux_hllc(-2);
+		_xflux(-2);
+        //_xflux_hllc(-2);
 		_xrhs();
 
-		//_yflux(-2);
-        _yflux_hllc(-2);
+		_yflux(-2);
+        //_yflux_hllc(-2);
 		_yrhs();
 		
 		_next();
 		_convert(srcfirst + (islice+6)*srcfloats*slicesrcs, srcfloats, rowsrcs);
 		
-		//_zflux(-2);
-        _zflux_hllc(-2);
+		_zflux(-2);
+        //_zflux_hllc(-2);
 		_zrhs();
 		
 		_copyback(dstfirst + islice*dstfloats*slicedsts, dstfloats, rowdsts);
@@ -514,8 +514,8 @@ void Convection_CPP::_char_vel(const TempSOA& rm, const TempSOA& rp,
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix++)
 		{
-			const Real cminus = std::sqrt((1/Gm(ix,iy)+1)* max((pm(ix, iy)+Pm(ix,iy)/Gm(ix,iy)/(1/Gm(ix,iy)+1))*((Real)1/rm(ix, iy)), (Real)0));
-			const Real cplus  = std::sqrt((1/Gp(ix,iy)+1)* max((pp(ix, iy)+Pp(ix,iy)/Gp(ix,iy)/(1/Gp(ix,iy)+1))*((Real)1/rp(ix, iy)), (Real)0));
+			const Real cminus = std::sqrt(max((1/Gm(ix,iy)+1)* (pm(ix, iy)+Pm(ix,iy)/Gm(ix,iy)/(1/Gm(ix,iy)+1))*((Real)1/rm(ix, iy)), (Real)0));
+			const Real cplus  = std::sqrt(max((1/Gp(ix,iy)+1)* (pp(ix, iy)+Pp(ix,iy)/Gp(ix,iy)/(1/Gp(ix,iy)+1))*((Real)1/rp(ix, iy)), (Real)0));
             
             outm.ref(ix, iy) = std::min((Real)0, vm(ix, iy) - cminus);
             outp.ref(ix, iy) = std::max((Real)0, vp(ix, iy) + cplus );
@@ -548,21 +548,22 @@ void Convection_CPP::_char_vel_hllc(const TempSOA& rm, const TempSOA& rp,
             const Real P_minus = Pm(ix, iy);
 			const Real P_plus  = Pp(ix, iy);
             
-            const Real a_minus = std::sqrt((1/G_minus+1)* max((p_minus+P_minus/G_minus/(1/G_minus+1))*((Real)1/rho_minus), (Real)0));
-			const Real a_plus  = std::sqrt((1/G_plus +1)* max((p_plus +P_plus /G_plus /(1/G_plus +1))*((Real)1/rho_plus ), (Real)0));
+            const Real a_minus = std::sqrt(std::max((1/G_minus+1)* (p_minus+P_minus/G_minus/(1/G_minus+1))*((Real)1/rho_minus), (Real)0));
+			const Real a_plus  = std::sqrt(std::max((1/G_plus +1)* (p_plus +P_plus /G_plus /(1/G_plus +1))*((Real)1/rho_plus ), (Real)0));
             
-            const Real rho_hat = 0.5*(rho_minus+rho_plus);
-            const Real a_hat   = 0.5*(a_minus+a_plus);
-            const Real rho_hat_a_hat = rho_hat*a_hat;
-            
-            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
+            const Real rho_hat = rho_minus + rho_plus;
+            const Real a_hat   = a_minus + a_plus;
+            const Real rho_hat_a_hat = 0.25*rho_hat*a_hat;
+
             const Real p_star = 0.5*(p_minus+p_plus+(v_minus-v_plus)*rho_hat_a_hat);
             
-            const Real q_minus = (p_star <= p_minus)? 1 : sqrt(1+0.5*(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1));
-            const Real q_plus  = (p_star <= p_plus )? 1 : sqrt(1+0.5*(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1));
+            const Real q_minus = (p_star <= p_minus)? 1 : std::sqrt(std::max(0.,1+0.5*(2*G_minus+1)/(G_minus+1)*(p_star/p_minus-1)));
+            const Real q_plus  = (p_star <= p_plus )? 1 : std::sqrt(std::max(0.,1+0.5*(2*G_plus +1)/(G_plus +1)*(p_star/p_plus -1)));
             
             const Real s_minus = v_minus - a_minus*q_minus;
             const Real s_plus  = v_plus  + a_plus *q_plus;
+            
+            const Real u_star = 0.5*(v_minus+v_plus+(p_minus-p_plus)/rho_hat_a_hat);
             
             out_star.ref(ix, iy) = u_star;
             outm.ref(ix, iy) = std::min((Real)0,s_minus);

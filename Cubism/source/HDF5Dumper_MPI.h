@@ -177,7 +177,6 @@ void DumpHDF5_MPI(TGrid &grid, const int iCounter, const string f_name, const st
 #endif
 }
 
-
 template<typename TGrid, typename Streamer>
 void ReadHDF5_MPI(TGrid &grid, const string f_name, const string dump_path=".")
 {

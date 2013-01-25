@@ -77,8 +77,8 @@ public:
 			if (step_id%DUMPPERIOD==0)
 			{
 				std::stringstream streamer;
-				streamer<<"data-"<<step_id;;
-				t_ssmpi->dump(*grid, step_id, streamer.str());
+				streamer<<"data-"<<step_id;
+                if (step_id>=1500) t_ssmpi->dump(*grid, step_id, streamer.str());
 				t_ssmpi->vp(*grid, step_id, bVP);
 			}
             
