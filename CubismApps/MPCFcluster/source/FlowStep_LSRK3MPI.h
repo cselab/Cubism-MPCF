@@ -38,7 +38,7 @@ namespace LSRK3MPIdata
     
     Histogram histogram;
     
-    template<typename Kflow, typename Kupdate, typename Diffusion_CPP>
+    template<typename Kflow, typename Kupdate>
     void notify(double avg_time_rhs, double avg_time_update, const size_t NBLOCKS, const size_t NTIMES)
     {
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
@@ -139,7 +139,7 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 		return maxSOS;
 	}
 	
-	template<typename Kflow, typename Kupdate>
+	template<typename Kflow, typename Kupdate, typename Kdiff>
 	struct LSRKstepMPI
 	{
 		LSRKstepMPI(TGrid& grid, Real dtinvh, const Real current_time)
@@ -240,7 +240,7 @@ public:
             }
             
             if (LSRK3data::nu1>0)
-            dt = min(dt, (Real)(h*h/(12*max(LSRK3data::nu1,LSRK3data::nu2))) );
+            dt = std::min(dt, (double)(h*h/(12.0*std::max(LSRK3data::nu1,LSRK3data::nu2))) );
             
             if (verbosity>=1)
             {
