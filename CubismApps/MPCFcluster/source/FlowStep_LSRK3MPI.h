@@ -20,7 +20,6 @@
 
 #ifdef _SSE_
 #include <Convection_SSE.h>
-#include <Diffusion_SSE.h>
 #endif
 #ifdef _AVX_
 #include <Convection_AVX.h>
@@ -269,7 +268,7 @@ public:
 #ifdef _SSE_
             else if (parser("-kernels").asString("cpp")=="sse")
             {
-                LSRKstepMPI<Convection_SSE, Update_SSE, Diffusion_SSE>(grid, dt/h, current_time);
+                LSRKstepMPI<Convection_SSE, Update_SSE, Diffusion_CPP>(grid, dt/h, current_time);
             }
 #endif
 #ifdef _AVX_
