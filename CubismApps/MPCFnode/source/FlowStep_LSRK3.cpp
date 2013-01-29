@@ -33,7 +33,7 @@ using namespace std;
 #include "FlowStep_LSRK3.h"
 #include "Tests.h"
 
-namespace LSRK3data 
+namespace LSRK3data
 {
 	Real gamma1 = -1;
 	Real gamma2 = -1;
@@ -53,7 +53,7 @@ namespace LSRK3data
 }
 
 template<typename Lab, typename Kernel>
-void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidGrid& grid, const Real t=0, bool tensorial=false) 
+void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidGrid& grid, const Real t=0, bool tensorial=false)
 {
 	const int stencil_start[3] = {-3,-3,-3};
 	const int stencil_end[3] = {4,4,4};
@@ -71,19 +71,19 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
 		
 		Lab mylab;
 		mylab.prepare(grid, stencil_start, stencil_end, tensorial);
-                
+        
 #pragma omp for schedule(runtime)
-		for(int i=0; i<N; i++) 
+		for(int i=0; i<N; i++)
 		{
 			mylab.load(ary[i], t);
             
             const Real * const srcfirst = &mylab(-3,-3,-3).rho;
             const int labSizeRow = mylab.template getActualSize<0>();
-            const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();	
+            const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();
 			
 			Real * const destfirst = &((FluidBlock*)ary[i].ptrBlock)->tmp[0][0][0][0];
-
-			kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice, 
+            
+			kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice,
 						   destfirst, FluidBlock::gptfloats, FluidBlock::sizeX, FluidBlock::sizeX*FluidBlock::sizeY);
 		}
 	}
@@ -95,7 +95,7 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
     const size_t N = vInfo.size();
     const BlockInfo * const ary = &vInfo.front();
-  //Real * const  local_sos = (Real *)_mm_malloc(N*sizeof(Real), 16);
+    //Real * const  local_sos = (Real *)_mm_malloc(N*sizeof(Real), 16);
     Real * tmp = NULL;
     int error = posix_memalign((void**)&tmp, std::max(8, _ALIGNBYTES_), sizeof(Real) * N);
     assert(error == 0);
@@ -123,37 +123,37 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
     //static const int CHUNKSIZE = 64*1024/sizeof(Real);
     Real global_sos = local_sos[0];
     
-    #pragma omp parallel
+#pragma omp parallel
     {
 	    Real mymax = local_sos[0];
 		
 #pragma omp for schedule(runtime)
 	    for(int i=0; i<N; ++i)
 		    mymax = max(local_sos[i], mymax);
-			
+        
 #pragma omp critical
 	    {
 		    global_sos = max(global_sos, mymax);
 	    }
     }
-   /* 
-#pragma omp parallel for schedule(static)
-    for(size_t i=0; i<N; i+= CHUNKSIZE)
-    {
-        Real mymax = local_sos[i];
-        const size_t e = min(N, i+CHUNKSIZE);
-        for(size_t c=i; c<e; ++c)
-            mymax = max(mymax, local_sos[c]);
-        
-#pragma omp critical
-        {
-            global_sos = max(global_sos, mymax);
-        }
-    }*/		
+    /*
+     #pragma omp parallel for schedule(static)
+     for(size_t i=0; i<N; i+= CHUNKSIZE)
+     {
+     Real mymax = local_sos[i];
+     const size_t e = min(N, i+CHUNKSIZE);
+     for(size_t c=i; c<e; ++c)
+     mymax = max(mymax, local_sos[c]);
+     
+     #pragma omp critical
+     {
+     global_sos = max(global_sos, mymax);
+     }
+     }*/
     
     free(tmp);
     
-     return global_sos;
+    return global_sos;
 }
 
 Real FlowStep_LSRK3::_computeSOS(bool bAwk)
