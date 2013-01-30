@@ -21,11 +21,13 @@ void Update_CPP::compute(const Real * const src, Real * const dst, const int gpt
 	const int N = _BLOCKSIZE_ * _BLOCKSIZE_ * _BLOCKSIZE_ * gptfloats;
 	
 	for(int i=0; i<N; i+=gptfloats)
+	  {
         for(int comp = 0; comp < 7; comp++)
 	  {
             dst[i+comp] += m_b * src[i+comp];
 	    assert(!isnan(dst[i+comp]));
 	  }
-
-	
+	assert(dst[i+0]>0);
+	assert(dst[i+4]>0);
+	  }
 }
