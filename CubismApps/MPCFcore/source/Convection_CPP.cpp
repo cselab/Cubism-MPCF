@@ -983,7 +983,10 @@ void Convection_CPP::_xdivergence(const TempSOA& flux, OutputSOA& rhs)
     
     for(int iy=0; iy<OutputSOA::NY; iy++)
         for(int ix=0; ix<OutputSOA::NX; ix++)
+        {
             r[ix + OutputSOA::PITCH*iy] = f[ix + 1 + TempSOA::PITCH*iy] - f[ix + TempSOA::PITCH*iy];
+            assert(r[ix + OutputSOA::PITCH*iy]==0);
+        }
 }
 
 void Convection_CPP::_ydivergence(const TempSOA& flux, OutputSOA& rhs)
