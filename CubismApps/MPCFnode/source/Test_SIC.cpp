@@ -103,12 +103,12 @@ void Test_SIC::_ic_gauss(FluidGrid& grid)
                                     const double bubble =   Simulation_Environment::heaviside_smooth(r-radius);
                                     const double shock_pressure = 353;
                                     
-                                    const Real pre_shock[3] = {10,0,1};
+                                    const Real pre_shock[3] = {100,0,1};
                                     Simulation_Environment::getPostShockRatio(pre_shock, shock_pressure, post_shock);
                                     
                                     const double shock = 0;//Simulation_Environment::heaviside_smooth(xG3D[0]-Simulation_Environment::shock_pos);
                                     
-                                    const Real rho = shock*post_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
+                                    const Real rho = shock*post_shock[0] + (1-shock)*(0.1*bubble+pre_shock[0]*(1-bubble));
                                     const Real u   = post_shock[0]*post_shock[1]*shock;
                                     const Real v   = 0;
                                     const Real w   = 0;
@@ -202,21 +202,21 @@ void Test_SIC::_ic(FluidGrid& grid)
                         
                         const double bubble =   Simulation_Environment::heaviside_smooth(r-radius);
                         
-                        const double shock_pressure = 3530;
+                        const double shock_pressure = 353;
                         
-                        const Real pre_shock[3] = {10,0,10};
-
+                        const Real pre_shock[3] = {100,0,1};
+                        
                         Simulation_Environment::getPostShockRatio(pre_shock, shock_pressure, post_shock);
                         
-                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);           
-                                                
-                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
+                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);
+                        
+                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.1*bubble+pre_shock[0]*(1-bubble));
                         b(ix, iy, iz).u        = post_shock[0]*post_shock[1]*shock;
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
                         const double pressure  = post_shock[2]*shock + pre_shock[2]*(1-shock);
-
+                        
                         SETUP_MARKERS_IC
                         
                         //**************************
@@ -228,12 +228,12 @@ void Test_SIC::_ic(FluidGrid& grid)
                          //test 5.3 equation 32
                          //const Real pre_shock[3] = {10,0,10};
                          //const Real post_shock[3] = {0.125,0,0.1};
-                         //const double bubble = Simulation_Environment::heaviside(0.5-p[0]);     
+                         //const double bubble = Simulation_Environment::heaviside(0.5-p[0]);
                          
                          //test 5.3 equation 31
                          const Real pre_shock[3] = {1.241,0,2.753};
-                         const Real post_shock[3] = {0.991,0,3.059e-4};                       
-                         const double bubble = Simulation_Environment::heaviside(0.5-p[0]);                                                                        
+                         const Real post_shock[3] = {0.991,0,3.059e-4};
+                         const double bubble = Simulation_Environment::heaviside(0.5-p[0]);
                          
                          const double shock = 1-bubble;
                          b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*post_shock[0];
@@ -245,8 +245,8 @@ void Test_SIC::_ic(FluidGrid& grid)
                          
                          SETUP_MARKERS_IC*/
                     }
-        }		
-	}	
+        }
+	}
 	
 	if (VERBOSITY > 0)
 		cout << "done." << endl;
