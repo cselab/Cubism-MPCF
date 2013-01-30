@@ -33,7 +33,7 @@ using namespace std;
 #include "FlowStep_LSRK3.h"
 #include "Tests.h"
 
-namespace LSRK3data 
+namespace LSRK3data
 {
 	Real gamma1 = -1;
 	Real gamma2 = -1;
@@ -53,7 +53,7 @@ namespace LSRK3data
 }
 
 template<typename Lab, typename Kernel>
-void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidGrid& grid, const Real t=0, bool tensorial=false) 
+void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidGrid& grid, const Real t=0, bool tensorial=false)
 {
 	const int stencil_start[3] = {-3,-3,-3};
 	const int stencil_end[3] = {4,4,4};
@@ -71,19 +71,19 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
 		
 		Lab mylab;
 		mylab.prepare(grid, stencil_start, stencil_end, tensorial);
-                
+        
 #pragma omp for schedule(runtime)
-		for(int i=0; i<N; i++) 
+		for(int i=0; i<N; i++)
 		{
 			mylab.load(ary[i], t);
             
             const Real * const srcfirst = &mylab(-3,-3,-3).rho;
             const int labSizeRow = mylab.template getActualSize<0>();
-            const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();	
+            const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();
 			
 			Real * const destfirst = &((FluidBlock*)ary[i].ptrBlock)->tmp[0][0][0][0];
-
-			kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice, 
+            
+			kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice,
 						   destfirst, FluidBlock::gptfloats, FluidBlock::sizeX, FluidBlock::sizeX*FluidBlock::sizeY);
 		}
 	}
@@ -95,7 +95,7 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
     const size_t N = vInfo.size();
     const BlockInfo * const ary = &vInfo.front();
-  //Real * const  local_sos = (Real *)_mm_malloc(N*sizeof(Real), 16);
+    //Real * const  local_sos = (Real *)_mm_malloc(N*sizeof(Real), 16);
     Real * tmp = NULL;
     int error = posix_memalign((void**)&tmp, std::max(8, _ALIGNBYTES_), sizeof(Real) * N);
     assert(error == 0);
@@ -123,37 +123,37 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
     //static const int CHUNKSIZE = 64*1024/sizeof(Real);
     Real global_sos = local_sos[0];
     
-    #pragma omp parallel
+#pragma omp parallel
     {
 	    Real mymax = local_sos[0];
 		
 #pragma omp for schedule(runtime)
 	    for(int i=0; i<N; ++i)
 		    mymax = max(local_sos[i], mymax);
-			
+        
 #pragma omp critical
 	    {
 		    global_sos = max(global_sos, mymax);
 	    }
     }
-   /* 
-#pragma omp parallel for schedule(static)
-    for(size_t i=0; i<N; i+= CHUNKSIZE)
-    {
-        Real mymax = local_sos[i];
-        const size_t e = min(N, i+CHUNKSIZE);
-        for(size_t c=i; c<e; ++c)
-            mymax = max(mymax, local_sos[c]);
-        
-#pragma omp critical
-        {
-            global_sos = max(global_sos, mymax);
-        }
-    }*/		
+    /*
+     #pragma omp parallel for schedule(static)
+     for(size_t i=0; i<N; i+= CHUNKSIZE)
+     {
+     Real mymax = local_sos[i];
+     const size_t e = min(N, i+CHUNKSIZE);
+     for(size_t c=i; c<e; ++c)
+     mymax = max(mymax, local_sos[c]);
+     
+     #pragma omp critical
+     {
+     global_sos = max(global_sos, mymax);
+     }
+     }*/
     
     free(tmp);
     
-     return global_sos;
+    return global_sos;
 }
 
 Real FlowStep_LSRK3::_computeSOS(bool bAwk)
@@ -181,16 +181,103 @@ Real FlowStep_LSRK3::_computeSOS(bool bAwk)
 
 template<typename Kflow, typename Kupdate>
 struct LSRKstep
-{	
+{
+    template<typename T>
+    void check_error(const double tol, T ref[], T val[], const int N)
+    {
+        for(int i=0; i<N; ++i)
+        {
+            assert(!std::isnan(ref[i]));
+            
+            assert(!std::isnan(val[i]));
+            
+            const double err = ref[i] - val[i];
+            
+            const double relerr = err/std::max(1e-6, (double)std::max(fabs(val[i]), fabs(ref[i])));
+            
+            if (LSRK3data::verbosity>= 1) printf("+%1.1e,", relerr);
+            
+            if (fabs(relerr) >= tol && fabs(err) >= tol)
+                printf("\n%d: %e %e -> %e %e\n", i, ref[i], val[i], err, relerr);
+            
+            //assert(fabs(relerr) < tol || fabs(err) < tol);
+        }
+        if (LSRK3data::verbosity >=1) printf("\t");
+    }
+
+    template<typename T>
+    void check_error(const double tol, T ref, T val)
+    {
+        check_error(tol, &ref, &val, 1);
+    }
+
+    template<typename T>
+    void check_error(const double tol, T ref[], T val[], const int N, const int bidx[], const int idx[], const int comp)
+    {
+        for(int i=0; i<N; ++i)
+        {
+            assert(!std::isnan(ref[i]));
+            
+            assert(!std::isnan(val[i]));
+            
+            const double err = fabs(ref[i]) - fabs(val[i]);
+            
+            const double relerr = err/std::max(1e-6, (double)std::max(fabs(val[i]), fabs(ref[i])));
+            
+            if (LSRK3data::verbosity>= 1) printf("+%1.1e,", relerr);
+            
+            if (fabs(relerr) >= tol && fabs(err) >= tol)
+                printf("\n%d: %e %e -> %e %e, located at mirror block %d,%d,%d and point %d,%d,%d, comp %d \n", i, ref[i], val[i], err, relerr, bidx[0], bidx[1], bidx[2], idx[0], idx[1], idx[2], comp);
+            
+            
+            //assert(fabs(relerr) < tol || fabs(err) < tol);
+        }
+        if (LSRK3data::verbosity >=1) printf("\t");
+    }
+    
+    void _check_symmetry(FluidGrid& grid)
+    {
+        vector<BlockInfo> vInfo = grid.getBlocksInfo();
+        
+        for(int i=0; i<(int)vInfo.size(); i++)
+        {
+            BlockInfo info = vInfo[i];
+            
+            if (info.index[1]>grid.getBlocksPerDimension(1)/2-1) continue;
+            
+            FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+            
+            const int bidx_mirror[3] = {info.index[0], grid.getBlocksPerDimension(1)-info.index[1]-1, info.index[2]};
+            const int i_mirror = bidx_mirror[0] + (bidx_mirror[1] + bidx_mirror[2]*grid.getBlocksPerDimension(1))*grid.getBlocksPerDimension(0);
+            assert(i_mirror<grid.getBlocksPerDimension(0)*grid.getBlocksPerDimension(1)*grid.getBlocksPerDimension(2) && i_mirror>=0);
+            
+            BlockInfo info_mirror = vInfo[i_mirror];
+            FluidBlock& b_mirror = *(FluidBlock*)info_mirror.ptrBlock;
+            
+            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+                for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                    for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                    {
+                        const int idx_mirror[3] = {ix, FluidBlock::sizeY-iy-1, iz};
+                        
+                        check_error(std::numeric_limits<Real>::epsilon()*50, &b(ix,iy,iz).rho, &b_mirror(idx_mirror[0],idx_mirror[1],idx_mirror[2]).rho, 7, bidx_mirror, idx_mirror, 0);
+//                        check_error(std::numeric_limits<Real>::epsilon()*50, &b.tmp[iz][iy][ix][0], &b_mirror.tmp[idx_mirror[2]][idx_mirror[1]][idx_mirror[0]][0], 7, bidx_mirror, idx_mirror, 1);
+                    }
+        }
+        
+        cout << "Symmetry check done" << endl;
+    }
+    
     LSRKstep(FluidGrid& grid, Real dtinvh, const Real current_time, bool bAwk)
     {
         vector<BlockInfo> vInfo = grid.getBlocksInfo();
         
         vector< vector<double> > timings;
-        
+
+        //_check_symmetry(grid);
         timings.push_back(step(grid, vInfo, 0      , 1./4, dtinvh, current_time));
         timings.push_back(step(grid, vInfo, -17./32, 8./9, dtinvh, current_time));
-        timings.push_back(step(grid, vInfo, -32./27, 3./4, dtinvh, current_time));
+        timings.push_back(step(grid, vInfo, -32./27, 3./4, dtinvh, current_time)); 
         
         const double avg1 = ( timings[0][0] + timings[1][0] + timings[2][0] )/3;
         const double avg2 = ( timings[0][1] + timings[1][1] + timings[2][1] )/3;
@@ -201,8 +288,8 @@ struct LSRKstep
             cout << "UPDATE: " << avg2 << "s (per substep), " << avg2/vInfo.size()*1e3 << " ms (per block)" << endl;
             
             Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg1);
-            Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg2);    
-		 }
+            Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg2);
+        }
     }
     
     vector<double> step(FluidGrid& grid, vector<BlockInfo>& vInfo, Real a, Real b, Real dtinvh, const Real current_time)
@@ -211,8 +298,8 @@ struct LSRKstep
         vector<double> res;
         
         LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
-       
-        timer.start();     
+        
+        timer.start();
         _process<Lab, Kflow>(a, dtinvh, vInfo, grid, current_time);
         const double t1 = timer.stop();
         
@@ -222,10 +309,10 @@ struct LSRKstep
         update.omp(vInfo.size());
         const double t2 = timer.stop();
         
-		res.push_back(t1);
-		res.push_back(t2);
-		
-		return res;
+        res.push_back(t1);
+        res.push_back(t2);
+        
+        return res;
     }
 };
 
@@ -245,7 +332,7 @@ void FlowStep_LSRK3::set_constants()
     LSRK3data::ReportFreq = parser("-report").asInt(20);
     LSRK3data::nu1    = parser("-nu1").asDouble(0);
     LSRK3data::nu2    = parser("-nu2").asDouble(LSRK3data::nu1);
- }
+}
 
 Real FlowStep_LSRK3::operator()(const Real max_dt)
 {
@@ -266,7 +353,7 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
         cout << "Last time step encountered." << endl;
         return 0;
     }
-
+    
     if (LSRK3data::verbosity >= 1)
         cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
     

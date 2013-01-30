@@ -108,14 +108,24 @@ protected:
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am, const TempSOA& ap);
     
+    virtual void _xextraterm_v2(const TempSOA& um, const TempSOA& up, const InputSOA& G, const InputSOA& P, const TempSOA& am, const TempSOA& ap);
+    
 	virtual void _yextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am, const TempSOA& ap);
+    
+    virtual void _yextraterm_v2(const TempSOA& um, const TempSOA& up, const InputSOA& G
+                                , const InputSOA& P
+                                , const TempSOA& am, const TempSOA& ap);
     
 	virtual void _zextraterm(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1, const TempSOA& Gm, const TempSOA& Gp
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1);
 	
+    virtual void _zextraterm_v2(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1,
+                                const InputSOA& G, const InputSOA& P,
+                                const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1);
+    
 	virtual void _char_vel(const TempSOA& rminus, const TempSOA& rplus,
 						   const TempSOA& vminus, const TempSOA& vplus,
 						   const TempSOA& pminus, const TempSOA& pplus,

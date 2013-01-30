@@ -85,6 +85,7 @@ struct VisualSupport
 
 int main (int argc, const char ** argv) 
 {
+
 #ifdef _USE_NUMA_
 	if (numa_available() < 0)
 		printf("WARNING: The system does not support NUMA API!\n");

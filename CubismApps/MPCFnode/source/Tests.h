@@ -9,7 +9,7 @@
 #pragma once
 
 //#include "Test_ShockTube.h"
-//typedef BlockLab<FluidBlock, tbb::scalable_allocator> Lab;
+//typedef BlockLab<FluidBlock, std::allocator> Lab;
 
 
 #include "Test_ShockBubble.h"

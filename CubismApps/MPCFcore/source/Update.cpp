@@ -24,8 +24,16 @@ void Update_CPP::compute(const Real * const src, Real * const dst, const int gpt
 	  {
         for(int comp = 0; comp < 7; comp++)
 	  {
+	    //          if (isnan(dst[i+comp]))
+	    //printf("isnan component before update is %d\n", comp);
+          
             dst[i+comp] += m_b * src[i+comp];
-	    assert(!isnan(dst[i+comp]));
+          
+	    //if (isnan(dst[i+comp]))
+	    //printf("isnan component after update is %d, i=%d\n", comp, i);
+        
+          assert(!isnan(src[i+comp]));
+          assert(!isnan(dst[i+comp]));
 	  }
 	assert(dst[i+0]>0);
 	assert(dst[i+4]>0);

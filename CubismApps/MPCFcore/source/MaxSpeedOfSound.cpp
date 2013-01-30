@@ -32,19 +32,23 @@ Real MaxSpeedOfSound_CPP::compute(const Real * const src, const int gptfloats) c
 
 		assert(r>0);
 		assert(e>0);
-                assert(!isnan(r));
-                assert(!isnan(u));
-                assert(!isnan(v));
-                assert(!isnan(w));
-                assert(!isnan(e));
-                assert(!isnan(G));
-                assert(!isnan(P));
+
+		assert(!isnan(r));
+		assert(!isnan(u));
+		assert(!isnan(v));
+		assert(!isnan(w));
+		assert(!isnan(e));
+		assert(!isnan(G));
+		assert(!isnan(P));
 
 		const Real p = (e - (u*u + v*v + w*w)*(0.5/r) - P)/G;
   		const Real c =  std::sqrt((1/G+1)*std::max((p+P/G/(1/G+1))/r, (Real)0));
 
                 assert(!isnan(p));
                 assert(c > 0);
+		
+		assert(!isnan(p));
+		assert(c > 0);
 		
 		const Real cu = std::abs(u/r)+c;//std::max(std::abs(c + u/r), std::abs(c - u/r));
 		const Real cv = std::abs(v/r)+c;//std::max(std::abs(c + v/r), std::abs(c - v/r));
