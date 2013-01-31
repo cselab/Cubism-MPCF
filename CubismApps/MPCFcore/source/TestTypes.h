@@ -13,7 +13,7 @@
 
 #include "common.h"
 
-struct StateVector { Real r, u, v, w, s, G, P;};
+struct StateVector { Real r, u, v, w, s, G, P, dummy;};
 
 //union GP { StateVector s; StateVector dsdt; };
 struct GP {StateVector s; StateVector dsdt;};
@@ -140,3 +140,4 @@ struct TestLab_S2 : MatrixGP<_BLOCKSIZE_+2, _BLOCKSIZE_+2, _BLOCKSIZE_+2>
 		return nobjects*sizeof(TestLab_S2)/1024.;
 	}
 };
+

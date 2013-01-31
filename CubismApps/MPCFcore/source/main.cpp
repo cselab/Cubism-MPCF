@@ -14,11 +14,12 @@
 #endif
 
 #include <iostream>
+#include <omp.h>
 
 #ifdef _SSE_
 #include <xmmintrin.h>
 #endif
-
+#include <unistd.h>
 #include <ArgumentParser.h>
 
 #include "TestTypes.h"
@@ -26,6 +27,9 @@
 #include "Test_LocalKernel.h"
 
 #include "Convection_CPP.h"
+#include "Convection_CPP_omp.h"
+#include "Convection_QPX.h"
+
 #include "Update.h"
 #include "MaxSpeedOfSound.h"
 #ifdef _SSE_
@@ -62,8 +66,12 @@ template<typename Test , typename Kernel> void testing(Test test, Kernel kernel,
 		test.accuracy(kernel, info.accuracythreshold, false);
 		test.performance(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);	
 	}
-	else
-		test.profile(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);
+	else {
+		//if (info.name == "Convection_CPP_omp")
+		//	test.profile2(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);
+		//else
+			test.profile(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);
+	}
 	
 	printEndKernelTest();
 }
@@ -84,7 +92,7 @@ template<typename Test , typename Kernel1, typename Kernel2> void comparing(Test
 int main (int argc, const char ** argv) 
 {	
 	ArgumentParser parser(argc, argv);
-	
+
 	//enable/disable the handling of denormalized numbers
 #ifdef _SSE_
 	if (parser("-f2z").asBool(false))
@@ -96,9 +104,10 @@ int main (int argc, const char ** argv)
 
 	//kernel name
 	const string kernel = parser("-kernel").asString("all");
+	//const string kernel = parser("-kernel").asString("Convection_CPP_omp");
 	
 	TestInfo info(kernel);
-	
+
 	//enable/disable the performance comparison betweens kernels and their baseline
 	info.profiling = parser("-profile").asBool(false);
 	
@@ -112,29 +121,39 @@ int main (int argc, const char ** argv)
 	info.accuracythreshold = parser("-accuracy").asDouble(1e-4);
 	
 	//memory footprint per thread, in terms of blocks.
-	info.nofblocks = parser("-nblocks").asInt(512);;
+	info.nofblocks = parser("-nblocks").asInt(50);
 	
 	//number of times that the kernel will be executed
-	info.noftimes =  parser("-n").asInt(1000);
-	
+	info.noftimes =  parser("-n").asInt(50);
+
 	//C++ kernels
 	{
 		if (kernel == "Convection_CPP" || kernel == "all")
 			testing(Test_Convection(), Convection_CPP(0, 1), info);		
-		
+
+                if (kernel == "Convection_QPX" || kernel == "all")
+                        testing(Test_Convection(), Convection_QPX(0, 1), info);
+
+		if (kernel == "Convection_CPP_omp" || kernel == "all")
+			testing(Test_Convection(), Convection_CPP_omp(0, 1), info);		
+
+
 		if (kernel == "Update_CPP" || kernel == "all")
 		{
 			Test_LocalKernel lt;
 			Update_CPP update_kernel;
 			lt.profile_update(update_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+
+			//sleep(100);
 		}
-		
+
 		if (kernel == "MaxSOS_CPP" || kernel == "all")
 		{
 			Test_LocalKernel lt;
 			MaxSpeedOfSound_CPP maxsos_kernel;
 			lt.profile_maxsos(maxsos_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
 		}
+
 	}
 	
 	//SSE kernels
