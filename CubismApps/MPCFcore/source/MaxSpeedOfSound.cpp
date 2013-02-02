@@ -41,16 +41,16 @@ Real MaxSpeedOfSound_CPP::compute(const Real * const src, const int gptfloats) c
 		assert(!isnan(P));
 
 		const Real p = (e - (u*u + v*v + w*w)*(0.5/r) - P)/G;
-  		const Real c =  std::sqrt((1/G+1)*std::max((p+P/G/(1/G+1))/r, (Real)0));
+  		const Real c = mysqrt(((p+P)/G+p)/r);//std::sqrt((1/G+1)*std::max((p+P/G/(1/G+1))/r, (Real)0));
 		
 		assert(!isnan(p));
 		assert(c > 0);
 		
-		const Real cu = std::abs(u/r)+c;//std::max(std::abs(c + u/r), std::abs(c - u/r));
-		const Real cv = std::abs(v/r)+c;//std::max(std::abs(c + v/r), std::abs(c - v/r));
-		const Real cw = std::abs(w/r)+c;//std::max(std::abs(c + w/r), std::abs(c - w/r));
+		const Real cu = myabs(u/r)+c;//std::max(std::abs(c + u/r), std::abs(c - u/r));
+		const Real cv = myabs(v/r)+c;//std::max(std::abs(c + v/r), std::abs(c - v/r));
+		const Real cw = myabs(w/r)+c;//std::max(std::abs(c + w/r), std::abs(c - w/r));
 		
-		sos = std::max(sos, std::max(std::max(cu, cv), cw));
+		sos = max(sos, max(max(cu, cv), cw));
 	}
 	
 	return sos;

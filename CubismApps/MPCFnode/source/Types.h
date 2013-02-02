@@ -222,7 +222,7 @@ struct FluidBlock
 	
 	FluidElement __attribute__((__aligned__(_ALIGNBYTES_))) data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
     
-	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][7];
+	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][gptfloats];
     
 	void clear_data()
 	{
@@ -233,7 +233,7 @@ struct FluidBlock
     
 	void clear_tmp()
 	{    
-        const int N = sizeX * sizeY * sizeZ * 7;
+        const int N = sizeX * sizeY * sizeZ * gptfloats;
 
         Real * const e = &tmp[0][0][0][0];
         for(int i=0; i<N; ++i) e[i] = 0;
