@@ -222,7 +222,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         //**************************
                         //Let's do 1D in Colonius
                         //**************************
-                        /*Real p[3];
+                         /*Real p[3];
                          info.pos(p, ix, iy, iz);
                          
                          //test 5.3 equation 32

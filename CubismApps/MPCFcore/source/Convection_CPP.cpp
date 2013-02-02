@@ -31,25 +31,25 @@ void Convection_CPP::compute(const Real * const srcfirst, const int srcfloats, c
 	}
 	
 	_convert(srcfirst + 5*srcfloats*slicesrcs, srcfloats, rowsrcs);
-	_zflux(-2);
-    //_zflux_hllc(-2);
+	//_zflux(-2);
+    _zflux_hllc(-2);
 	_flux_next();
 	
 	for(int islice=0; islice<_BLOCKSIZE_; islice++)
 	{
-		_xflux(-2);
-        //_xflux_hllc(-2);
+		//_xflux(-2);
+        _xflux_hllc(-2);
 		_xrhs();
 
-		_yflux(-2);
-        //_yflux_hllc(-2);
+		//_yflux(-2);
+        _yflux_hllc(-2);
 		_yrhs();
 		
 		_next();
 		_convert(srcfirst + (islice+6)*srcfloats*slicesrcs, srcfloats, rowsrcs);
 		
-		_zflux(-2);
-        //_zflux_hllc(-2);
+		//_zflux(-2);
+        _zflux_hllc(-2);
 		_zrhs();
 		
 		_copyback(dstfirst + islice*dstfloats*slicedsts, dstfloats, rowdsts);
@@ -580,7 +580,7 @@ void Convection_CPP::_char_vel(const TempSOA& rm, const TempSOA& rp,
 			const Real cminus = mysqrt(((pm(ix, iy)+Pm(ix,iy))/Gm(ix,iy)+pm(ix, iy))/rm(ix, iy));
 			const Real cplus  = mysqrt(((pp(ix, iy)+Pp(ix,iy))/Gp(ix,iy)+pp(ix, iy))/rp(ix, iy));
             
-			outm.ref(ix, iy) = min(vp(ix, iy) - cplus, vm(ix, iy) - cminus);//min((Real)0, vm(ix, iy) - cminus);//min(vp(ix, iy) - cplus, vm(ix, iy) - cminus);
+			outm.ref(ix, iy) = min(vp(ix, iy) - cplus, vm(ix, iy) - cminus);//min(vp(ix, iy) - cplus, vm(ix, iy) - cminus);
 			outp.ref(ix, iy) = max(vp(ix, iy) + cplus, vm(ix, iy) + cminus);//max((Real)0, vp(ix, iy) + cplus );//max(vp(ix, iy) + cplus, vm(ix, iy) + cminus);
 		}
 	
@@ -1010,7 +1010,7 @@ void Convection_CPP::_zdivergence(const TempSOA& fback, const TempSOA& fforward,
 
 void Convection_CPP::_copyback(Real * const gptfirst, const int gptfloats, const int rowgpts)
 {
-    const Real factor2 = ((Real)1.)/3;//((Real)1.)/6;//((Real)1.)/3;//
+    const Real factor2 = ((Real)1.)/6;//((Real)1.)/3;//((Real)1.)/3;//
     
     for(int iy=0; iy<OutputSOA::NY; iy++)
         for(int ix=0; ix<OutputSOA::NX; ix++)
