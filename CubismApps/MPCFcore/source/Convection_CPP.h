@@ -122,9 +122,9 @@ protected:
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1);
 	
-    virtual void _zextraterm_v2(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1,
-                                const InputSOA& G, const InputSOA& P,
-                                const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1);
+    virtual void _zextraterm_v2(const int r, const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1,
+                                const RingInputSOA& G, const RingInputSOA& P,
+                                const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1, const bool bLast);
     
 	virtual void _char_vel(const TempSOA& rminus, const TempSOA& rplus,
 						   const TempSOA& vminus, const TempSOA& vplus,
@@ -230,7 +230,7 @@ protected:
 	
 	virtual void _xflux(const int relsliceid);
 	virtual void _yflux(const int relsliceid);
-	virtual void _zflux(const int relsliceid);
+	virtual void _zflux(const int relsliceid, const bool bLast=false);
 	
     virtual void _xflux_hllc(const int relid);
     virtual void _yflux_hllc(const int relid);
