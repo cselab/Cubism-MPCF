@@ -17,6 +17,7 @@ class Test_SIC: public Test_ShockBubble
 
 	void _ic(FluidGrid& grid);
     void _ic_gauss(FluidGrid& grid);
+    void _ic_LUT(FluidGrid& grid);
     
 public:	
 	Test_SIC(const int argc, const char ** argv): Test_ShockBubble(argc, argv) { }
