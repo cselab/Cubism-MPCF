@@ -19,10 +19,8 @@
 #include "Test_SIC.h"
 #include "Tests.h"
 
-extern "C" {
-#include <freesteam/steam_pT.h>
-#include <freesteam/region4.h>
-}
+#define E_SCALE 1e5
+#define R_SCALE 10
 
 static const Real w_G[3]={ 5./9., 8./9., 5./9. };
 
@@ -296,26 +294,40 @@ void Test_SIC::_ic_LUT(FluidGrid& grid)
                         
                         const double bubble =   Simulation_Environment::heaviside_smooth(r-radius);
                         
-                        const double T_liquid = 300;//Kelvin
-                        const double p_liquid = 1e5;//Pa
-                        SteamState S_liquid = freesteam_set_pT(p_liquid, T_liquid);
-                        const double rho_liquid = freesteam_rho(S_liquid);// density in kg/m^3
-                        const double e_liquid = freesteam_u(S_liquid);//Internal Energy in J/kg
-                        const double E_liquid = rho_liquid*e_liquid;
+                        Temperature T_liquid = fromcelsius(27.0);
+                        Pressure p_liquid = 1.0 * bar;//Pa
+                        SteamCalculator S_liquid;
+                        S_liquid.set_pT(p_liquid,T_liquid);
+                        Density rho_liquid = S_liquid.dens();
+                        SpecificEnergy e_liquid = S_liquid.specienergy();
                         
-                        const double T_vapor = T_liquid;//Kelvin
-                        const double p_vapor = freesteam_region4_psat_T(T_vapor);//Pa
-                        SteamState S_vapor = freesteam_set_pT(p_vapor, T_vapor);
-                        const double rho_vapor = freesteam_rho(S_vapor);// density in kg/m^3
-                        const double e_vapor = freesteam_u(S_vapor);//Internal Energy in J/kg
-                        const double E_vapor = rho_vapor*e_vapor;                        
+                        Pressure p_vapor = Boundaries::getSatPres_T(T_liquid);
+                        SteamCalculator S_vapor;
+                        S_vapor.set_pT(p_vapor,T_liquid);
+                        Density rho_vapor = S_vapor.dens();
+                        SpecificEnergy e_vapor = S_vapor.specienergy();
                         
-                        b(ix, iy, iz).rho      = rho_vapor*bubble+rho_liquid*(1-bubble);
+                        const double rho_l = *reinterpret_cast<const double*>(&rho_liquid);
+                        const double rho_v = *reinterpret_cast<const double*>(&rho_vapor);
+                        const double e_l = *reinterpret_cast<const double*>(&e_liquid);
+                        const double e_v = *reinterpret_cast<const double*>(&e_vapor);
+                        
+                        
+                        b(ix, iy, iz).rho      = (bubble*rho_v + (1-bubble)*rho_l)/R_SCALE;//freesteam_rho(S_mixture)/R_SCALE;
                         b(ix, iy, iz).u        = 0;
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        b(ix, iy, iz).energy = E_vapor*bubble+E_liquid*(1-bubble);
+                        b(ix, iy, iz).P        = 0;
+                        b(ix, iy, iz).energy   = (bubble*e_v*rho_v + (1-bubble)*e_l*rho_l)/E_SCALE;
+                        
+                        SpecificVolume v_mix = 1.0/(b(ix, iy, iz).rho * R_SCALE) * m3_kg;
+                        SpecificEnergy e_mix = b(ix, iy, iz).energy * E_SCALE * J_kg;
+                        
+                        Solver2<SpecificEnergy,Density> SUR;
+                        SteamCalculator S_mixture;
+                        S_mixture = SUR.solve(e_mix,v_mix);
+                        b(ix,iy,iz).G = v_mix/;//vapor mass fraction
                         
 //                        SETUP_MARKERS_IC
                         
@@ -379,3 +391,52 @@ void Test_SIC::setup()
     else
         _ic_LUT(*grid);
 }
+
+/*SteamCalculator S1, S2, S3;
+ 
+ // turn on display of units
+ cerr.flags(ios_base::showbase);
+ 
+ // initialise T1, p1, p2
+ Temperature T1 = fromcelsius(200.0);
+ Pressure p1 = 5.0 * bar;
+ Pressure p2 = 10.0 * bar;
+ 
+ // Part 1
+ cerr << endl << "Part (1) - density at 10 bar, 200?C" << endl;
+ cerr << "p1 = " << p1/bar << " bar" << endl;
+ cerr << "T1 = " << T1;
+ cerr << " (" << tocelsius(T1) << "?C)" << endl;
+ S1.set_pT(p1, T1);
+ Density rho1 = S1.dens();
+ cerr << "rho1 = " << rho1 << endl;
+ 
+ // Part 2
+ cerr << endl << "Part (2) - isentropic compression to 10 bar" << endl;
+ SpecificEntropy s1 = S1.specentropy();
+ cerr << "s1 = " << s1 << endl;
+ cerr << "p2 = " << p2/bar << " bar" << endl;
+ Solver<Pressure,SpecificEntropy,Temperature> PS(p2, s1);
+ S2 = PS.solve(0.0001 * kJ_kgK, 0.0001 * Kelvin);
+ Temperature T2 = S2.temp();
+ cerr << "T2 = " << T2;
+ cerr << " (" << tocelsius(T2) << "?C)" << endl;
+ 
+ // part (3) - Finding p,T for v as above and u increased by 200 kJ_kg
+ cerr << endl << "Part (3) - Finding p,T for v as above and u increased by 200 kJ_kg" << endl;
+ SpecificVolume v2 = S2.specvol();
+ SpecificEnergy u2 = S2.specienergy();
+ cerr << "v2 = " << v2 << endl;
+ cerr << "u2 = " << u2 << endl;
+ 
+ SpecificEnergy u3 = u2 + 200.0 * kJ_kg;
+ cerr << "u3 = " << u3 << endl;
+ 
+ Solver2<SpecificEnergy,SpecificVolume> SUV;
+ S3 = SUV.solve(u3,v2);
+ Temperature T3 = S3.temp();
+ Pressure p3 = S3.pres();
+ cerr << "p3 = " << p3/bar << " bar" << endl;
+ cerr << "T3 = " << T3;
+ cerr << " (" << tocelsius(T3) << "?C)" << endl;*/
+
