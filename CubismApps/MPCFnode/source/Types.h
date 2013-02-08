@@ -35,18 +35,6 @@ using namespace std;
 
 #include "BoundaryConditions.h"
 
-//IAPWS TABLE
-//extern "C" {
-//#include <freesteam/steam_pT.h>
-//#include <freesteam/steam_Tx.h>
-//#include <freesteam/steam_uv.h>
-//#include <freesteam/region4.h>
-#include "freesteam/steamcalculator.h"
-#include "freesteam/solver.h"
-#include "freesteam/solver2.h"
-#include "freesteam/steamproperty.h"
-//}
-
 #define SETUP_MARKERS_IC \
 const double mix_gamma = 1 + (G2*G1)/(G1*bubble+G2*(1-bubble)); \
 const double mix_pinf  = (mix_gamma-1)/mix_gamma * (F1/G1*(1-bubble) + F2/G2*bubble); \
@@ -165,8 +153,7 @@ struct StreamerGridPoint //dummy
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;
-        //SteamState S_mixture = freesteam_set_Tx(300,input.G);
-		//output[4] = freesteam_p(S_mixture);
+        output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
 		output[5] = input.G;		
   		output[6] = input.P;		
 	}
