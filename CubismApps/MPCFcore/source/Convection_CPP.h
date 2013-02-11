@@ -241,7 +241,7 @@ protected:
 	
 	virtual void _xflux(const int relsliceid);
 	virtual void _yflux(const int relsliceid);
-	virtual void _zflux(const int relsliceid, const bool bLast=false);
+	virtual void _zflux(const int relsliceid, const bool bFirst=false);
 	
     virtual void _xflux_hllc(const int relsliceid);
     virtual void _yflux_hllc(const int relsliceid);
