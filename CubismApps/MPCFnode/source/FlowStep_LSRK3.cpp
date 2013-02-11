@@ -82,7 +82,7 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
             const int labSizeSlice = labSizeRow*mylab.template getActualSize<1>();
 			
 			Real * const destfirst = &((FluidBlock*)ary[i].ptrBlock)->tmp[0][0][0][0];
-            
+           // printf("computing block %d of %d\n", i, N);
 			kernel.compute(srcfirst, FluidBlock::gptfloats, labSizeRow, labSizeSlice,
 						   destfirst, FluidBlock::gptfloats, FluidBlock::sizeX, FluidBlock::sizeX*FluidBlock::sizeY);
 		}
@@ -275,9 +275,9 @@ struct LSRKstep
         vector< vector<double> > timings;
 
         //_check_symmetry(grid);
-        timings.push_back(step(grid, vInfo, 0      , 1./4, dtinvh, current_time));abort();
-        timings.push_back(step(grid, vInfo, -17./32, 8./9, dtinvh, current_time));
-        timings.push_back(step(grid, vInfo, -32./27, 3./4, dtinvh, current_time));
+        timings.push_back(step(grid, vInfo, 0      , 1./4, dtinvh, current_time));printf("sub step 0 done\n");
+        timings.push_back(step(grid, vInfo, -17./32, 8./9, dtinvh, current_time));printf("sub step 1 done\n");
+        timings.push_back(step(grid, vInfo, -32./27, 3./4, dtinvh, current_time));printf("sub step 2 done\n");
         
         const double avg1 = ( timings[0][0] + timings[1][0] + timings[2][0] )/3;
         const double avg2 = ( timings[0][1] + timings[1][1] + timings[2][1] )/3;

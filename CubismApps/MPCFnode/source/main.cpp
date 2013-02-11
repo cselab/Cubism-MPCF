@@ -9,9 +9,9 @@
 
 #include <iostream>
 
-#ifdef _SSE_
+//#ifdef _SSE_
 #include <xmmintrin.h>
-#endif
+//#endif
 
 #ifdef _USE_NUMA_
 #include <numa.h>
@@ -96,13 +96,13 @@ int main (int argc, const char ** argv)
 	ArgumentParser parser(argc, argv);	
 	const bool bFlush2Zero = parser("-f2z").asBool(true);
 	
-#ifdef _SSE_
+//#ifdef _SSE_
 	if (bFlush2Zero)
 #pragma omp parallel
 	{
 		_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 	}
-#endif
+//#endif
 	
 	
 	if( parser("-sim").asString() == "steady" )

@@ -149,11 +149,12 @@ struct StreamerGridPoint //dummy
 	void operate(const FluidElement& input, Real output[7]) const
 	{
 		output[0] = input.rho;
-		assert(input.rho >= 0);
+		assert(output[0] > 0);
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;
         output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+        assert(input.energy > 0);
 		output[5] = input.G;		
   		output[6] = input.P;		
 	}
@@ -222,7 +223,7 @@ struct FluidBlock
 	
 	FluidElement __attribute__((__aligned__(_ALIGNBYTES_))) data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
     
-	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][gptfloats];
+	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][gptfloats];   
     
 	void clear_data()
 	{

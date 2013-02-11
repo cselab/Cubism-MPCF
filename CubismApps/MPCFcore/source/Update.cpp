@@ -10,6 +10,7 @@
 #include <cassert>
 #include <iostream>
 #include <cstdlib>
+#include <limits>
 
 #include "common.h"
 #include "Update.h"
@@ -35,7 +36,7 @@ void Update_CPP::compute(const Real * const src, Real * const dst, const int gpt
             assert(!isnan(src[i+comp]));
             assert(!isnan(dst[i+comp]));
         }
-        assert(dst[i+0]>0);
-        assert(dst[i+4]>0);
+        //assert(dst[i+0]>0);
+        //assert(dst[i+4]>0);
     }
 }
