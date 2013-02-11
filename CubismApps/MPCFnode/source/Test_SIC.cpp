@@ -19,6 +19,9 @@
 #include "Test_SIC.h"
 #include "Tests.h"
 
+#define E_SCALE 1e5
+#define R_SCALE 10
+
 static const Real w_G[3]={ 5./9., 8./9., 5./9. };
 
 template<int PointNumber>
@@ -198,24 +201,24 @@ void Test_SIC::_ic(FluidGrid& grid)
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
                         
-                        const double r = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
+                        const double r = sqrt(pow(p[0]-bubble_pos[0],2));//+pow(p[1]-bubble_pos[1],2));//+pow(p[2]-bubble_pos[2],2));
                         
                         const double bubble =   Simulation_Environment::heaviside_smooth(r-radius);
                         
                         const double shock_pressure = 3530;
                         
-                        const Real pre_shock[3] = {10,0,10};
+                        const Real pre_shock[3] = {100,0,3530};//{10,0,1000};
                         
                         Simulation_Environment::getPostShockRatio(pre_shock, shock_pressure, post_shock);
                         
-                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);
+                        const double shock = 0;//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);
                         
-                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
+                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.1*bubble+pre_shock[0]*(1-bubble));
                         b(ix, iy, iz).u        = post_shock[0]*post_shock[1]*shock;
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double pressure  = post_shock[2]*shock + pre_shock[2]*(1-shock);
+                        const double pressure  = post_shock[2]*shock + (1-shock)*(10*bubble+pre_shock[2]*(1-bubble));//pre_shock[2]*(1-shock);
                         
                         SETUP_MARKERS_IC
                         
