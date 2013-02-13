@@ -7,6 +7,7 @@
 //
 #pragma once
 
+#include <iostream>
 #include <vector>
 
 #ifdef _USE_HDF_
@@ -14,10 +15,18 @@
 #endif
 
 #ifdef _FLOAT_PRECISION_
+typedef float Real;
+#else
+typedef double Real;
+#endif
+
+#ifdef _FLOAT_PRECISION_
 #define HDF_REAL H5T_NATIVE_FLOAT
 #else
 #define HDF_REAL H5T_NATIVE_DOUBLE
 #endif
+
+#include "BlockInfo.h"
 
 using namespace std;
 
@@ -36,8 +45,13 @@ void DumpHDF5(TGrid &grid, const int iCounter, const string f_name, const string
 	const unsigned int NY = grid.getBlocksPerDimension(1)*B::sizeY;
 	const unsigned int NZ = grid.getBlocksPerDimension(2)*B::sizeZ;
 	
+    cout << "Writing HDF5 file\n";
+    cout << "Allocating " << (NX * NY * NZ * NCHANNELS)/(1024.*1024.*1024.) << "GB of HDF5 data";
+   
 	Real * array_all = new Real[NX * NY * NZ * NCHANNELS];
 
+    cout << " ...done\n";
+    
 	vector<BlockInfo> vInfo_local = grid.getBlocksInfo();
 	
 	const unsigned int sX = 0;
@@ -69,7 +83,7 @@ void DumpHDF5(TGrid &grid, const int iCounter, const string f_name, const string
 	
 #pragma omp parallel for
 	for(int i=0; i<(int)vInfo_local.size(); i++)
-	{
+	{       
 		BlockInfo& info = vInfo_local[i];
 		const unsigned int idx[3] = {info.index[0], info.index[1], info.index[2]};
 		B & b = *(B*)info.ptrBlock;
@@ -89,21 +103,27 @@ void DumpHDF5(TGrid &grid, const int iCounter, const string f_name, const string
 					const unsigned int gy = idx[1]*B::sizeY + iy;
 					const unsigned int gz = idx[2]*B::sizeZ + iz;
 					
-					Real * const ptr = array_all + NCHANNELS*(gz + NZ * (gy + NY * gx));
-					
+					Real * const ptr = array_all + NCHANNELS*(gx + NX * (gy + NY * gz));
+                  
 					for(unsigned int i=0; i<NCHANNELS; ++i)
 						ptr[i] = output[i];
 				}
 	}
-	
+	   
 	fapl_id = H5Pcreate(H5P_DATASET_XFER);
 	
 	fspace_id = H5Screate_simple(4, dims, NULL);
+
 	dataset_id = H5Dcreate(file_id, "data", HDF_REAL, fspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
 	fspace_id = H5Dget_space(dataset_id);
+
 	H5Sselect_hyperslab(fspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-	mspace_id = H5Screate_simple(4, count, NULL);        
+
+	mspace_id = H5Screate_simple(4, count, NULL);
+
 	status = H5Dwrite(dataset_id, HDF_REAL, mspace_id, fspace_id, fapl_id, array_all);
+    cout << "writing done\n";
 	
 	status = H5Sclose(mspace_id);
 	status = H5Sclose(fspace_id);
@@ -112,8 +132,9 @@ void DumpHDF5(TGrid &grid, const int iCounter, const string f_name, const string
 	status = H5Fclose(file_id);
 	H5close();
 	
+     cout << "closing done\n";
 	delete [] array_all;
-	
+	 cout << "deallocating done\n";
 	{
 		char wrapper[256];
 		sprintf(wrapper, "%s/%s.xmf", dump_path.c_str(), f_name.c_str());

@@ -25,11 +25,11 @@ void Update_CPP::compute(const Real * const src, Real * const dst, const int gpt
     {
         for(int comp = 0; comp < gptfloats; comp++)
         {
-            if (isnan(dst[i+comp]))
-                printf("isnan component before update is %d\n", comp);
+            //if (isnan(dst[i+comp]))
+              //  printf("isnan component before update is %d\n", comp);
             
-            if (isnan(src[i+comp]))
-                printf("src isnan component after update is %d, i=%d\n", comp, i);
+            //if (isnan(src[i+comp]))
+              //  printf("src isnan component after update is %d, i=%d\n", comp, i);
             
             dst[i+comp] += m_b * src[i+comp];
             

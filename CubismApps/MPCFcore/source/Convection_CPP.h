@@ -173,11 +173,21 @@ protected:
                                   , const TempSOA& sm, const TempSOA& sp
                                   , const TempSOA& star);
     
+    virtual void _xextraterm_hllc_v2(const TempSOA& vm, const TempSOA& vp,
+                                     const InputSOA& G, const InputSOA& P,
+                                     const TempSOA& sm, const TempSOA& sp,
+                                     const TempSOA& star);
+    
     virtual void _yextraterm_hllc(const TempSOA& vm, const TempSOA& vp
                                   , const TempSOA& Gm, const TempSOA& Gp
                                   , const TempSOA& Pm, const TempSOA& Pp
                                   , const TempSOA& sm, const TempSOA& sp
                                   , const TempSOA& star);
+    
+    virtual void _yextraterm_hllc_v2(const TempSOA& vm, const TempSOA& vp,
+                                     const InputSOA& G, const InputSOA& P,
+                                     const TempSOA& sm, const TempSOA& sp,
+                                     const TempSOA& star);
     
     virtual void _zextraterm_hllc(const TempSOA& v0m, const TempSOA& v0p, const TempSOA& v1m, const TempSOA& v1p
                                   , const TempSOA& Gm, const TempSOA& Gp
@@ -185,13 +195,18 @@ protected:
                                   , const TempSOA& s0m, const TempSOA& s0p , const TempSOA& s1m, const TempSOA& s1p
                                   , const TempSOA& star0, const TempSOA& star1);
     
+    virtual void _zextraterm_hllc_v2(const TempSOA& v0m, const TempSOA& v0p, const TempSOA& v1m, const TempSOA& v1p,
+                                     const InputSOA& G, const InputSOA& P,
+                                     const TempSOA& s0m, const TempSOA& s0p , const TempSOA& s1m, const TempSOA& s1p,
+                                     const TempSOA& star0, const TempSOA& star1);
+    
     template<int SizeDiMerdaX>
     void _char_vel_hllc(const TempSOA& rm, const TempSOA& rp,
                                 const TempSOA& vm, const TempSOA& vp,
                                 const TempSOA& pm, const TempSOA& pp,
                                 const TempSOA& Gm, const TempSOA& Gp,
                                 const TempSOA& Pm, const TempSOA& Pp,
-                                TempSOA& outm, TempSOA& outp, TempSOA& out_star, const int relid=0);
+                                TempSOA& outm, TempSOA& outp, TempSOA& out_star);
     
     template<int SizeDiMerdaX>
     void _hllc_rho(const TempSOA& rm, const TempSOA& rp,
@@ -245,7 +260,7 @@ protected:
 	
     virtual void _xflux_hllc(const int relsliceid);
     virtual void _yflux_hllc(const int relsliceid);
-    virtual void _zflux_hllc(const int relsliceid);
+    virtual void _zflux_hllc(const int relsliceid, const bool bFirst=false);
     
 	virtual void _xrhs();
 	virtual void _yrhs();
