@@ -12,6 +12,8 @@
 #include <iostream>
 #include <limits>
 
+#include <omp.h>
+
 #include <Timer.h>
 #include <Profiler.h>
 #include <Convection_CPP.h>
@@ -23,6 +25,12 @@
 
 #ifdef _AVX_
 #include <Convection_AVX.h>
+#endif
+
+#ifdef _QPX_
+#include <Convection_QPX.h>
+#include <Update_QPX.h>
+#include <MaxSpeedOfSound_QPX.h>
 #endif
 
 #include <Update.h>
@@ -42,7 +50,7 @@ namespace LSRK3data
     Real pc2 = 0;
 	
 	int verbosity;
-	int  NCORES, TLP;
+	int  NCORES;
 	float PEAKPERF_CORE, PEAKBAND;
 	
 	string dispatcher;
@@ -165,12 +173,19 @@ Real FlowStep_LSRK3::_computeSOS(bool bAwk)
 	Timer timer;
     
 	timer.start();
-    sos = _computeSOS_OMP<MaxSpeedOfSound_CPP>(grid,  bAwk);
+#ifdef _QPX_
+	if (kernels == "qpx")
+		sos = _computeSOS_OMP<MaxSpeedOfSound_QPX>(grid,  bAwk);
+	else
+#endif
+	sos = _computeSOS_OMP<MaxSpeedOfSound_CPP>(grid,  bAwk);
+
     const Real time = timer.stop();
     
     if (LSRK3data::verbosity >= 1 && LSRK3data::step_id % LSRK3data::ReportFreq == 0)
     {
-        MaxSpeedOfSound_CPP::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, vInfo.size(), time, bAwk);
+		//static void printflops(const float PEAKPERF_CORE, const float PEAKBAND, const int NCORES, const int NT, const int NBLOCKS, float MEASUREDTIME, const bool bAwk=false)
+		MaxSpeedOfSound_CPP::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), time);
         
         cout << "MAXSOS: " << time << "s (per substep), " << time/vInfo.size()*1e3 << " ms (per block)" << endl;
     }
@@ -198,7 +213,7 @@ struct LSRKstep
         {
             cout << "FLOWSTEP: " << avg1 << "s (per substep), " << avg1/vInfo.size()*1e3 << " ms (per block)" << endl;
             cout << "UPDATE: " << avg2 << "s (per substep), " << avg2/vInfo.size()*1e3 << " ms (per block)" << endl;
-            
+			//const float PEAKPERF_CORE, const float PEAKBAND, const int NCORES, const int NTIMES, const int NBLOCKS, const float MEASUREDTIME            
             Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg1);
             Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, vInfo.size(), avg2);    
 		 }
@@ -237,7 +252,6 @@ void FlowStep_LSRK3::set_constants()
     LSRK3data::PEAKBAND = PEAKBAND;
     LSRK3data::PEAKPERF_CORE = PEAKPERF_CORE;
     LSRK3data::NCORES = parser("-ncores").asInt(1);
-    LSRK3data::TLP = parser("-nthreads").asInt(1);
     LSRK3data::pc1 = pc1;
     LSRK3data::pc2 = pc2;
     LSRK3data::dispatcher = blockdispatcher;
@@ -276,6 +290,10 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
 #ifdef _AVX_
     else if (parser("-kernels").asString("cpp")=="avx")
         LSRKstep<Convection_AVX, Update_AVX>(grid, dt/h, current_time, bAwk);
+#endif
+#ifdef _QPX_
+    else if (parser("-kernels").asString("cpp")=="qpx")
+      LSRKstep<Convection_QPX, Update_QPX>(grid, dt/h, current_time, bAwk);
 #endif
     else
     {

@@ -16,7 +16,10 @@
 #include "common.h"
 
 template < int _SX, int _EX, int _SY, int _EY, typename TReal=Real > 
-__align(_ALIGNBYTES_)  struct SOA2D
+#ifdef __xlC__
+__align(_ALIGNBYTES_)  
+#endif
+struct SOA2D
 {
 	static const int _CPERALIGNBYTES = _ALIGNBYTES_/sizeof(TReal);
 	
@@ -27,7 +30,7 @@ __align(_ALIGNBYTES_)  struct SOA2D
 	
 	static const int PITCH = EX - SX;
 	
-	TReal data[NY][PITCH];
+	__attribute__((aligned(_ALIGNBYTES_))) TReal data[NY][PITCH];
 	
 	
 	SOA2D()

@@ -109,9 +109,9 @@ public:
 
 struct FluidElement
 {
-    Real rho, u, v, w, energy, G, P;
+  Real rho, u, v, w, energy, G, P, dummy;
 
-    void clear() { rho = u = v = w = energy = G = P = 0; }
+    void clear() { rho = u = v = w = energy = G = P = dummy = 0; }
 };
 
 struct StreamerGridPointASCII
@@ -222,7 +222,7 @@ struct FluidBlock
 	
 	FluidElement __attribute__((__aligned__(_ALIGNBYTES_))) data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
     
-	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][7];
+	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][gptfloats];
     
 	void clear_data()
 	{
@@ -233,7 +233,7 @@ struct FluidBlock
     
 	void clear_tmp()
 	{    
-        const int N = sizeX * sizeY * sizeZ * 7;
+        const int N = sizeX * sizeY * sizeZ * gptfloats;
 
         Real * const e = &tmp[0][0][0][0];
         for(int i=0; i<N; ++i) e[i] = 0;
@@ -296,7 +296,7 @@ struct StreamerDummy_HDF5
 		const FluidElement& input = ref.data[iz][iy][ix];
 		
 		output[0] = input.rho;
-		assert(input.rho >= 0);
+		//assert(input.rho >= 0);
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;        
@@ -310,7 +310,7 @@ struct StreamerDummy_HDF5
 		FluidElement& input = ref.data[iz][iy][ix];
 		
 		input.rho = output[0];
-		assert(input.rho >= 0);
+		//assert(input.rho >= 0);
 		input.u = output[1]*output[0];
 		input.v = output[2]*output[0];
 		input.w = output[3]*output[0];

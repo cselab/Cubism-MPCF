@@ -38,7 +38,7 @@ void Test_Convection::_initialize_lab(TestLab& lab)
 		{
 			for(int ix = -3; ix<_BLOCKSIZE_+3; ix++)
 			{
-				memset(&lab(ix, iy, iz), 0, sizeof(GP));
+				lab(ix, iy. iz).clear();
 
 				lab(ix, iy, iz).s.r  = 1;//shock*post_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
 				lab(ix, iy, iz).s.u  = 0;//post_shock[0]*post_shock[1]*shock;
@@ -62,7 +62,7 @@ void Test_Convection::_initialize_lab(TestLab& lab)
                 {
                         for(int ix = -3; ix<_BLOCKSIZE_+3; ix++)
                         {
-                                memset(&lab(ix, iy, iz), 0, sizeof(GP));
+				lab(ix, iy, iz).clear();
 
                                 const int a = iy + 3;
                                 const int b = iz + 3;
@@ -90,7 +90,7 @@ void Test_Convection::_initialize_block(Block& block)
 		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
 			for(int ix = 0; ix<_BLOCKSIZE_; ix++)
 			{
-				memset(&block(ix, iy, iz), 0, sizeof(GP));
+				block(ix, iy, iz).clear();
 				
 				block(ix, iy, iz).dsdt.r = 0.1+iz;
 				block(ix, iy, iz).dsdt.u = ix;
@@ -102,7 +102,7 @@ void Test_Convection::_initialize_block(Block& block)
 			}
 }
 
-void Test_Convection::_print_block(Block& block)
+void Test_Convection::_print(Block& block)
 {
 	for(int iz = 0; iz<_BLOCKSIZE_; iz++)
 		for(int iy = 0; iy<_BLOCKSIZE_; iy++)
@@ -119,7 +119,7 @@ void Test_Convection::_print_block(Block& block)
 			}
 }
 
-
+/*
 void Test_Convection::_print_lab(TestLab& lab)
 {
 	for(int iz = -3; iz<_BLOCKSIZE_+3; iz++)
@@ -136,4 +136,4 @@ void Test_Convection::_print_lab(TestLab& lab)
 					//}
 				}
 			}
-}
+}*/

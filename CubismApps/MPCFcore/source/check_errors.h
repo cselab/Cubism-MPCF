@@ -47,7 +47,7 @@ void check_error(const double tol, T ref[], T val[], const int N)
 
 	if (verbose) printf("\t");
 
-	if (0) { //(verbose)
+	if (true) { //(verbose)
 		if (nan_ctr) printf("\nnan_ctr=%d", nan_ctr);
 		if (dif_ctr) printf("\ndif_ctr=%d", dif_ctr);
 		if (nan_ctr || dif_ctr) printf("\n");

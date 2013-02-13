@@ -12,13 +12,14 @@
 //typedef BlockLab<FluidBlock, tbb::scalable_allocator> Lab;
 
 
-//#include "Test_ShockBubble.h"
-//typedef BlockLabBubble<FluidBlock, tbb::scalable_allocator> Lab;
+#include "Test_ShockBubble.h"
+//typedef BlockLab<FluidBlock, std::allocator> Lab;
+typedef BlockLabBubble<FluidBlock, std::allocator> Lab;
 
-#include "Test_SIC.h"
+//#include "Test_SIC.h"
 //maybe replace it with std::allocator
 //typedef BlockLabCollapse<FluidBlock, tbb::scalable_allocator> Lab;
-typedef BlockLabCollapse<FluidBlock, std::allocator> Lab;
+//typedef BlockLabCollapse<FluidBlock, std::allocator> Lab;
 
 //typedef BlockLabBubbleYZSymmetric<FluidBlock, tbb::scalable_allocator> Lab;
 

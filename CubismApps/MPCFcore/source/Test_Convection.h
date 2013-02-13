@@ -26,8 +26,7 @@ class Test_Convection
 {
 	virtual void _initialize_lab(TestLab& lab);
 	virtual void _initialize_block(Block& block);
-	void _print_lab(TestLab& lab);
-	void _print_block(Block& block);
+	void _print(Block& block);
 
 	Real dtinvh;
 	
@@ -80,11 +79,8 @@ public:
 		_initialize_block(*blockgold);
 		_initialize_block(*block);
 
-		//_print_block(*block);
-		//_print_lab(*lab);
-
 		// run Reference Kernel (Convection_CPP)
-		#if 1
+		#if 0
 		{
 			const Real * const srcfirst = &(*lab)(-3,-3, -3).s.r;
 			const int srcfloats  = sizeof(GP)/sizeof(Real);
@@ -105,7 +101,7 @@ public:
 		#endif
 
                 //run Kernel
-		#if 1
+		#if 0
 		{           
 			const Real * const srcfirst = &(*lab)(-3,-3, -3).s.r;
 			const int srcfloats  = sizeof(GP)/sizeof(Real);
@@ -144,9 +140,6 @@ public:
 
 		printEndLine();		
 
-		//_print_block(*block);
-		//_print_block(*blockgold);
-
 		delete block;    
 		delete blockgold;
 		delete lab;
@@ -158,7 +151,7 @@ protected:
 		TestLab * lab = new TestLab[NBLOCKS];
 		Block * block = new Block[NBLOCKS];
 
-		//printf("_benchmark: NBLOCKS = %d NTIMES = %d\n", NBLOCKS, NTIMES);
+		printf("_benchmark: NBLOCKS = %d NTIMES = %d\n", NBLOCKS, NTIMES);
 		
 		for(int i=0; i<NBLOCKS; i++) {
 			_initialize_lab(lab[i]);
@@ -182,20 +175,23 @@ protected:
 			const int rowdsts =  _BLOCKSIZE_;
 			const int slicedsts = _BLOCKSIZE_*_BLOCKSIZE_;
 			
-			const Real * const srcfirst = &(lab[0])(-3,-3, -3).s.r;
-			Real * const dstfirst = &(block[0])(0,0,0).dsdt.r;
-			
-			if (NBLOCKS == 1)
+			if (NBLOCKS == 1) {
+				const Real * const srcfirst = &(lab[0])(-3,-3, -3).s.r;
+				Real * const dstfirst = &(block[0])(0,0,0).dsdt.r;
+
 				fs.compute(srcfirst, srcfloats, rowsrcs, slicesrcs, dstfirst, dstfloats, rowdsts, slicedsts);
+			}
 			
+			#pragma omp barrier
 			timer.start();
-			for(int i=0; i<NTIMES; i++)
+			for(int i=0; i<NTIMES; i++) {
+				const Real * const srcfirst = &(lab[i%NBLOCKS])(-3,-3, -3).s.r;
+				Real * const dstfirst = &(block[i%NBLOCKS])(0,0,0).dsdt.r;
 				fs.compute(srcfirst, srcfloats, rowsrcs, slicesrcs, dstfirst, dstfloats, rowdsts, slicedsts);
+			}
 			tCOMPUTE = timer.stop();
 			//printf("tCOMPUTE = %lf ms\n", tCOMPUTE*1e3);
 		}
-
-		//_print_block(block[0]);
 
 		delete [] lab;
 		delete [] block;
@@ -312,7 +308,6 @@ public:
 		tCOMPUTE /= COUNT;
 		
 		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE);
-
 	}
 
 	template<typename FS> void profile2(FS& fs, const double PEAKPERF = 2.66*8/(sizeof(Real)/4)*1e9, const double PEAKBAND = 4.5*1e9, const int NBLOCKS=8*8*8, const int NTIMES=100, bool bAwk=false)
@@ -361,3 +356,4 @@ public:
 		fs.printflops(PEAKPERF, PEAKBAND, 1, NTIMES, 1, tCOMPUTE);
 	}
 };
+

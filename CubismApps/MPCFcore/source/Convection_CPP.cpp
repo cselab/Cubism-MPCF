@@ -65,23 +65,31 @@ void Convection_CPP::hpc_info(float& flop_convert, int& traffic_convert,
 	const int ninputs = (int)powf(_BLOCKSIZE_ + 6, 3);
 	const int nfaces = (int)powf(_BLOCKSIZE_, 2) * (_BLOCKSIZE_ + 1);
 	const int ncells = (int)powf(_BLOCKSIZE_, 3);
-	const int nquantities = 6;
+	const int nquantities = 7;
 	const int ndirections = 3;
+		
+	const int rcpflop = myreciprocal_flops<preclevel>();
+	const int divflop = mydivision_flops<preclevel>();
+	const int sqrflop = mysqrt_flops<preclevel>();
+	const int mmxflop = 2;
 	
-	flop_convert = (3 + 12 + 3 * 15) * ninputs;
+	flop_convert = (2 * rcpflop + 13) * ninputs;
 	traffic_convert = (6 + 6) * sizeof(Real) * ninputs;
-	flop_weno =  82 * 2 * nfaces * nquantities * ndirections;
+	flop_weno =  (74 + 3 * divflop + rcpflop) * 2 * nfaces * nquantities * ndirections;
 	traffic_weno = (5 + 1) * sizeof(Real) * (2 * nfaces * nquantities * ndirections);
-	flop_extraterm = 2 * ndirections * ncells;
+	flop_extraterm = (2 * 2 * 2 + 2 + 3*(1 + 2 * (5 + rcpflop))) * ncells;
 	traffic_extraterm = (2 + 4) * sizeof(Real) * ndirections * ncells;
-	flop_charvel = (18 + 15 * 4) * ndirections * nfaces;
+	flop_charvel = (12 + 4*rcpflop + 2*sqrflop + 2*mmxflop) * ndirections * nfaces;
 	traffic_charvel = (8 + 2) * sizeof(Real) * ndirections * nfaces;
-	flop_hlle = (17 * 2 + 19 * 2 + 21 + 73) * ndirections * nfaces;
+	flop_hlle = (3 * (14 + rcpflop) + 
+				 2 * (16 + rcpflop) + 
+				 1 * (18 + rcpflop) + 
+				 1 * (37 + rcpflop)) * ndirections * nfaces;
 	traffic_hlle = ((6 + 1) * 2 + (8 + 1) * 2 + (8 + 1) + (14 + 1)) * sizeof(Real) * ndirections * nfaces;
-	flop_div = (1 + 2 * 2) * ncells;
+	flop_div = (1 + 2 + 2) * ncells * nquantities;
 	traffic_div = (2 + 1) * sizeof(Real) * ndirections * ncells;
 	flop_copyback = (6 * 3 + 3) * ncells;
-	traffic_copyback = (8 + 6) * sizeof(Real) * ncells;
+	traffic_copyback = (29) * sizeof(Real) * ncells;
 	footprint = sizeof(Convection_CPP);
 }
 
@@ -479,7 +487,7 @@ void Convection_CPP::_hlle_e(const TempSOA& rm, const TempSOA& rp,
 							 const TempSOA& v2m, const TempSOA& v2p,
 							 const TempSOA& pm, const TempSOA& pp,
 							 const TempSOA& Gm, const TempSOA& Gp, 
-							 const TempSOA& Pm, const TempSOA& Pp,
+							 const TempSOA& PIm, const TempSOA& PIp,
 							 const TempSOA& am, const TempSOA& ap,
 							 TempSOA& out) //73 FLOP
 {	
@@ -495,7 +503,7 @@ void Convection_CPP::_hlle_e(const TempSOA& rm, const TempSOA& rp,
 			const Real v2minus = v2m(ix, iy);
 			const Real pminus = pm(ix, iy);
 			const Real eminus = pminus*Gm(ix,iy) +
-			((Real)0.5)*rm(ix, iy)*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus) + Pm(ix,iy);
+			((Real)0.5)*rm(ix, iy)*(vdminus*vdminus + v1minus*v1minus + v2minus*v2minus) + PIm(ix,iy);
 
 			const Real vdplus = vdp(ix, iy);
 			const Real v1plus = v1p(ix, iy);
@@ -503,7 +511,7 @@ void Convection_CPP::_hlle_e(const TempSOA& rm, const TempSOA& rp,
 			const Real pplus = pp(ix, iy);
 
 			const Real eplus = pplus*Gp(ix,iy) +
-			((Real)0.5)*rp(ix, iy)*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus) + Pp(ix,iy);
+			((Real)0.5)*rp(ix, iy)*(vdplus*vdplus + v1plus*v1plus + v2plus*v2plus) + PIp(ix,iy);
 
 			const Real fminus = vdminus*(pminus + eminus);
 			const Real fpluss = vdplus *(pplus + eplus);
@@ -513,7 +521,8 @@ void Convection_CPP::_hlle_e(const TempSOA& rm, const TempSOA& rp,
 			
 			const Real fother = (aplus*fminus-aminus*fpluss+aminus*aplus*(eplus-eminus))*((Real)1/(aplus-aminus));
 			
-			out.ref(ix, iy) = ((Real)flagminus)*fminus + ((Real)flagplus)*fpluss + ((Real)flagother)*fother;			
+			out.ref(ix, iy) = flagplus ? fpluss : (flagminus ? fminus : fother);
+			//out.ref(ix, iy) = ((Real)flagminus)*fminus + ((Real)flagplus)*fpluss + ((Real)flagother)*fother;			
 		}
 }
 

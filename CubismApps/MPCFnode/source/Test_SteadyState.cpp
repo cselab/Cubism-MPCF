@@ -12,6 +12,10 @@
 #include <sstream>
 using namespace std;
 
+#ifdef _USE_HDF_
+#include <HDF5Dumper.h>
+#endif
+
 #include "Test_SteadyState.h"
 
 Test_SteadyState::Test_SteadyState(const int argc, const char ** argv):
@@ -72,24 +76,27 @@ void Test_SteadyState::_save()
 }
 
 void Test_SteadyState::_dump(string filename)
-{	
+{
   const string path = parser("-fpath").asString(".");
-
+	
+#ifdef _USE_HDF_ 
   cout << "Dump to " << path << filename << "..." ;
-
-#ifdef _USE_VTK_ 
-	SerializerIO_ImageVTK<FluidGrid, StreamerGridPoint> vtkdumper;
-	vtkdumper.Write(*grid, path+filename);
+  DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
+  cout << "done." << endl;
 #else
-	#warning VTK WAS DISABLED AT COMPILE TIME
+	#warning HDF WAS DISABLED AT COMPILE TIME
 #endif
-    
-	cout << "done." << endl;
 }
 
 void Test_SteadyState::_ic(FluidGrid& grid)
 {
 	cout << "Initial condition..." ;
+
+	const double G1 = Simulation_Environment::GAMMA1-1;
+	const double G2 = Simulation_Environment::GAMMA2-1;
+	const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
+	const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
+
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
 	
 #pragma omp parallel for	
@@ -104,13 +111,14 @@ void Test_SteadyState::_ic(FluidGrid& grid)
 				{
 					Real p[3];
 					info.pos(p, ix, iy, iz);
-					b(ix, iy, iz).rho      = sqrt(pow(p[0]-0.5,2)+pow(p[1]-0.5,2)+pow(p[2]-0.5,2))+0.1;
-					b(ix, iy, iz).u        = sqrt(pow(p[0]-0.3,2)+pow(p[1]-0.7,2)+pow(p[2]-0.35,2))-0.1;
-					b(ix, iy, iz).v        = 1.32;
-					b(ix, iy, iz).w        = -11.2;
-					b(ix, iy, iz).energy   = 2.5+0.5*3;
-					b(ix, iy, iz).G = Simulation_Environment::GAMMA1;
-                    b(ix, iy, iz).P = Simulation_Environment::PC1;
+					b(ix, iy, iz).rho      = 1.132;//sqrt(pow(p[0]-0.5,2)+pow(p[1]-0.5,2)+pow(p[2]-0.5,2))+0.1;
+					b(ix, iy, iz).u        = -2.*b(ix, iy, iz).rho;//sqrt(pow(p[0]-0.3,2)+pow(p[1]-0.7,2)+pow(p[2]-0.35,2))-0.1;
+					b(ix, iy, iz).v        = 3*b(ix, iy, iz).rho;//1.32;
+					b(ix, iy, iz).w        = -100*b(ix, iy, iz).rho;//-11.2;
+					const double pressure = 10;
+					const double bubble = 0;
+
+					SETUP_MARKERS_IC
 				}
 	}	
 	
@@ -142,10 +150,10 @@ void Test_SteadyState::run()
 {
 	for(int i=0; i<NSTEPS; ++i)
 	{
-		(*stepper)(TEND-t);
+	  	(*stepper)(TEND-t);
 	}
 	
-	_dump("ciao.vti");
+	_dump("ciao");
 	_save();
 	_vp(*grid);
 }
@@ -214,11 +222,11 @@ void Test_SteadyState::setup()
 	if(bRESTART)
 	{
 		_restart();
-		_dump("restartedcondition.vti");
+		_dump("restartedcondition");
 	}
 	else
 	{
 		_ic(*grid);
-		_dump("initialcondition.vti");
+		_dump("initialcondition");
 	}
 }

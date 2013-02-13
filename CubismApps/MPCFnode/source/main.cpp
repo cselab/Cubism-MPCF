@@ -15,8 +15,10 @@
 
 #ifdef _USE_NUMA_
 #include <numa.h>
-#include <omp.h>
+//#include <omp.h>
 #endif
+
+#include <omp.h>
 
 #include "Test_SteadyState.h"
 #include "Test_ShockBubble.h"
@@ -84,6 +86,9 @@ struct VisualSupport
 
 int main (int argc, const char ** argv) 
 {
+
+  cout << "Potential number of threads is " << omp_get_max_threads() << endl;
+
 #ifdef _USE_NUMA_
 	if (numa_available() < 0)
 		printf("WARNING: The system does not support NUMA API!\n");

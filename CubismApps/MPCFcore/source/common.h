@@ -23,6 +23,22 @@ typedef float Real;
 typedef double Real;
 #endif
 
+#ifndef _PREC_LEVEL_
+static const int preclevel = 0;
+#else
+static const int preclevel = _PREC_LEVEL_;
+#endif
+
+#include "SOA2D.h"
+
+/*working dataset types */
+typedef SOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3> InputSOA; 
+typedef RingSOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3, 6> RingInputSOA; 
+typedef SOA2D<0,_BLOCKSIZE_+1, 0,_BLOCKSIZE_> TempSOA; 
+typedef RingSOA2D<0, _BLOCKSIZE_+1, 0,_BLOCKSIZE_, 2> RingTempSOA; 
+typedef RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 3> RingTempSOA3;
+
+
 //C++ related functions
 //che cos'e' questo odore? - non era un sospiro.
 inline Real heaviside(const Real phi, const Real inv_h) //11 FLOP
@@ -51,6 +67,132 @@ inline Real getPC(const Real phi, const Real smoothlength, const Real pc1, const
 { 
 	return reconstruct(pc1, pc2, phi, 1/smoothlength); 
 }
+
+#ifdef _QPX_
+
+//QPX related functions
+#define _DIEGO_TRANSPOSE4(a, b, c, d)\
+{\
+const vector4double v01L = vec_perm(a, b, vec_gpci(00415));\
+const vector4double v01H = vec_perm(a, b, vec_gpci(02637));\
+const vector4double v23L = vec_perm(c, d, vec_gpci(00415));\
+const vector4double v23H = vec_perm(c, d, vec_gpci(02637));\
+\
+a = vec_perm(v01L, v23L, vec_gpci(00145));\
+b = vec_perm(v01L, v23L, vec_gpci(02367));\
+c = vec_perm(v01H, v23H, vec_gpci(00145));\
+d = vec_perm(v01H, v23H, vec_gpci(02367));\
+}
+
+template< int preclevel >
+vector4double inline myreciprocal(vector4double a) 
+{ 
+	return vec_swdiv((vector4double)(1), a); 
+}
+
+template<>
+vector4double inline myreciprocal<0>(vector4double a) 
+{
+	const vector4double Ra0 = vec_res(a);
+	return vec_mul(Ra0, vec_nmsub(Ra0, a, vec_splats(2)));
+	//return vec_nmsub(vec_mul(Ra0, a), Ra0, vec_add(Ra0, Ra0));
+}
+
+template<>
+vector4double inline myreciprocal<-1>(vector4double a) { return vec_res(a); }
+
+template< int preclevel>
+int myreciprocal_flops()
+{
+	if (preclevel == 0) return 4;
+	if (preclevel == -1) return 1;
+	return 1; //we don't know if it is just 1
+}
+
+template< int preclevel >
+vector4double inline mydivision(vector4double a, vector4double b) 
+{ 
+	return vec_swdiv(a, b); 
+}
+
+template<>
+vector4double inline mydivision<0>(vector4double a, vector4double b) 
+{ 
+	return vec_mul(a, myreciprocal<0>(b)); 
+}
+
+template<>
+vector4double inline mydivision<-1>(vector4double a, vector4double b) 
+{ 
+	return vec_mul(a, vec_res(b)); 
+}
+
+template< int preclevel>
+int mydivision_flops()
+{
+	if (preclevel <= 0) return myreciprocal_flops<preclevel>() + 1;
+	return 1; //we don't know if it is just 1
+}
+
+template<int preclevel>
+inline vector4double mysqrt(const vector4double a)
+{
+	const vector4double invz =  vec_rsqrtes(a);
+	const vector4double z = vec_res(invz);
+	const vector4double tmp = vec_msub(z, z, a);
+	const vector4double candidate = vec_nmsub(tmp, vec_mul(invz, vec_splats(0.5f)), z);
+	return vec_sel(candidate, vec_splats(0.f), vec_neg(a));
+}
+
+template< int preclevel>
+int mysqrt_flops()
+{
+	return 9;
+}
+
+inline vector4double mymin(const vector4double a, const vector4double b)
+{
+	return vec_sel(a, b, vec_cmpgt(a, b));
+}
+
+inline vector4double mymax(const vector4double a, const vector4double b)
+{
+	return vec_sel(a, b, vec_cmplt(a, b));
+}
+
+inline int myminmax_flops()
+{
+	return 2;
+}
+#else
+
+template< int preclevel>
+int myreciprocal_flops()
+{
+	if (preclevel == 0) return 4;
+	if (preclevel == -1) return 1;
+	return 1; //we don't know if it is just 1
+}
+
+template< int preclevel>
+int mysqrt_flops()
+{
+	return 9;
+}
+
+template< int preclevel>
+int mydivision_flops()
+{
+	if (preclevel <= 0) return myreciprocal_flops<preclevel>() + 1;
+	return 1; //we don't know if it is just 1
+}
+
+inline int myminmax_flops()
+{
+	return 2;
+}
+#endif
+
 
 //SSE-related functions
 #ifdef _SSE_
@@ -162,29 +304,29 @@ inline __m128d reconstruct(const __m128d y0, const __m128d y1, const __m128d phi
 }
 
 inline __m128 getgamma(const __m128 phi, const __m128 inv_smoothlength, 
-						const __m128 gamma1, const __m128 gamma2,
-						const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) 
+					   const __m128 gamma1, const __m128 gamma2,
+					   const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) 
 {
 	return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
 }
 
 inline __m128d getgamma(const __m128d phi, const __m128d inv_smoothlength, 
-						 const __m128d gamma1, const __m128d gamma2,
-						 const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) 
+						const __m128d gamma1, const __m128d gamma2,
+						const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) 
 {
 	return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
 }
 
 inline __m128 getPC(const __m128 phi, const __m128 inv_smoothlength, 
-					 const __m128 pc1, const __m128 pc2,
-					 const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) 
+					const __m128 pc1, const __m128 pc2,
+					const __m128 F_1, const __m128 F_1_2, const __m128 M_1_2) 
 {
 	return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
 }
 
 inline __m128d getPC(const __m128d phi, const __m128d inv_smoothlength, 
-					  const __m128d pc1, const __m128d pc2,
-					  const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) 
+					 const __m128d pc1, const __m128d pc2,
+					 const __m128d F_1, const __m128d F_1_2, const __m128d M_1_2) 
 {
 	return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
 }
@@ -231,15 +373,15 @@ inline __m256 reconstruct(const __m256 y0, const __m256 y1, const __m256 phi, co
 }
 
 inline __m256 getgamma(const __m256 phi, const __m256 inv_smoothlength, 
-						const __m256 gamma1, const __m256 gamma2,
-						const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2)
+					   const __m256 gamma1, const __m256 gamma2,
+					   const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2)
 {
 	return reconstruct(gamma1, gamma2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
 }
 
 inline __m256 getPC(const __m256 phi, const __m256 inv_smoothlength, 
-					 const __m256 pc1, const __m256 pc2,
-					 const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2)
+					const __m256 pc1, const __m256 pc2,
+					const __m256 F_1, const __m256 F_1_2, const __m256 M_1_2)
 {
 	return reconstruct(pc1, pc2, phi, inv_smoothlength, F_1, F_1_2, M_1_2);
 }

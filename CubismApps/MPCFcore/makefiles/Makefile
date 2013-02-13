@@ -21,7 +21,12 @@ CPPFLAGS += -D_L2PAR
 
 ###############
 
-OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o 
+OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o
+
+ifeq "$(bgq)" "1"
+OBJECTS += WenoSOA2D_QPX.o 
+OBJECTS += HLLESOA2D_QPX.o
+endif
 
 OBJECTS += Convection_CPP_omp.o
 
@@ -47,6 +52,12 @@ mpcf-core: $(OBJECTS)
 
 %.o: %.cpp $(header_files)
 	$(CC) $(OPTFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+WenoSOA2D_QPX.o:	WenoSOA2D_QPX.cpp $(header_files)
+	$(CC) -qreport -O5 -qarch=qp -qtune=qp  -qhot=level=2 -qunroll $(CPPFLAGS) -c -o $@ $<
+
+HLLESOA2D_QPX.o:        HLLESOA2D_QPX.cpp $(header_files)
+	$(CC) -qreport -O5 -qarch=qp -qtune=qp  -qhot=level=2 -qunroll $(CPPFLAGS) -c -o $@ $<
 
 clean:
 	rm -f *.o mpcf-core

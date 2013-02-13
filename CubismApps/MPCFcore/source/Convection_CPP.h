@@ -47,13 +47,6 @@ protected:
 	//Assumed input/output grid point type
 	struct AssumedType { Real r, u, v, w, s, G, P; }; 
 	
-	//working dataset types
-	typedef SOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3> InputSOA; //associated with weno5
-	typedef RingSOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3, 6> RingInputSOA; //associated with weno5
-	typedef SOA2D<0,_BLOCKSIZE_+1, 0,_BLOCKSIZE_> TempSOA; //associated with hlle
-	typedef RingSOA2D<0, _BLOCKSIZE_+1, 0,_BLOCKSIZE_, 2> RingTempSOA; //associated with hlle
-	typedef RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 3> RingTempSOA3;//associated with hlle
-	
 	template<int zslices=2>
 	struct WorkingSet {
 		RingInputSOA ring;
@@ -89,52 +82,50 @@ protected:
 		P.weno.next();
         P.weno.next();
 	}
-    
-	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
+    	
+	void _xweno_minus(const InputSOA& in, TempSOA& out);
+	void _xweno_pluss(const InputSOA& in, TempSOA& out);
+	void _yweno_minus(const InputSOA& in, TempSOA& out);
+	void _yweno_pluss(const InputSOA& in, TempSOA& out);
+	void _zweno_minus(const int relid, const RingInputSOA& in, TempSOA& out);
+	void _zweno_pluss(const int relid, const RingInputSOA& in, TempSOA& out);
 	
-	virtual void _xweno_minus(const InputSOA& in, TempSOA& out);
-	virtual void _xweno_pluss(const InputSOA& in, TempSOA& out);
-	virtual void _yweno_minus(const InputSOA& in, TempSOA& out);
-	virtual void _yweno_pluss(const InputSOA& in, TempSOA& out);
-	virtual void _zweno_minus(const int relid, const RingInputSOA& in, TempSOA& out);
-	virtual void _zweno_pluss(const int relid, const RingInputSOA& in, TempSOA& out);
-	
-	virtual void _xextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
+	void _xextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am, const TempSOA& ap);
     
-	virtual void _yextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
+	void _yextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am, const TempSOA& ap);
     
-	virtual void _zextraterm(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1, const TempSOA& Gm, const TempSOA& Gp
+	void _zextraterm(const TempSOA& um0, const TempSOA& up0, const TempSOA& um1, const TempSOA& up1, const TempSOA& Gm, const TempSOA& Gp
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am0, const TempSOA& ap0, const TempSOA& am1, const TempSOA& ap1);
 	
-	virtual void _char_vel(const TempSOA& rminus, const TempSOA& rplus, 
+	void _char_vel(const TempSOA& rminus, const TempSOA& rplus, 
 						   const TempSOA& vminus, const TempSOA& vplus,
 						   const TempSOA& pminus, const TempSOA& pplus,
 						   const TempSOA& Gminus, const TempSOA& Gplus,
 						   const TempSOA& Pminus, const TempSOA& Pplus,						   
 						   TempSOA& out_minus, TempSOA& out_plus);
 	
-	virtual void _hlle_rho(const TempSOA& rm, const TempSOA& rp,
+	void _hlle_rho(const TempSOA& rm, const TempSOA& rp,
 						   const TempSOA& vm, const TempSOA& vp,
 						   const TempSOA& am, const TempSOA& ap,
 						   TempSOA& out);
 	
-	virtual void _hlle_vel(const TempSOA& rminus, const TempSOA& rplus,
+	void _hlle_vel(const TempSOA& rminus, const TempSOA& rplus,
 						   const TempSOA& vminus, const TempSOA& vplus,
 						   const TempSOA& vdminus, const TempSOA& vdplus,
 						   const TempSOA& aminus, const TempSOA& aplus,
 						   TempSOA& out);
 	
-	virtual void _hlle_pvel(const TempSOA& rminus, const TempSOA& rplus,
+	void _hlle_pvel(const TempSOA& rminus, const TempSOA& rplus,
 							const TempSOA& vminus, const TempSOA& vplus,
 							const TempSOA& pminus, const TempSOA& pplus,
 							const TempSOA& aminus, const TempSOA& aplus,
 							TempSOA& out);
-	virtual void _hlle_e(const TempSOA& rminus, const TempSOA& rplus,
+	void _hlle_e(const TempSOA& rminus, const TempSOA& rplus,
 						 const TempSOA& vdminus, const TempSOA& vdplus,
 						 const TempSOA& v1minus, const TempSOA& v1plus,
 						 const TempSOA& v2minus, const TempSOA& v2plus,
@@ -144,9 +135,13 @@ protected:
 						 const TempSOA& aminus, const TempSOA& aplus,
 						 TempSOA& out);
 	
-	virtual void _xdivergence(const TempSOA& flux, OutputSOA& rhs);
-	virtual void _ydivergence(const TempSOA& flux, OutputSOA& rhs);
-	virtual void _zdivergence(const TempSOA& fback, const TempSOA& fforward, OutputSOA& rhs);
+	void _xdivergence(const TempSOA& flux, OutputSOA& rhs);
+	void _ydivergence(const TempSOA& flux, OutputSOA& rhs);
+	void _zdivergence(const TempSOA& fback, const TempSOA& fforward, OutputSOA& rhs);
+	
+	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
+
+	
 	
 	virtual void _xflux(const int relsliceid);
 	virtual void _yflux(const int relsliceid);
