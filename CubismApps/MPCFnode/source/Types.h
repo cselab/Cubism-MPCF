@@ -65,10 +65,12 @@ public:
     
     static Real heaviside_smooth(const Real phi)
     {
-        const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/EPSILON)));
+        /*const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/EPSILON)));
         const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
         const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
-        return (x<0 ? val_xneg : val_xpos);
+        return (x<0 ? val_xneg : val_xpos);*/
+        const Real alpha = M_PI*min(1., max(0., (phi+0.5*EPSILON)/EPSILON));     
+        return 0.5+0.5*cos(alpha);
     }
     
     static void getPostShockRatio(const Real pre_shock[3], const Real mach, const Real gamma, const Real pc, Real postShock[3])
