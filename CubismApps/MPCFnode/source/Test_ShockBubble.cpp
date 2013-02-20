@@ -283,7 +283,7 @@ void Test_ShockBubble::run()
 		{
 			profiler.push_start("DUMP");            
 			std::stringstream streamer;
-			streamer<<"data-"<<step_id<<".vti";
+			streamer<<"data-"<<step_id;
 			_dump(streamer.str());
 			//_vp(*grid);			
 			profiler.pop_stop();
@@ -323,7 +323,7 @@ void Test_ShockBubble::run()
     cout << "Finishing run ...";
         
 	std::stringstream streamer;
-	streamer<<"data-"<<step_id<<".vti";
+	streamer<<"data-"<<step_id;
 	if (DUMPPERIOD < 1e5) _dump(streamer.str());
     
     cout << "done" << endl;

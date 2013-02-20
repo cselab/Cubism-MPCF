@@ -10,6 +10,11 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+
+#ifdef _USE_HDF_
+#include <HDF5Dumper.h>
+#endif
+
 using namespace std;
 
 #include "Test_SteadyState.h"
@@ -73,18 +78,15 @@ void Test_SteadyState::_save()
 
 void Test_SteadyState::_dump(string filename)
 {	
-  const string path = parser("-fpath").asString(".");
-
-  cout << "Dump to " << path << filename << "..." ;
-
-#ifdef _USE_VTK_ 
-	SerializerIO_ImageVTK<FluidGrid, StreamerGridPoint> vtkdumper;
-	vtkdumper.Write(*grid, path+filename);
+    const string path = parser("-fpath").asString(".");
+	
+#ifdef _USE_HDF_
+    cout << "Dump to " << path << filename << "..." ;
+    DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
+    cout << "done." << endl;
 #else
-	#warning VTK WAS DISABLED AT COMPILE TIME
+#warning HDF WAS DISABLED AT COMPILE TIME
 #endif
-    
-	cout << "done." << endl;
 }
 
 void Test_SteadyState::_ic(FluidGrid& grid)
