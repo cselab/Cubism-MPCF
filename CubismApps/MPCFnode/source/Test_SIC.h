@@ -43,17 +43,17 @@ public:
 	{	
         BoundaryCondition<BlockType,ElementTypeBlock,allocator> bc(this->m_stencilStart, this->m_stencilEnd, this->m_cacheBlock);
 
-        const Real pre_shock[3] = {10, 0, 10};
+        const Real pre_shock[3] = {1000, 0, 100};
         Real post_shock[3];
         
-        Simulation_Environment::getPostShockRatio(pre_shock, 3530, post_shock);
+	//        Simulation_Environment::getPostShockRatio(pre_shock, 3530, post_shock);
         
         ElementTypeBlock b;
         b.clear();
-        b.rho = post_shock[0];
-        b.u = post_shock[0]*post_shock[1];
+        b.rho = pre_shock[0];
+        b.u = 0;//post_shock[0]*post_shock[1];
         b.G = 1./(6.59-1);
-        b.P = 4.049e4*b.G*6.59;
+        b.P = 4.049e3*b.G*6.59;
         b.energy = post_shock[2]*b.G + b.P + 0.5*post_shock[0]*post_shock[1]*post_shock[1];
         
         if (info.index[0]==0)           bc.template applyBC_dirichlet<0,0>(b);
