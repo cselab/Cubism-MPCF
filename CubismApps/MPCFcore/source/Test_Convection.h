@@ -151,7 +151,7 @@ protected:
 		TestLab * lab = new TestLab[NBLOCKS];
 		Block * block = new Block[NBLOCKS];
 
-		printf("_benchmark: NBLOCKS = %d NTIMES = %d\n", NBLOCKS, NTIMES);
+		//printf("_benchmark: NBLOCKS = %d NTIMES = %d\n", NBLOCKS, NTIMES);
 		
 		for(int i=0; i<NBLOCKS; i++) {
 			_initialize_lab(lab[i]);

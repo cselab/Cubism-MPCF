@@ -84,13 +84,51 @@ template<typename Tomato> inline void _qpx_xweno_plus(Real * const in, Real * co
 	}
 }
 
-void WenoSOA2D_QPX::xcompute(const InputSOA& in, TempSOA& outm, TempSOA& outp) const
+inline void _qpx_xweno_fused(Real * const in, Real * const outm, Real * const outp)
 {
-	_qpx_xweno_minus<SoupMinus>(const_cast<Real *>(in.ptr(-4,0)), &outm.ref(0,0));
-	_qpx_xweno_plus<SoupPlus>(const_cast<Real *>(in.ptr(-4,0)), &outp.ref(0,0));
+	enum {
+		NX = TempSOA::NX,
+		NY = TempSOA::NY,
+		INSTRIDE = InputSOA::PITCH,
+		OUTSTRIDE = TempSOA::PITCH
+	};
+
+	SoupMinus wminus;
+	SoupPlus wplus;
+
+	for(int dy=0; dy<NY; ++dy)
+	{
+		Real * const row = in + INSTRIDE * dy;
+
+#pragma unroll(4)
+		for(int dx=0; dx<NX; dx += 4)
+		{
+			const vector4double W4 = vec_ld(0 * sizeof(Real), row + dx);
+			const vector4double C4 = vec_ld(4 * sizeof(Real), row + dx);
+			const vector4double E4 = vec_ld(8 * sizeof(Real), row + dx);
+
+			const vector4double a = vec_perm(W4, C4, vec_gpci(01234));
+			const vector4double b = vec_perm(W4, C4, vec_gpci(02345));
+			const vector4double c = vec_perm(W4, C4, vec_gpci(03456));
+			const vector4double d = C4;
+			const vector4double e = vec_perm(C4, E4, vec_gpci(01234));
+			const vector4double f = vec_perm(C4, E4, vec_gpci(02345));
+
+			const vector4double reconstructionM = wminus._weno(a, b, c, d, e);
+			const vector4double reconstructionP = wplus._weno(b, c, d, e, f);
+
+			vec_sta(reconstructionM, sizeof(Real) * (dx + OUTSTRIDE * dy), outm);
+			vec_sta(reconstructionP, sizeof(Real) * (dx + OUTSTRIDE * dy), outp);
+		}
+	}
 }
 
-template<typename Chili, int start> inline void _qpx_yweno(Real * const in, Real * const out) 
+void WenoSOA2D_QPX::xcompute(const InputSOA& in, TempSOA& outm, TempSOA& outp) const
+{
+	_qpx_xweno_fused(const_cast<Real *>(in.ptr(-4,0)), &outm.ref(0,0), &outp.ref(0,0));
+}
+
+inline void _qpx_yweno(Real * const in, Real * const outM, Real * const outP) 
 {
 	enum {
 		NX = TempSOA::NX, 
@@ -99,15 +137,17 @@ template<typename Chili, int start> inline void _qpx_yweno(Real * const in, Real
 		OUTSTRIDE = TempSOA::PITCH
 	};
 
-	WenoScratchPad scratchpad;
+	WenoScratchPad scratchpadM, scratchpadP;
 
-	Real * const tmp = (Real *)&scratchpad.tmp[0][0];
+	Real * const tmpM = (Real *)&scratchpadM.tmp[0][0];
+	Real * const tmpP = (Real *)&scratchpadP.tmp[0][0];
 
-	Chili weno_ftor;
+	SoupMinus wminus;
+	SoupPlus wplus;
 
 	for(int dy=0; dy<NY; dy+=4)
 	{
-		Real * const ptr = (start * INSTRIDE) + &in[dy];
+		Real * const ptr = &in[dy];
 
 #pragma unroll(4)
 		for(int dx=0; dx<NX; ++dx)
@@ -119,30 +159,53 @@ template<typename Chili, int start> inline void _qpx_yweno(Real * const in, Real
 			const vector4double c = vec_lda(sizeof(Real) * 2 * INSTRIDE, entry);
 			const vector4double d = vec_lda(sizeof(Real) * 3 * INSTRIDE, entry);
 			const vector4double e = vec_lda(sizeof(Real) * 4 * INSTRIDE, entry);
+			const vector4double f = vec_lda(sizeof(Real) * 5 * INSTRIDE, entry);
 
-			const vector4double reconstruction = weno_ftor._weno(a, b, c, d, e);
+			const vector4double reconstructionM = wminus._weno(a, b, c, d, e);
+			const vector4double reconstructionP = wplus._weno(b, c, d, e, f);
 
-			vec_sta(reconstruction, 0L, tmp + 4 * dx);
+			vec_sta(reconstructionM, 0L, tmpM + 4 * dx);
+			vec_sta(reconstructionP, 0L, tmpP + 4 * dx);
 		}
 
 #pragma unroll(4)
 		for(int dx=0; dx<NX-1; dx += 4)
 		{
-			Real * const entry_in = tmp + 4 * dx;
+			{
+				Real * const entry_in = tmpM + 4 * dx;
 
-			vector4double data0 = vec_lda(0L, entry_in);
-			vector4double data1 = vec_lda(sizeof(Real) * 4, entry_in);
-			vector4double data2 = vec_lda(sizeof(Real) * 4 * 2, entry_in);
-			vector4double data3 = vec_lda(sizeof(Real) * 4 * 3, entry_in);
+				vector4double data0 = vec_lda(0L, entry_in);
+				vector4double data1 = vec_lda(sizeof(Real) * 4, entry_in);
+				vector4double data2 = vec_lda(sizeof(Real) * 4 * 2, entry_in);
+				vector4double data3 = vec_lda(sizeof(Real) * 4 * 3, entry_in);
 
-			_DIEGO_TRANSPOSE4(data0, data1, data2, data3);
+				_DIEGO_TRANSPOSE4(data0, data1, data2, data3);
 
-			Real * const entry_out = out + dx + OUTSTRIDE * dy;
+				Real * const entry_out = outM + dx + OUTSTRIDE * dy;
 
-			vec_sta(data0, 0L, entry_out);
-			vec_sta(data1, sizeof(Real) * OUTSTRIDE, entry_out);
-			vec_sta(data2, sizeof(Real) * OUTSTRIDE * 2, entry_out);
-			vec_sta(data3, sizeof(Real) * OUTSTRIDE * 3, entry_out);
+				vec_sta(data0, 0L, entry_out);
+				vec_sta(data1, sizeof(Real) * OUTSTRIDE, entry_out);
+				vec_sta(data2, sizeof(Real) * OUTSTRIDE * 2, entry_out);
+				vec_sta(data3, sizeof(Real) * OUTSTRIDE * 3, entry_out);
+			}
+
+			{
+				Real * const entry_in = tmpP + 4 * dx;
+
+				vector4double data0 = vec_lda(0L, entry_in);
+				vector4double data1 = vec_lda(sizeof(Real) * 4, entry_in);
+				vector4double data2 = vec_lda(sizeof(Real) * 4 * 2, entry_in);
+				vector4double data3 = vec_lda(sizeof(Real) * 4 * 3, entry_in);
+
+				_DIEGO_TRANSPOSE4(data0, data1, data2, data3);
+
+				Real * const entry_out = outP + dx + OUTSTRIDE * dy;
+
+				vec_sta(data0, 0L, entry_out);
+				vec_sta(data1, sizeof(Real) * OUTSTRIDE, entry_out);
+				vec_sta(data2, sizeof(Real) * OUTSTRIDE * 2, entry_out);
+				vec_sta(data3, sizeof(Real) * OUTSTRIDE * 3, entry_out);
+			}
 		}
 
 		{
@@ -156,10 +219,15 @@ template<typename Chili, int start> inline void _qpx_yweno(Real * const in, Real
 
 			const int base = B * dy; 
 
-			out[A0 + base] = scratchpad.tmp[NX-1][0];
-			out[A1 + base] = scratchpad.tmp[NX-1][1];
-			out[A2 + base] = scratchpad.tmp[NX-1][2];
-			out[A3 + base] = scratchpad.tmp[NX-1][3];
+			outM[A0 + base] = scratchpadM.tmp[NX-1][0];
+			outM[A1 + base] = scratchpadM.tmp[NX-1][1];
+			outM[A2 + base] = scratchpadM.tmp[NX-1][2];
+			outM[A3 + base] = scratchpadM.tmp[NX-1][3];
+
+			outP[A0 + base] = scratchpadP.tmp[NX-1][0];
+			outP[A1 + base] = scratchpadP.tmp[NX-1][1];
+			outP[A2 + base] = scratchpadP.tmp[NX-1][2];
+			outP[A3 + base] = scratchpadP.tmp[NX-1][3];
 		}
 	}
 }
@@ -167,8 +235,7 @@ template<typename Chili, int start> inline void _qpx_yweno(Real * const in, Real
 void WenoSOA2D_QPX::ycompute(const InputSOA& in, TempSOA& outm, TempSOA& outp) const
 
 {
-	_qpx_yweno<SoupMinus, 0>(const_cast<Real *>(in.ptr(0,-3)), &outm.ref(0,0));
-	_qpx_yweno<SoupPlus, 1>(const_cast<Real *>(in.ptr(0,-3)), &outp.ref(0,0));
+	_qpx_yweno(const_cast<Real *>(in.ptr(0,-3)), &outm.ref(0,0), &outp.ref(0,0));
 }
 
 template<typename Potato> inline void _qpx_zweno(Real * const a, Real * const b,
@@ -189,20 +256,57 @@ template<typename Potato> inline void _qpx_zweno(Real * const a, Real * const b,
 				d + INSTRIDE * dy, e + INSTRIDE * dy, out + OUTSTRIDE * dy);
 }    
 
+inline void _qpx_zweno_fused(Real * const _a, Real * const _b, Real * const _c, Real * const _d, Real * const _e, Real * const _f,
+		Real * const _outM, Real * const _outP)
+{
+	enum {
+		NX = TempSOA::NX,
+		NY = TempSOA::NY,
+		INSTRIDE = InputSOA::PITCH,
+		OUTSTRIDE = TempSOA::PITCH
+	};
+
+	SoupMinus wminus;
+	SoupPlus wplus;
+
+	for(int dy=0; dy<NY; dy++)
+	{
+		Real * const a = _a + INSTRIDE * dy;
+		Real * const b = _b + INSTRIDE * dy;
+		Real * const c = _c + INSTRIDE * dy;
+		Real * const d = _d + INSTRIDE * dy;
+		Real * const e = _e + INSTRIDE * dy;
+		Real * const f = _f + INSTRIDE * dy;
+
+		Real * const outM = _outM + OUTSTRIDE * dy;
+		Real * const outP = _outP + OUTSTRIDE * dy;
+
+		for(int i=0; i<NX; i += 4)
+		{			
+			const vector4double mya = vec_lda(0L, a + i);
+			const vector4double myb = vec_lda(0L, b + i);
+			const vector4double myc = vec_lda(0L, c + i);
+			const vector4double myd = vec_lda(0L, d + i);
+			const vector4double mye = vec_lda(0L, e + i);
+			const vector4double myf = vec_lda(0L, f + i);
+
+			const vector4double resultM = wminus._weno(mya, myb, myc, myd, mye);
+			const vector4double resultP = wplus._weno(myb, myc, myd, mye, myf);
+
+			vec_sta(resultM, 0L, outM + i);
+			vec_sta(resultP, 0L, outP + i);
+		}
+	}
+}
+
 void WenoSOA2D_QPX::zcompute(const int r, const RingInputSOA& in, TempSOA& outm, TempSOA& outp) const
 
 {              	
-	_qpx_zweno<SoupMinus>(const_cast<Real *>(in(r-3).ptr(0,0)),
+	_qpx_zweno_fused(const_cast<Real *>(in(r-3).ptr(0,0)),
 			const_cast<Real *>(in(r-2).ptr(0,0)),
 			const_cast<Real *>(in(r-1).ptr(0,0)),
 			const_cast<Real *>(in(r).ptr(0,0)), 
-			const_cast<Real *>(in(r+1).ptr(0,0)), 
-			&outm.ref(0,0));
-
-	_qpx_zweno<SoupPlus>(const_cast<Real *>(in(r-2).ptr(0,0)),
-			const_cast<Real *>(in(r-1).ptr(0,0)),
-			const_cast<Real *>(in(r).ptr(0,0)),
 			const_cast<Real *>(in(r+1).ptr(0,0)),
-			const_cast<Real *>(in(r+2).ptr(0,0)), &outp.ref(0,0));
+			const_cast<Real *>(in(r+2).ptr(0,0)), &outm.ref(0,0), &outp.ref(0,0));
 }
 

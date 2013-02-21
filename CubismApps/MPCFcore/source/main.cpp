@@ -183,6 +183,8 @@ int main (int argc, const char ** argv)
 		if (kernel == "Convection_QPX" || kernel == "all")
 			testing(Test_Convection(), Convection_QPX(0, 1), info);
 
+		Test_LocalKernel lt;
+
 		if (kernel == "MaxSOS_QPX" || kernel == "all")
 		{
 			MaxSpeedOfSound_QPX maxsos_kernel;

@@ -23,9 +23,11 @@ CPPFLAGS += -D_L2PAR
 
 OBJECTS = main.o Convection_CPP.o Test_Convection.o Update.o MaxSpeedOfSound.o
 
-ifeq "$(bgq)" "1"
+ifeq "$(qpx)" "1"
 OBJECTS += WenoSOA2D_QPX.o 
 OBJECTS += HLLESOA2D_QPX.o
+OBJECTS += DivSOA2D_QPX.o
+NASTYFLAGS = -qlist -qsource -qreport -O5 -qarch=qp -qtune=qp  -qhot=level=2 -qunroll
 endif
 
 OBJECTS += Convection_CPP_omp.o
@@ -54,10 +56,13 @@ mpcf-core: $(OBJECTS)
 	$(CC) $(OPTFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 WenoSOA2D_QPX.o:	WenoSOA2D_QPX.cpp $(header_files)
-	$(CC) -qreport -O5 -qarch=qp -qtune=qp  -qhot=level=2 -qunroll $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(NASTYFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 HLLESOA2D_QPX.o:        HLLESOA2D_QPX.cpp $(header_files)
-	$(CC) -qreport -O5 -qarch=qp -qtune=qp  -qhot=level=2 -qunroll $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(NASTYFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+DivSOA2D_QPX.o: 	DivSOA2D_QPX.cpp $(header_files)
+	$(CC) $(NASTYFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 clean:
 	rm -f *.o mpcf-core
