@@ -151,11 +151,7 @@ void Test_SteadyState::run()
 	for(int i=0; i<NSTEPS; ++i)
 	{
 	  	(*stepper)(TEND-t);
-	}
-	
-	_dump("ciao");
-	_save();
-	_vp(*grid);
+	}      
 }
 
 void Test_SteadyState::paint() { }
@@ -217,7 +213,7 @@ void Test_SteadyState::setup()
 	
 	assert(grid != NULL);
 	
-	stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser);
+	stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY);
 	
 	if(bRESTART)
 	{

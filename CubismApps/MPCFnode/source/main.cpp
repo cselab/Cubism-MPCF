@@ -20,6 +20,10 @@
 
 #include <omp.h>
 
+#ifdef _USE_HPM_
+#include <mpi.h>
+#endif
+
 #include "Test_SteadyState.h"
 #include "Test_ShockBubble.h"
 #include "Test_SIC.h"
@@ -89,6 +93,10 @@ int main (int argc, const char ** argv)
 
   cout << "Potential number of threads is " << omp_get_max_threads() << endl;
 
+#ifdef _USE_HPM_
+  MPI::Init();
+#endif
+
 #ifdef _USE_NUMA_
 	if (numa_available() < 0)
 		printf("WARNING: The system does not support NUMA API!\n");
@@ -138,6 +146,10 @@ int main (int argc, const char ** argv)
 	}
 	
 	printf("we spent: %2.2f \n", wallclock);
+
+#ifdef _USE_HPM_
+	MPI::Finalize();
+#endif
 	
     return 0;
 }
