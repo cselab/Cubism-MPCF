@@ -65,7 +65,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         
                         const double bubble = Simulation_Environment::heaviside_smooth(min(r1-radius, HUGE_VAL+r2-radius));
                         
-                        const double bubble_p = heaviside_smooth_local(min(r1-radius-4*Simulation_Environment::EPSILON, r2-radius-4*Simulation_Environment::EPSILON), 8*Simulation_Environment::EPSILON);// : Simulation_Environment::heaviside_smooth(r-radius);//Simulation_Environment::heaviside_smooth(r-radius);
+                        const double bubble_p = heaviside_smooth_local(min(r1-radius-8*Simulation_Environment::EPSILON, HUGE_VAL+r2-radius-4*Simulation_Environment::EPSILON), 6*Simulation_Environment::EPSILON);// : Simulation_Environment::heaviside_smooth(r-radius);//Simulation_Environment::heaviside_smooth(r-radius);
                         
                         //const double shock_pressure = 3530;
                         

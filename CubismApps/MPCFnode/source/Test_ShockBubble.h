@@ -39,7 +39,7 @@ protected:
 	bool is_xperiodic() {return false;}
 	bool is_yperiodic() {return false;}
 	bool is_zperiodic() {return false;}
-    
+
 public:
 	BlockLabBubble(): BlockLab<BlockType,allocator>(){}
 	
