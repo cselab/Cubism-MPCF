@@ -43,7 +43,7 @@ public:
         if (isroot) cout << "Dumping " << "..." ;
 
         const string path = parser("-fpath").asString(".");
-		DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, filename, path);
+		DumpHDF5_MPI<G, StreamerGamma_HDF5>(grid, step_id, filename, path);
         
         if (isroot) cout << "done." << endl;
     }

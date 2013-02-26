@@ -21,6 +21,7 @@
 #include "Test_SteadyStateMPI.h"
 #include "Test_ShockBubbleMPI.h"
 #include "Test_SICMPI.h"
+#include "Test_CloudMPI.h"
 
 using namespace std;
 
@@ -63,7 +64,9 @@ int main (int argc, const char ** argv)
 		sim = new Test_ShockBubbleMPI(isroot, argc, argv);
 	else if( parser("-sim").asString() == "sic" )
 		sim = new Test_SICMPI(isroot, argc, argv);
-	else 
+	else if( parser("-sim").asString() == "cloud" )
+		sim = new Test_CloudMPI(isroot, argc, argv);
+	else
 		if (isroot)
 		{
 			printf("-sim value not recognized. Aborting.\n");

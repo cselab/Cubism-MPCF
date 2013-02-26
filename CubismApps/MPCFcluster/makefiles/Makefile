@@ -67,7 +67,7 @@ VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubis
 .DEFAULT_GOAL := mpcf-cluster
 
 OBJECTS = main.o 
-OBJECTS +=  ../../MPCFnode/makefiles/FlowStep_LSRK3.o  ../../MPCFnode/makefiles/Test_SteadyState.o ../../MPCFnode/makefiles/Test_ShockBubble.o ../../MPCFnode/makefiles/Test_SIC.o ../../MPCFnode/makefiles/Types.o
+OBJECTS +=  ../../MPCFnode/makefiles/FlowStep_LSRK3.o  ../../MPCFnode/makefiles/Test_SteadyState.o ../../MPCFnode/makefiles/Test_ShockBubble.o ../../MPCFnode/makefiles/Test_SIC.o ../../MPCFnode/makefiles/Types.o ../../MPCFnode/makefiles/Test_Cloud.o
 OBJECTS += ../../MPCFcore/makefiles/Convection_CPP.o ../../MPCFcore/makefiles/Update.o ../../MPCFcore/makefiles/MaxSpeedOfSound.o ../../MPCFcore/makefiles/DivTensor_CPP.o ../../MPCFcore/makefiles/Diffusion_CPP.o
 
 #../../Cubism/makefiles/
