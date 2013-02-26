@@ -10,6 +10,7 @@
 
 #include "Test_SIC.h"
 #include "Types.h"
+#include <fstream>
 
 namespace CloudData
 {
@@ -145,11 +146,33 @@ public:
         end[2] = _end[2];
     }
     
-    void make_shapes()
+    void make_shapes(const bool bRestartedSeed=false)
     {
         bool bFull = false;
         
-        srand48(time(0));
+        unsigned int restarted_seed;
+        
+        //read seed if needed
+        if (bRestartedSeed)
+        {
+            ifstream f_read("seed.dat");
+            if(f_read)
+            {
+                f_read >> restarted_seed;
+                f_read.close();
+            }
+        }
+        
+        const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
+        
+        //save seed anyway
+        {
+            ofstream f_save("seed.dat");
+            f_save<<seed;
+            f_save.close();
+        }
+        
+        srand48(seed);
         
         while(!bFull)
         {
@@ -162,13 +185,30 @@ public:
             shape * cur_shape = new shape(cur_cen, cur_rad);
             
             if (reject_check(cur_shape))
+            {
+                delete cur_shape;
                 continue;
+            }
             
             v_shapes.push_back(cur_shape);
             
             printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
             
             bFull = v_shapes.size()==n_shapes;
+        }
+        
+        //We are even more paranoic so we save the bubble centers and radii
+        {
+            ofstream f_save("cloud.dat");
+            for(int i=0; i< v_shapes.size(); i++)
+            {
+                Real c[3], rad;
+                rad = v_shapes[i]->get_rad();
+                v_shapes[i]->get_center(c);
+                f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+            }
+            
+            f_save.close();
         }
     }
     
