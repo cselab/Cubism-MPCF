@@ -33,28 +33,28 @@ void Convection_CPP::compute(const Real * const srcfirst, const int srcfloats, c
 	_convert(srcfirst + 5*srcfloats*slicesrcs, srcfloats, rowsrcs);
 
    	_zflux(-2, true);
-    //_zflux_hllc(-2, true);//printf("z done slice %d\n", 0);
+	//_zflux_hllc(-2, true);//printf("z done slice %d\n", 0);
 	_flux_next();
 
 	for(int islice=0; islice<_BLOCKSIZE_; islice++)
 	{
-		_xflux(-2);
-        //_xflux_hllc(-2);//printf("x done slice %d\n", islice);
-		_xrhs();
+	_xflux(-2);
+	  //_xflux_hllc(-2);//printf("x done slice %d\n", islice);
+	  _xrhs();
         
-		_yflux(-2);
-        //_yflux_hllc(-2);//printf("y done slice %d\n", islice);
-		_yrhs();
+	_yflux(-2);
+	//  _yflux_hllc(-2);//printf("y done slice %d\n", islice);
+	  _yrhs();
 
-		_next();
-		_convert(srcfirst + (islice+6)*srcfloats*slicesrcs, srcfloats, rowsrcs);
+	  _next();
+	  _convert(srcfirst + (islice+6)*srcfloats*slicesrcs, srcfloats, rowsrcs);
 		
-        _zflux(-2, false);
-        //_zflux_hllc(-2, false);//printf("z done slice %d\n", islice);
-		_zrhs();
+	_zflux(-2, false);
+	//  _zflux_hllc(-2, false);//printf("z done slice %d\n", islice);
+	  _zrhs();
         
-		_copyback(dstfirst + islice*dstfloats*slicedsts, dstfloats, rowdsts);
-		_flux_next();
+	  _copyback(dstfirst + islice*dstfloats*slicedsts, dstfloats, rowdsts);
+	  _flux_next();
 	}
 }
 
@@ -802,7 +802,7 @@ void Convection_CPP::_char_vel(const TempSOA& rm, const TempSOA& rp,
 		{
 			const Real cminus = mysqrt(((pm(ix, iy)+Pm(ix,iy))/Gm(ix,iy)+pm(ix, iy))/rm(ix, iy));
 			const Real cplus  = mysqrt(((pp(ix, iy)+Pp(ix,iy))/Gp(ix,iy)+pp(ix, iy))/rp(ix, iy));
-            
+
             outm.ref(ix, iy) = min(vp(ix, iy) - cplus, vm(ix, iy) - cminus);
 			outp.ref(ix, iy) = max(vp(ix, iy) + cplus, vm(ix, iy) + cminus);
 
@@ -1457,7 +1457,7 @@ void Convection_CPP::_yflux(const int relid)
     _yweno_minus(P.ring(relid), P.weno.ref(0));
     _yweno_pluss(P.ring(relid), P.weno.ref(1));
     
-    _char_vel<_BLOCKSIZE_+1>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
+    _char_vel<TempSOA::NX>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
     _yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
     //_yextraterm_v2(v.weno(0), v.weno(1), G.ring(relid), P.ring(relid), charvel(0), charvel(1));
 
@@ -1467,8 +1467,8 @@ void Convection_CPP::_yflux(const int relid)
     _hlle_vel<TempSOA::NX>(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), w.flux.ref());
     _hlle_e<TempSOA::NX>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), p.flux.ref());
 
-    _hlle_rho<_BLOCKSIZE_+1>(G.weno(0), G.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), G.flux.ref());
-    _hlle_rho<_BLOCKSIZE_+1>(P.weno(0), P.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), P.flux.ref());
+    _hlle_rho<TempSOA::NX>(G.weno(0), G.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), G.flux.ref());
+    _hlle_rho<TempSOA::NX>(P.weno(0), P.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), P.flux.ref());
 }
 
 void Convection_CPP::_yflux_hllc(const int relid)
@@ -1491,7 +1491,7 @@ void Convection_CPP::_yflux_hllc(const int relid)
     _char_vel_hllc<TempSOA::NX>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1), star.ref(0));
     
     //_yextraterm_hllc(v.weno(0), v.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), star(0));
-    _yextraterm_hllc_v2(v.weno(0), v.weno(1), G.ring(relid-1), P.ring(relid-1), charvel(0), charvel(1), star(0));
+    _yextraterm_hllc_v2(v.weno(0), v.weno(1), G.ring(relid), P.ring(relid), charvel(0), charvel(1), star(0));
     
     _hllc_rho<TempSOA::NX>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), star(0), rho.flux.ref());
     _hllc_vel<TempSOA::NX>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), star(0), u.flux.ref());
@@ -1525,7 +1525,7 @@ void Convection_CPP::_zflux(const int relid, const bool bFirst)
     _zextraterm(w.weno(-2), w.weno(-1), w.weno(0), w.weno(1), G.weno(-1), G.weno(0), P.weno(-1), P.weno(0), charvel(-2), charvel(-1), charvel(0), charvel(1));
     
     //if (!bFirst)
-      //  _zextraterm_v2(w.weno(-2), w.weno(-1), w.weno(0), w.weno(1), G.ring(relid-1), P.ring(relid-1), charvel(-2), charvel(-1), charvel(0), charvel(1));
+      //_zextraterm_v2(w.weno(-2), w.weno(-1), w.weno(0), w.weno(1), G.ring(relid-1), P.ring(relid-1), charvel(-2), charvel(-1), charvel(0), charvel(1));
    
     _hlle_rho<_BLOCKSIZE_>(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), rho.flux.ref());
     _hlle_vel<_BLOCKSIZE_>(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), u.flux.ref());

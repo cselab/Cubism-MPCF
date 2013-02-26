@@ -1,21 +1,24 @@
 /*
- *  Test_SICMPI.h
+ *  Test_CloudMPI.h
  *  MPCFcluster
  *
- *  Created by Babak Hejazialhosseini on 5/30/12.
+ *  Created by Babak Hejazialhosseini on 2/25/13.
  *  Copyright 2012 ETH Zurich. All rights reserved.
  *
  */
 #pragma once
 
 #include <limits>
-#include <Test_SIC.h>
+#include <Test_Cloud.h>
+#include "Test_SICMPI.h"
 
-class Test_SICMPI: public Test_SIC
+#define Tshape shape
+
+class Test_CloudMPI: public Test_Cloud
 {
-	Test_SteadyStateMPI * t_ssmpi;
+   	Test_SteadyStateMPI * t_ssmpi;
     Test_ShockBubbleMPI * t_sbmpi;
-    
+
 protected:
 	int XPESIZE, YPESIZE, ZPESIZE;
     
@@ -25,10 +28,10 @@ protected:
 public:
 	bool isroot;
     
-	Test_SICMPI(const bool isroot, const int argc, const char ** argv):
-    Test_SIC(argc, argv), isroot(isroot)
+	Test_CloudMPI(const bool isroot, const int argc, const char ** argv):
+    Test_Cloud(argc, argv), isroot(isroot)
 	{
-		t_ssmpi = new Test_SteadyStateMPI(isroot, argc, argv);
+        t_ssmpi = new Test_SteadyStateMPI(isroot, argc, argv);
         t_sbmpi = new Test_ShockBubbleMPI(isroot, argc, argv);
 	}
     
@@ -37,12 +40,12 @@ public:
 		if (isroot && VERBOSITY)
 		{
 			printf("////////////////////////////////////////////////////////////\n");
-			printf("///////////               TEST SIC MPI           ///////////\n");
+			printf("///////////               TEST Cloud MPI         ///////////\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
         
 		_setup_constants();
-		t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
+        t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
         
 		if (!isroot)
 			VERBOSITY = 0;
@@ -60,14 +63,59 @@ public:
 			step_id = t_ssmpi->get_stepid();
 		}
 		else
-			_ic(*grid);
-	}	
+        {
+            const int n_shapes = CloudData::n_shapes;
+            
+            Real bcast_buffer[4*n_shapes];
+            vector< shape * > v_shapes;
+            
+            if (isroot)
+            {
+                Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
+                my_seed.make_shapes();
+                
+                v_shapes = my_seed.get_vshapes();
+                
+                for(int i=0; i< n_shapes; i++)
+                {
+                    Real c[3*n_shapes];
+                    bcast_buffer[0+i*4] = v_shapes[i]->get_rad();
+                    v_shapes[i]->get_center(c);
+                    bcast_buffer[1+i*4] = c[0];
+                    bcast_buffer[2+i*4] = c[1];
+                    bcast_buffer[3+i*4] = c[2];
+                }
+            }
+            
+            MPI::Cartcomm cartcomm = grid->getCommunicator();
+            cartcomm.Bcast(bcast_buffer, 4*n_shapes, MPI_REAL, 0);
+            
+            if (!isroot)
+            {
+                for(int i=0; i< n_shapes; i++)
+                {
+                    Real c[3], rad;
+                    rad  = bcast_buffer[0+i*4];
+                    c[0] = bcast_buffer[1+i*4];
+                    c[1] = bcast_buffer[2+i*4];
+                    c[2] = bcast_buffer[3+i*4];
+                    
+                    shape * cur_shape = new shape(c, rad);
+                    v_shapes.push_back(cur_shape);
+                }
+            }
+            
+           _my_ic(*grid, v_shapes);
+            
+            v_shapes.clear();
+        }
+	}
     
 	void run()
 	{
 		if (isroot) printf("HELLO RUN\n");
 		bool bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
-                
+        
 		while(bLoop)
 		{
 			if (isroot) printf("Step id %d,Time %f\n", step_id, t);

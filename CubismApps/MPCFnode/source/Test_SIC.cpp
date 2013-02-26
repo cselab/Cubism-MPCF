@@ -60,27 +60,23 @@ void Test_SIC::_ic(FluidGrid& grid)
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
                         
-                        const double r1 = abs(bubble_pos[0]-p[0]);//sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
-                        const double r2 = sqrt(pow(p[0]-bubble_pos[0]-0.05,2)+pow(p[1]-bubble_pos[1]-0.25,2)+pow(p[2]-bubble_pos[2],2));
+                        const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
+                        const double r2 = sqrt(pow(p[0]-bubble_pos[0]-0.05,2)+pow(p[1]-bubble_pos[1]-0.35,2)+pow(p[2]-bubble_pos[2],2));
                         
-                        const double bubble = Simulation_Environment::heaviside_smooth(r1-0.1);//Simulation_Environment::heaviside_smooth(min(r1-radius, HUGE_VAL+r2-radius));
+                        const double bubble = Simulation_Environment::heaviside_smooth(min(HUGE_VAL+r1-radius, r2-0.7*radius));
                         
-                        const double bubble_p = (r1-0.2)>0? heaviside_smooth_local(r1-0.2, 128*Simulation_Environment::EPSILON) : Simulation_Environment::heaviside(r1-0.2);
+                        const double bubble_p = Simulation_Environment::heaviside_smooth(r2-0.7*radius-4*Simulation_Environment::EPSILON);//Simulation_Environment::heaviside_smooth(r-radius);//Simulation_Environment::heaviside_smooth(r-radius);
                         
                         //const double shock_pressure = 3530;
                         
-                        const Real pre_shock[3] = {100,0,100};//1000};//{10,0,1000};
+                        const Real pre_shock[3] = {1000,0,100};
                         
-                        //Simulation_Environment::getPostShockRatio(pre_shock, shock_pressure, post_shock);
-                        
-                        const double shock = 0;//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);
-                        
-                        b(ix, iy, iz).rho      = (1-shock)*(0.1*bubble+pre_shock[0]*(1-bubble));
+                        b(ix, iy, iz).rho      = 1.0*bubble+pre_shock[0]*(1-bubble);
                         b(ix, iy, iz).u        = 0;
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double pressure  = (1-shock)*(0.0234*bubble_p+pre_shock[2]*(1-bubble_p));//pre_shock[2]*(1-shock);
+                        const double pressure  = 0.0234*bubble+pre_shock[2]*(1-bubble);
                         
                         SETUP_MARKERS_IC
                         
