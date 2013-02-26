@@ -362,10 +362,28 @@ StreamerGamma_HDF5(FluidBlock& b): ref(b){}
   {
     const FluidElement& input = ref.data[iz][iy][ix];
 
-    output[0] = input.G;//(input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;//input.G;
+    output[0] = input.G;
   }
 
   static const char * getAttributeName() { return "Scalar"; }
+};
+
+struct StreamerPressure_HDF5
+{
+    static const int NCHANNELS = 1;
+    
+    FluidBlock& ref;
+    
+    StreamerPressure_HDF5(FluidBlock& b): ref(b){}
+    
+    void operate(const int ix, const int iy, const int iz, Real output[1]) const
+    {
+        const FluidElement& input = ref.data[iz][iy][ix];
+        
+        output[0] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+    }
+    
+    static const char * getAttributeName() { return "Scalar"; }
 };
 
 //typedef Grid<FluidBlock, tbb::scalable_allocator> FluidGrid;
