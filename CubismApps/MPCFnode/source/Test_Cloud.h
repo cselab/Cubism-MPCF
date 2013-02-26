@@ -13,9 +13,9 @@
 
 namespace CloudData
 {
-    const Real seed_s[3] = {0.25,0.25,0.25};
-    const Real seed_e[3] = {0.75,0.75,0.75};
-    const int n_shapes = 10;
+    const Real seed_s[3] = {0.25,0.25,0.0};
+    const Real seed_e[3] = {0.75,0.75,0.4};
+    const int n_shapes = 20;
 };
 
 //base class is a sphere
@@ -35,8 +35,8 @@ public:
             bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
         }
         
-        min_rad = 0.05;
-        max_rad = 0.15;
+        min_rad = 0.025;
+        max_rad = 0.1;
     }
     
     void get_bbox(Real s[3], Real e[3]) const
