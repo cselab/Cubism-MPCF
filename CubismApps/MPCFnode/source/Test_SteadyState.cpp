@@ -82,7 +82,7 @@ void Test_SteadyState::_dump(string filename)
 	
 #ifdef _USE_HDF_
     cout << "Dump to " << path << filename << "..." ;
-    DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
+    DumpHDF5<FluidGrid, StreamerGamma_HDF5>(*grid, step_id, filename, path);
     cout << "done." << endl;
 #else
 #warning HDF WAS DISABLED AT COMPILE TIME

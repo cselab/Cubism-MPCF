@@ -296,7 +296,14 @@ void Test_ShockBubble::run()
 		}
         
 		if (step_id%SAVEPERIOD == 0) _save();
-		
+        
+        if(step_id%10 == 0)
+        {
+            profiler.push_start("DUMP STATISTICS");
+            _dumpStatistics(*grid, step_id, t, dt);
+            profiler.pop_stop();
+        }
+        
 		profiler.push_start("EVOLVE");
 
         stepper->set_current_time(t);
@@ -306,13 +313,6 @@ void Test_ShockBubble::run()
 		
 		if(step_id%10 == 0)
 			profiler.printSummary();			
-		
-        if(step_id%10 == 0)
-        {
-            profiler.push_start("DUMP STATISTICS");
-            _dumpStatistics(*grid, step_id, t, dt);
-            profiler.pop_stop();
-        }
                 
 		t+=dt;
 		step_id++;
