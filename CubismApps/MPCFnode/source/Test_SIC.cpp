@@ -60,12 +60,12 @@ void Test_SIC::_ic(FluidGrid& grid)
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
                         
-                        const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
+                        const double r1 = abs(bubble_pos[0]-p[0]);//sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
                         const double r2 = sqrt(pow(p[0]-bubble_pos[0]-0.05,2)+pow(p[1]-bubble_pos[1]-0.25,2)+pow(p[2]-bubble_pos[2],2));
                         
-                        const double bubble = Simulation_Environment::heaviside_smooth(min(r1-radius, HUGE_VAL+r2-radius));
+                        const double bubble = Simulation_Environment::heaviside_smooth(r1-0.1);//Simulation_Environment::heaviside_smooth(min(r1-radius, HUGE_VAL+r2-radius));
                         
-                        const double bubble_p = heaviside_smooth_local(min(r1-radius-4*Simulation_Environment::EPSILON, r2-radius-4*Simulation_Environment::EPSILON), 8*Simulation_Environment::EPSILON);// : Simulation_Environment::heaviside_smooth(r-radius);//Simulation_Environment::heaviside_smooth(r-radius);
+                        const double bubble_p = (r1-0.2)>0? heaviside_smooth_local(r1-0.2, 128*Simulation_Environment::EPSILON) : Simulation_Environment::heaviside(r1-0.2);
                         
                         //const double shock_pressure = 3530;
                         
@@ -80,7 +80,7 @@ void Test_SIC::_ic(FluidGrid& grid)
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double pressure  = (1-shock)*(1*bubble_p+pre_shock[2]*(1-bubble_p));//pre_shock[2]*(1-shock);
+                        const double pressure  = (1-shock)*(0.0234*bubble_p+pre_shock[2]*(1-bubble_p));//pre_shock[2]*(1-shock);
                         
                         SETUP_MARKERS_IC
                         

@@ -103,7 +103,7 @@ void DumpHDF5(TGrid &grid, const int iCounter, const string f_name, const string
 					const unsigned int gy = idx[1]*B::sizeY + iy;
 					const unsigned int gz = idx[2]*B::sizeZ + iz;
 					
-					Real * const ptr = array_all + NCHANNELS*(gx + NX * (gy + NY * gz));
+					Real * const ptr = array_all + NCHANNELS*(gz + NZ * (gy + NY * gx));
                   
 					for(unsigned int i=0; i<NCHANNELS; ++i)
 						ptr[i] = output[i];

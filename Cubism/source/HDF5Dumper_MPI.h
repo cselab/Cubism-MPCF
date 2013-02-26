@@ -105,8 +105,8 @@ void DumpHDF5_MPI(TGrid &grid, const int iCounter, const string f_name, const st
 					const unsigned int gz = idx[2]*B::sizeZ + iz;
 					
 					assert(NCHANNELS*(gz + NZ * (gy + NY * gx)) < NX * NY * NZ * NCHANNELS);
-					Real * const ptr = array_all + NCHANNELS*(gx + NX * (gy + NY * gz));
-                    
+					Real * const ptr = array_all + NCHANNELS*(gz + NZ * (gy + NY * gx));                    
+
 					Real output[NCHANNELS];
 					for(int i=0; i<NCHANNELS; ++i)
 						output[i] = 0;
