@@ -133,7 +133,7 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     
     FILE * f = fopen("integrals.dat", "a");
     fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke*h3, r2Int*h3, mach_max, p_max, -p_max/1e4);
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke*h3, r2Int*h3, mach_max, p_max, pow(0.75*vol*h3/M_PI,1./3.));
     fclose(f);
     
     FILE * f2 = fopen("centerline_velocities.dat", "a");

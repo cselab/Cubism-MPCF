@@ -106,9 +106,11 @@ void Test_Cloud::setup()
       _dump("restartedcondition.vti");
     }
   else
-  {      
+  {
+      bRestartedSeed = parser("-seed").asBool(0);
+      
       Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
-      my_seed.make_shapes();
+      my_seed.make_shapes(bRestartedSeed);
       
       _my_ic(*grid, my_seed.get_vshapes());
   }

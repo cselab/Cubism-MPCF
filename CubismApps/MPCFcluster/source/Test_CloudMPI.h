@@ -64,6 +64,8 @@ public:
 		}
 		else
         {
+            bRestartedSeed = parser("-seed").asBool(0);
+            
             const int n_shapes = CloudData::n_shapes;
             
             Real bcast_buffer[4*n_shapes];
@@ -72,7 +74,7 @@ public:
             if (isroot)
             {
                 Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
-                my_seed.make_shapes();
+                my_seed.make_shapes(bRestartedSeed);
                 
                 v_shapes = my_seed.get_vshapes();
                 
