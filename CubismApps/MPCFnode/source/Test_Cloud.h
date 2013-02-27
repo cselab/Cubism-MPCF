@@ -158,8 +158,14 @@ public:
             ifstream f_read("seed.dat");
             if(f_read)
             {
+                cout << "seed file is there" << endl;
                 f_read >> restarted_seed;
                 f_read.close();
+            }
+            else
+            {
+                cout << "seed file not there...aborting" << endl;
+                abort();
             }
         }
         
@@ -198,6 +204,8 @@ public:
         }
         
         //We are even more paranoic so we save the bubble centers and radii
+        //If the first method does not work on different platforms,
+        //a method must be implemented to read the following data.
         {
             ofstream f_save("cloud.dat");
             for(int i=0; i< v_shapes.size(); i++)
@@ -250,6 +258,8 @@ inline double eval(const vector<shape*> v_shapes, const Real pos[3])
 class Test_Cloud: public Test_SIC
 {
     friend class Test_CloudMPI;
+    
+    bool bRestartedSeed;
     
     void _ic(FluidGrid & grid);
     

@@ -69,6 +69,7 @@ public:
         vector<BlockInfo> vInfo = grid.getResidentBlocksInfo();
         double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0., mach_max=-HUGE_VAL, p_max=-HUGE_VAL;
         double g_rInt=0., g_uInt=0., g_vInt=0., g_wInt=0., g_eInt=0., g_vol=0., g_ke=0., g_r2Int=0., g_mach_max=-HUGE_VAL, g_p_max=-HUGE_VAL;
+        double r_eq;
         
         vector<BlockInfo> g_vInfo = grid.getBlocksInfo();
         const double h = g_vInfo.front().h_gridpoint;
@@ -88,7 +89,7 @@ public:
                         vInt += b(ix, iy, iz).v;
                         wInt += b(ix, iy, iz).w;
                         eInt += b(ix, iy, iz).energy;
-                        vol  += b(ix,iy,iz).G>0.5*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
+                        vol  += b(ix,iy,iz).G>0.9*(1/(Simulation_Environment::GAMMA1-1)+1/(Simulation_Environment::GAMMA2-1))? 1:0;
                         r2Int += b(ix, iy, iz).rho*(1-min(max((b(ix,iy,iz).G-1/(Simulation_Environment::GAMMA1-2))/(1/(Simulation_Environment::GAMMA1-1)-1/(Simulation_Environment::GAMMA2-1)),(Real)0),(Real)1));
                         ke   += 0.5/b(ix, iy, iz).rho * (b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w);
                         
@@ -115,8 +116,8 @@ public:
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
             FILE * f = fopen("integrals.dat", "a");
-            fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3, 
-                    g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke*h3, g_r2Int*h3, g_mach_max, g_p_max);
+            fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3,
+                    g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke*h3, g_r2Int*h3, g_mach_max, g_p_max, pow(0.75*g_vol*h3/M_PI,1./3.));
             fclose(f);
         }
         
