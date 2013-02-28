@@ -69,7 +69,7 @@ public:
         vector<BlockInfo> vInfo = grid.getResidentBlocksInfo();
         double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0., mach_max=-HUGE_VAL, p_max=-HUGE_VAL;
         double g_rInt=0., g_uInt=0., g_vInt=0., g_wInt=0., g_eInt=0., g_vol=0., g_ke=0., g_r2Int=0., g_mach_max=-HUGE_VAL, g_p_max=-HUGE_VAL;
-        double r_eq;
+        double wall_p_max=-HUGE_VAL, g_wall_p_max=-HUGE_VAL;
         
         vector<BlockInfo> g_vInfo = grid.getBlocksInfo();
         const double h = g_vInfo.front().h_gridpoint;
@@ -99,6 +99,9 @@ public:
                         const double velmag = sqrt(b(ix, iy, iz).u*b(ix, iy, iz).u+b(ix, iy, iz).v*b(ix, iy, iz).v+b(ix, iy, iz).w*b(ix, iy, iz).w)/b(ix, iy, iz).rho;
                         mach_max = max(mach_max, velmag/c);
                         p_max = max(p_max, pressure);
+                        
+                        if (info.index[2]==0 && iz==0)
+                            wall_p_max = max(wall_p_max, pressure);
                     }
         }
         
@@ -112,12 +115,13 @@ public:
         MPI::COMM_WORLD.Reduce(&r2Int, &g_r2Int, 1, MPI::DOUBLE, MPI::SUM, 0);
         MPI::COMM_WORLD.Reduce(&mach_max, &g_mach_max, 1, MPI::DOUBLE, MPI::MAX, 0);
         MPI::COMM_WORLD.Reduce(&p_max, &g_p_max, 1, MPI::DOUBLE, MPI::MAX, 0);
+        MPI::COMM_WORLD.Reduce(&wall_p_max, &g_wall_p_max, 1, MPI::DOUBLE, MPI::MAX, 0);
         
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
             FILE * f = fopen("integrals.dat", "a");
-            fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3,
-                    g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke*h3, g_r2Int*h3, g_mach_max, g_p_max, pow(0.75*g_vol*h3/M_PI,1./3.));
+            fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e %e %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3,
+                    g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke*h3, g_r2Int*h3, g_mach_max, g_p_max, pow(0.75*g_vol*h3/M_PI,1./3.), g_wall_p_max);
             fclose(f);
         }
         
@@ -258,7 +262,7 @@ public:
         {        
             BlockInfo info = vInfo[i];
             
-            if (info.index[0]!=grid.getBlocksPerDimension(0)-1 || info.index[2]!=grid.getBlocksPerDimension(2)/2) continue;
+            if (info.index[2]!=0) continue;
             
             FluidBlock& b = *(FluidBlock*)info.ptrBlock;
             
@@ -266,7 +270,7 @@ public:
                 for(int iy=0; iy<FluidBlock::sizeY; iy++)
                     for(int ix=0; ix<FluidBlock::sizeX; ix++)
                     {
-                        if (ix!=FluidBlock::sizeX-1 || iz!=0) continue;
+                        if (iz!=0) continue;
                         
                         info.pos(x,ix,iy,iz);
                         
