@@ -103,6 +103,7 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0., mach_max=-HUGE_VAL, p_max=-HUGE_VAL;
     const double h = vInfo[0].h_gridpoint;
     const double h3 = h*h*h;
+    double wall_p_max=-HUGE_VAL;
     
 	for(int i=0; i<(int)vInfo.size(); i++)
 	{
@@ -128,12 +129,15 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     
                     mach_max = max(mach_max, velmag/c);
                     p_max = max(p_max, pressure);
+                    
+                    if (info.index[2]==0 && iz==0)
+                        wall_p_max = max(wall_p_max, pressure);
                 }
     }
     
     FILE * f = fopen("integrals.dat", "a");
-    fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke*h3, r2Int*h3, mach_max, p_max, pow(0.75*vol*h3/M_PI,1./3.));
+    fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke*h3, r2Int*h3, mach_max, p_max, pow(0.75*vol*h3/M_PI,1./3.), wall_p_max);
     fclose(f);
     
     FILE * f2 = fopen("centerline_velocities.dat", "a");
