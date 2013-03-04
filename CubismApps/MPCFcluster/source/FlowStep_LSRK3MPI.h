@@ -89,8 +89,8 @@ namespace LSRK3MPIdata
 				cout << "BP FLOWSTEP "<< global_t_bp_fs/NRANKS/(double)LSRK3data::ReportFreq << " s" << endl;      
 				cout << "======================================================" << endl;
 				
-				Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, NBLOCKS*NRANKS, global_t_fs/(double)LSRK3data::ReportFreq/NRANKS);
-				Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, LSRK3data::TLP, NBLOCKS*NRANKS, global_t_up/(double)LSRK3data::ReportFreq/NRANKS);
+				Kflow::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, NBLOCKS*NRANKS, global_t_fs/(double)LSRK3data::ReportFreq/NRANKS);
+				Kupdate::printflops(LSRK3data::PEAKPERF_CORE*1e9, LSRK3data::PEAKBAND*1e9, LSRK3data::NCORES, 1, NBLOCKS*NRANKS, global_t_up/(double)LSRK3data::ReportFreq/NRANKS);
 			}
 		}
 	}
@@ -200,7 +200,7 @@ public:
 	FlowStep_LSRK3MPI(TGrid & grid, const Real CFL, const Real gamma1, const Real gamma2, ArgumentParser& parser, const int verbosity, Profiler* profiler=NULL, const Real pc1=0, const Real pc2=0):
 		FlowStep_LSRK3(grid, CFL, gamma1, gamma2, parser, verbosity, profiler, pc1, pc2), grid(grid) 
     {
-        if (verbosity>=1) cout << "GSYNCH " << parser("-gsync").asInt(LSRK3data::TLP) << endl;
+        if (verbosity>=1) cout << "GSYNCH " << parser("-gsync").asInt(LSRK3data::NCORES) << endl;
     }
 	
 	Real operator()(const Real max_dt)
@@ -211,7 +211,7 @@ public:
         if (verbosity>=1 && LSRK3data::step_id==0)
             cout << "Grid spacing and smoothing length are: " << h << ", " << smoothlength << endl; 
         
-		LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(LSRK3data::TLP);
+		LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(LSRK3data::NCORES);
         
 		const Real maxSOS = _computeSOS();
 		double dt = min(max_dt, CFL*h/maxSOS);
