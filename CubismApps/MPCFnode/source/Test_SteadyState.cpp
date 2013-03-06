@@ -79,26 +79,26 @@ void Test_SteadyState::_save()
 
 void Test_SteadyState::_dump(string filename)
 {
-  const string path = parser("-fpath").asString(".");
+	const string path = parser("-fpath").asString(".");
 	
 #ifdef _USE_HDF_ 
-  cout << "Dump to " << path << filename << "..." ;
-  DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
-  cout << "done." << endl;
+	cout << "Dump to " << path << filename << "..." ;
+	DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
+	cout << "done." << endl;
 #else
-	#warning HDF WAS DISABLED AT COMPILE TIME
+#warning HDF WAS DISABLED AT COMPILE TIME
 #endif
 }
 
 void Test_SteadyState::_ic(FluidGrid& grid)
 {
 	cout << "Initial condition..." ;
-
+	
 	const double G1 = Simulation_Environment::GAMMA1-1;
 	const double G2 = Simulation_Environment::GAMMA2-1;
 	const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
 	const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
-
+	
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
 	
 #pragma omp parallel for	
@@ -134,12 +134,13 @@ void Test_SteadyState::_vp(FluidGrid& grid)
 		char bufname[1024];
 		sprintf(bufname, "compressed-step%05d.binary", step_id);
         
+		static const bool quantization = false;
 		static const bool normalize = false;
 		static const int NC = StreamerGridPoint::channels;
 		static Real gmin[NC], gmax[NC];
 		static bool reduced = false;
 				
-		if (!reduced && normalize)
+		if (normalize /* && !reduced */)
 		{			
 			printf("SWEEP now\n");
 
@@ -163,8 +164,8 @@ void Test_SteadyState::_vp(FluidGrid& grid)
 					
 					for(int i = 0; i<NC; ++i)
 					{
-						lmin[i] = (linitialized) ? std::min(bmin[i], lmin[i]) : bmin[i];
-						lmax[i] = (linitialized) ? std::min(bmax[i], lmax[i]) : bmax[i];
+						lmin[i] = linitialized ? std::min(bmin[i], lmin[i]) : bmin[i];
+						lmax[i] = linitialized ? std::max(bmax[i], lmax[i]) : bmax[i];
 					}
 					
 					linitialized = true;
@@ -174,15 +175,16 @@ void Test_SteadyState::_vp(FluidGrid& grid)
 				{
 					for(int i = 0; i<NC; ++i)
 					{
-						gmin[i] = (ginitialized) ? std::min(lmin[i], gmin[i]) : lmin[i];
-						gmax[i] = (ginitialized) ? std::min(lmax[i], gmax[i]) : lmax[i];
+						gmin[i] = ginitialized ? std::min(lmin[i], gmin[i]) : lmin[i];
+						gmax[i] = ginitialized ? std::max(lmax[i], gmax[i]) : lmax[i];
 					}
 					
 					ginitialized = true;
 				}
 			}
 			
-			reduced = true;
+			/*
+			 reduced = true;
 			
 			for(int i = 0; i<NC; ++i)
 				if (fabs(gmin[i] - gmax[i]) <= numeric_limits<Real>::epsilon())
@@ -190,17 +192,22 @@ void Test_SteadyState::_vp(FluidGrid& grid)
 					reduced = false; //gmin and gmax are too close to each other, we need to redoit the next time
 					break;
 				}
+			 */
 		}
 		
 		SerializerIO_WaveletCompression<FluidGrid, StreamerGridPoint> wavelet_serializer;
 		
 		wavelet_serializer.set_threshold(1e-4);
-		wavelet_serializer.float16();
+		if (quantization)
+			wavelet_serializer.float16();
 		
 		if (normalize)
 			wavelet_serializer.normalize(gmin, gmax);
 		
 		wavelet_serializer.Write(grid, bufname);
+		
+		//for consistency checking, uncomment the following line
+		//wavelet_serializer.Read(grid, bufname);
     }
 }
 

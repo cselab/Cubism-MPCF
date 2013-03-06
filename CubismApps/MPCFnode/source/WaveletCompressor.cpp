@@ -51,6 +51,33 @@ void serialize_bitset(bitset<N> mybits, unsigned char * const buf, const int nby
 	}
 }
 
+template<int N>
+int deserialize_bitset(bitset<N>& mybits, const unsigned char * const buf, const int nbytes)
+{
+	assert(nbytes == (N + 7) / 8);
+	
+	int sum = 0;
+
+	const int nicebits = 8 * (N / 8);
+	
+	for(int i = 0, B = 0; i < nicebits; i += 8, ++B)
+	{
+		const unsigned char c = buf[B];
+		
+		for(int b = 0; b < 8; ++b)
+			sum += mybits[i + b] = (c >> b) & 1;		
+	}
+	
+	{
+		const unsigned char c = buf[nbytes - 1];
+		
+		for(int b = nicebits; b < N; ++b)
+			sum += mybits[b] = (c >> (b - nicebits)) & 1;
+	}
+	
+	return sum;
+}
+
 unsigned short _cvt2f16(const float xfloat)
 {
 	assert(sizeof(unsigned short) == 2);
@@ -125,13 +152,14 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 {
 	assert((bytes - sizeof(bitset<BS3>)) % sizeof(Real) == 0);
 	
-	size_t bytes_read = 0;
-	
 	bitset<BS3> mask;
-	memcpy((void *)&mask, bufcompression + bytes_read, sizeof(bitset<BS3>));	
-	bytes_read += sizeof(bitset<BS3>);
+	const int expected = deserialize_bitset<BS3>(mask, bufcompression, BITSETSIZE);
+
+	size_t bytes_read = BITSETSIZE;
 	
-	const int nelements = (bytes - bytes_read) / float16 ? sizeof(unsigned short) : sizeof(Real);
+	const int nelements = (bytes - bytes_read) / (float16 ? sizeof(unsigned short) : sizeof(Real));
+		assert(expected == nelements);
+	
 	vector<Real> datastream(nelements);
 	
 	if (!float16)
