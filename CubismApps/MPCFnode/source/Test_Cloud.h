@@ -14,9 +14,9 @@
 
 namespace CloudData
 {
-    const Real seed_s[3] = {0.25,0.25,0.0};
-    const Real seed_e[3] = {0.75,0.75,0.4};
-    const int n_shapes = 20;
+    const Real seed_s[3] = {0.15, 0.15, 0.05};
+    const Real seed_e[3] = {0.85, 0.85, 0.7};
+    const int n_shapes = 40;
 };
 
 //base class is a sphere
@@ -264,6 +264,7 @@ class Test_Cloud: public Test_SIC
     void _ic(FluidGrid & grid);
     
     void _my_ic(FluidGrid& grid, const vector< shape * > v_shapes);
+    void _my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes);
     
 public:
 	Test_Cloud(const int argc, const char ** argv): Test_SIC(argc, argv) { }

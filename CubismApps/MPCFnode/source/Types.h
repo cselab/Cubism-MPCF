@@ -114,6 +114,19 @@ struct FluidElement
     Real rho, u, v, w, energy, G, P;
 
     void clear() { rho = u = v = w = energy = G = P = 0; }
+    
+    FluidElement& operator = (const FluidElement & gp)
+    {       
+        this->rho = gp.rho;
+        this->u = gp.u;
+        this->v = gp.v;
+        this->w = gp.w;
+        this->energy=gp.energy;
+        this->G = gp.G;
+        this->P = gp.P;
+        
+        return *this;
+    }
 };
 
 struct StreamerGridPointASCII
@@ -386,6 +399,23 @@ struct StreamerPressure_HDF5
     static const char * getAttributeName() { return "Scalar"; }
 };
 
+    struct StreamerDensity_HDF5
+    {
+        static const int NCHANNELS = 1;
+        
+        FluidBlock& ref;
+        
+        StreamerDensity_HDF5(FluidBlock& b): ref(b){}
+        
+        void operate(const int ix, const int iy, const int iz, Real output[1]) const
+        {
+            const FluidElement& input = ref.data[iz][iy][ix];
+            
+            output[0] = input.rho;
+        }
+        
+        static const char * getAttributeName() { return "Scalar"; }
+    };
 //typedef Grid<FluidBlock, tbb::scalable_allocator> FluidGrid;
 typedef Grid<FluidBlock, std::allocator> FluidGrid;
 //typedef BlockProcessing_TBB<FluidBlock> BlockProcessing;

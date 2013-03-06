@@ -107,7 +107,8 @@ public:
                 }
             }
             
-           _my_ic(*grid, v_shapes);
+           //_my_ic(*grid, v_shapes);
+           _my_ic_quad(*grid, v_shapes);
             
             v_shapes.clear();
         }

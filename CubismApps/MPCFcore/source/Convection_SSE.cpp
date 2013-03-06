@@ -863,10 +863,10 @@ void Convection_SSE::_sse_char_vel(const float * const rm, const float * const r
                                    const float * const Pm, const float * const Pp,
 								   float * const outm, float * const outp)
 {
-	const __m128 F_1_2 = _mm_set_ps1(0.5);
+	/*const __m128 F_1_2 = _mm_set_ps1(0.5);
 	const __m128 M_1_2 = _mm_set_ps1(-0.5);
 	const __m128 F_1 = _mm_set_ps1(1);
-	
+	*/
 	static const int P = TempSOA::PITCH;
 	
 #define ID (ix + P*iy)
@@ -874,8 +874,11 @@ void Convection_SSE::_sse_char_vel(const float * const rm, const float * const r
 	for(int iy=0; iy<TempSOA::NY; iy++)
 		for(int ix=0; ix<TempSOA::NX; ix+=4)
 		{
-			const __m128 cminus = _mm_sqrt_ps((F_1/_mm_load_ps(Gm + ID)+F_1)* _mm_max_ps((_mm_load_ps(pm + ID)+_mm_load_ps(Pm + ID))/_mm_load_ps(rm + ID), _mm_setzero_ps()));
-			const __m128 cplus  = _mm_sqrt_ps((F_1/_mm_load_ps(Gp + ID)+F_1)* _mm_max_ps((_mm_load_ps(pp + ID)+_mm_load_ps(Pp + ID))/_mm_load_ps(rp + ID), _mm_setzero_ps()));
+			/*const __m128 cminus = _mm_sqrt_ps((F_1/_mm_load_ps(Gm + ID)+F_1)* _mm_max_ps((_mm_load_ps(pm + ID)+_mm_load_ps(Pm + ID))/_mm_load_ps(rm + ID), _mm_setzero_ps()));
+			const __m128 cplus  = _mm_sqrt_ps((F_1/_mm_load_ps(Gp + ID)+F_1)* _mm_max_ps((_mm_load_ps(pp + ID)+_mm_load_ps(Pp + ID))/_mm_load_ps(rp + ID), _mm_setzero_ps()));*/
+            
+            const __m128 cminus = _mm_sqrt_ps(((_mm_load_ps(pm + ID)+_mm_load_ps(Pm + ID))/_mm_load_ps(Gm + ID) + _mm_load_ps(pm + ID))/_mm_load_ps(rm + ID));
+			const __m128 cplus  = _mm_sqrt_ps(((_mm_load_ps(pp + ID)+_mm_load_ps(Pp + ID))/_mm_load_ps(Gp + ID) + _mm_load_ps(pp + ID))/_mm_load_ps(rp + ID));
             
             _mm_store_ps(outm + ID, _mm_min_ps(_mm_load_ps(vm + ID) - cminus, _mm_setzero_ps()));
             _mm_store_ps(outp + ID, _mm_max_ps(_mm_load_ps(vp + ID) + cplus , _mm_setzero_ps()));

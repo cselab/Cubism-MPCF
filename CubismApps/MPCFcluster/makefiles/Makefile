@@ -36,6 +36,13 @@ ifneq "$(findstring rosa,$(shell hostname))" ""
 	fftw-lib = /users/petrosk/fftw-2.1.5_gcc/lib/
 endif
 
+ifneq "$(findstring daint,$(shell hostname))" ""
+        mpi-inc = $(CRAY_MPICH2_DIR)/include/
+        mpi-lib = $(CRAY_MPICH2_DIR)/lib/
+        fftw-inc = /users/petrosk/fftw-2.1.5_gcc/include/
+        fftw-lib = /users/petrosk/fftw-2.1.5_gcc/lib/
+endif
+
 #CPPFLAGS += -D_ALIGNBYTES_=$(align) -D_BLOCKSIZE_=$(bs) -D_BLOCKSIZEX_=$(bs) -D_BLOCKSIZEY_=$(bs) -D_BLOCKSIZEZ_=$(bs) -DWENOEPS=$(weps) -DNTHREADS=$(nthreads) $(extra)
 CPPFLAGS += -I../../../Cubism/source/ -I../source -I../../MPCFcore/source/ -I../../MPCFnode/source/
 CPPFLAGS +=  -I$(mpi-inc)
@@ -48,10 +55,16 @@ ifneq "$(findstring rosa,$(shell hostname))" ""
 	else
 		LIBS += -L$(mpi-lib) -lmpich -lmpichcxx
 	endif
+else ifneq "$(findstring daint,$(shell hostname))" ""
+        ifeq "$(CC)" "icc"
+                LIBS += -L$(mpi-lib) -lmpich_intel -lmpichcxx_intel
+        else
+                LIBS += -L$(mpi-lib) -lmpich -lmpichcxx
+        endif
 else
 	ifeq "$(findstring mpi,$(CC))" ""
 		LIBS += -L$(mpi-lib) -lmpi -lmpi_cxx
-    endif
+    	endif
 
 	#LIBS += -L$(mpi-lib) -lmpi -lmpi_cxx
 endif
