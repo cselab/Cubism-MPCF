@@ -12,14 +12,13 @@
 #include "../../MPCFthread/source/Weno_CPP.h"
 #include "../../MPCFthread/source/Weno_QPX.h"
 
-#if 0
+#ifdef _ACCURATEWENO_
 typedef WenoQPX_MinusFunctor SoupMinus;
 typedef WenoQPX_PlusFunctor SoupPlus;
 #else
 typedef WenoQPX_MinusPanos SoupMinus;
 typedef WenoQPX_PlusPanos SoupPlus;
 #endif
-
 
 class WenoSOA2D_QPX
 {
