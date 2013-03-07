@@ -15,8 +15,8 @@
 namespace CloudData
 {
     const Real seed_s[3] = {0.15, 0.15, 0.05};
-    const Real seed_e[3] = {0.85, 0.85, 0.7};
-    const int n_shapes = 40;
+    const Real seed_e[3] = {0.85, 0.85, 0.5};
+    const int n_shapes = 20;
 };
 
 //base class is a sphere

@@ -250,6 +250,8 @@ protected:
                          const TempSOA& star,
                          TempSOA& out);
     
+    void _nucleate(const InputSOA& p, const InputSOA& G, const InputSOA& P, OutputSOA& Gout, OutputSOA& Pout);
+
 	virtual void _xdivergence(const TempSOA& flux, OutputSOA& rhs);
 	virtual void _ydivergence(const TempSOA& flux, OutputSOA& rhs);
 	virtual void _zdivergence(const TempSOA& fback, const TempSOA& fforward, OutputSOA& rhs);

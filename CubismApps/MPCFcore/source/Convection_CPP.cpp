@@ -45,7 +45,7 @@ void Convection_CPP::compute(const Real * const srcfirst, const int srcfloats, c
 	_yflux(-2);
 	//  _yflux_hllc(-2);//printf("y done slice %d\n", islice);
 	  _yrhs();
-
+        
 	  _next();
 	  _convert(srcfirst + (islice+6)*srcfloats*slicesrcs, srcfloats, rowsrcs);
 		
@@ -1337,6 +1337,34 @@ void Convection_CPP::_zdivergence(const TempSOA& fback, const TempSOA& fforward,
         }
 }
 
+void Convection_CPP::_nucleate(const InputSOA& pin, const InputSOA& Gin, const InputSOA& Pin, OutputSOA& Gout, OutputSOA& Pout)
+{
+    Real * const gout = &Gout.ref(0,0);
+    Real * const pout = &Pout.ref(0,0);
+    
+    for(int iy=0; iy<OutputSOA::NY; iy++)
+        for(int ix=0; ix<OutputSOA::NX; ix++)
+        {
+            const Real Gv = 1.0/(1.4-1.0);
+            const Real Gl = 1.0/(6.59-1.0);
+
+            const Real Pv = 1.4*1*Gv;
+            const Real Pl = 6.59*4049*Gl;
+            
+            const Real avG = 1.0 - (Gin(ix,iy)-Gv)/(Gl-Gv);
+            const Real avP = 1.0 - (Pin(ix,iy)-Pv)/(Pl-Pv);
+            
+            const Real l2v_factorG = 100/(0.5*1000*5.5*5.5)*min((Real)0, pin(ix,iy)-(Real)0.02)*Gv;
+            const Real v2l_factorG = 100*Gv;
+
+            const Real l2v_factorP = 100/(0.5*1000*5.5*5.5)*min((Real)0, pin(ix,iy)-(Real)0.02)*Pv;
+            const Real v2l_factorP = 100*Pv;
+
+            gout[ix + OutputSOA::PITCH*iy] += l2v_factorG*(1.0-avG)- v2l_factorG*(1.0-avG)*(1.0-avG)*avG;
+            pout[ix + OutputSOA::PITCH*iy] += l2v_factorP*(1.0-avP)- v2l_factorP*(1.0-avP)*(1.0-avP)*avP;
+        }
+}
+
 void Convection_CPP::_copyback(Real * const gptfirst, const int gptfloats, const int rowgpts)
 {
     const Real factor2 = ((Real)1.)/6;//((Real)1.)/3;//
@@ -1536,6 +1564,8 @@ void Convection_CPP::_zflux(const int relid, const bool bFirst)
  
     _hlle_rho<_BLOCKSIZE_>(G.weno(0), G.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), G.flux.ref());
     _hlle_rho<_BLOCKSIZE_>(P.weno(0), P.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), P.flux.ref());
+    
+    //_nucleate(p.ring(relid-1), G.ring(relid-1), P.ring(relid-1), G.rhs, P.rhs);
 }
 
 void Convection_CPP::_zflux_hllc(const int relid, const bool bFirst)
