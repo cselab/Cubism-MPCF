@@ -129,11 +129,16 @@ void Test_SteadyState::_ic(FluidGrid& grid)
 
 void Test_SteadyState::_vp(FluidGrid& grid)
 {
+	char bufname[1024];
+	sprintf(bufname, "compressed-step%05d.binary", step_id);
+	
+	_vp_dump(grid, bufname);
+}
+
+void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
+{
     if (bVP)
     {
-		char bufname[1024];
-		sprintf(bufname, "compressed-step%05d.binary", step_id);
-        
 		static const bool quantization = false;
 		static const bool normalize = false;
 		static const int NC = StreamerGridPoint::channels;
@@ -204,7 +209,7 @@ void Test_SteadyState::_vp(FluidGrid& grid)
 		if (normalize)
 			wavelet_serializer.normalize(gmin, gmax);
 		
-		wavelet_serializer.Write(grid, bufname);
+		wavelet_serializer.Write(grid, filename);
 		
 		//for consistency checking, uncomment the following line
 		//wavelet_serializer.Read(grid, bufname);

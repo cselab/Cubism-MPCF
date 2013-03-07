@@ -40,8 +40,6 @@ endif
 CPPFLAGS += -I../../../Cubism/source/ -I../source -I../../MPCFcore/source/ -I../../MPCFnode/source/
 CPPFLAGS +=  -I$(mpi-inc)
 
-LIBS += -lstdc++ -lz -lm -lrt
-
 ifneq "$(findstring rosa,$(shell hostname))" ""
 	ifeq "$(CC)" "icc"
 		LIBS += -L$(mpi-lib) -lmpich_intel -lmpichcxx_intel
@@ -67,7 +65,7 @@ VPATH := ../source/ ../../MPCFcore/source/ ../../MPCFnode/source/ ../../../Cubis
 .DEFAULT_GOAL := mpcf-cluster
 
 OBJECTS = main.o 
-OBJECTS +=  ../../MPCFnode/makefiles/FlowStep_LSRK3.o  ../../MPCFnode/makefiles/Test_SteadyState.o ../../MPCFnode/makefiles/Test_ShockBubble.o ../../MPCFnode/makefiles/Test_SIC.o ../../MPCFnode/makefiles/Types.o
+OBJECTS +=  ../../MPCFnode/makefiles/FlowStep_LSRK3.o  ../../MPCFnode/makefiles/Test_SteadyState.o ../../MPCFnode/makefiles/Test_ShockBubble.o ../../MPCFnode/makefiles/Test_SIC.o ../../MPCFnode/makefiles/Types.o ../../MPCFnode/makefiles/WaveletCompressor.o
 OBJECTS += ../../MPCFcore/makefiles/Convection_CPP.o ../../MPCFcore/makefiles/Update.o ../../MPCFcore/makefiles/MaxSpeedOfSound.o 
 
 #../../Cubism/makefiles/
@@ -99,6 +97,9 @@ mpcf-cluster: $(OBJECTS)
 
 ../../MPCFnode/makefiles/%.o: %.cpp
 	$(CC)  $(OPTFLAGS) $(CPPFLAGS) $(extra) -c $^ -o $@
+	
+../../MPCFnode/makefiles/WaveletCompressor.o: WaveletCompressor.cpp
+	$(CC)  $(OPTFLAGS) $(CPPFLAGS) $(extra) --std=c++11 -c $^ -o $@
 
 clean:
 	rm -f *.o mpcf-cluster

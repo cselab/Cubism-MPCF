@@ -46,6 +46,8 @@ protected:
     
 	virtual void _restart();
 	virtual void _save();
+	
+	void _vp_dump(FluidGrid& grid, string filename);
 	virtual void _vp(FluidGrid& grid);
 	
 	Real _initial_dt(int nsteps);
