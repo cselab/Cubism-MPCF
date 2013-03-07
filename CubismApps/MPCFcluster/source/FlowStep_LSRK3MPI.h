@@ -11,7 +11,6 @@
 
 //#include <BlockProcessingMPI.h>
 #include <BlockLabMPI.h>
-#include <Histogram.h>
 
 #include <FlowStep_LSRK3.h>
 #include <Convection_CPP.h>
@@ -24,6 +23,7 @@
 #include <Convection_AVX.h>
 #endif
 
+#include <ParIO.h>	// peh
 
 typedef BlockLabMPI<Lab> LabMPI;
 
@@ -33,20 +33,23 @@ namespace LSRK3MPIdata
     double t_fs = 0, t_up = 0;
     double t_synch_fs = 0, t_bp_fs = 0;
     int counter = 0, GSYNCH = 0, nsynch = 0;
-    
-    Histogram histogram;
-    
+    	
+	MPI_ParIO hist_update, hist_rhs, hist_stepid;// peh
+	
     template<typename Kflow, typename Kupdate>
     void notify(double avg_time_rhs, double avg_time_update, const size_t NBLOCKS, const size_t NTIMES)
     {
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
-				histogram.consolidate();
-			
-		histogram.notify("FLOWSTEP", (float)avg_time_rhs);
-		histogram.notify("UPDATE", (float)avg_time_update);
-		histogram.notify("STEPID", (float)LSRK3data::step_id);
+		{
+			hist_update.Consolidate(LSRK3data::step_id);	// peh
+			hist_stepid.Consolidate(LSRK3data::step_id);	// peh
+			hist_rhs.Consolidate(LSRK3data::step_id);
+		}
 		
-		histogram.notify("NSYNCH", (float)nsynch/NTIMES);
+		hist_update.Notify((float)avg_time_update);	// peh
+		hist_rhs.Notify((float)avg_time_rhs); //peh
+		hist_stepid.Notify((float)LSRK3data::step_id);	// peh
+		
 		nsynch = 0;
 
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
@@ -57,13 +60,13 @@ namespace LSRK3MPIdata
 			
 			int global_counter = 0;
 			
-			MPI::COMM_WORLD.Allreduce(&t_synch_fs, &global_t_synch_fs, 1, MPI::DOUBLE, MPI::SUM);
-			MPI::COMM_WORLD.Allreduce(&t_bp_fs, &global_t_bp_fs, 1, MPI::DOUBLE, MPI::SUM);
-			MPI::COMM_WORLD.Allreduce(&counter, &global_counter, 1, MPI::INT, MPI::SUM);
-			MPI::COMM_WORLD.Allreduce(&avg_time_rhs, &global_avg_time_rhs, 1, MPI::DOUBLE, MPI::SUM);
-			MPI::COMM_WORLD.Allreduce(&avg_time_update, &global_avg_time_update, 1, MPI::DOUBLE, MPI::SUM);
-			MPI::COMM_WORLD.Allreduce(&t_fs, &global_t_fs, 1, MPI::DOUBLE, MPI::SUM);
-			MPI::COMM_WORLD.Allreduce(&t_up, &global_t_up, 1, MPI::DOUBLE, MPI::SUM);
+			MPI::COMM_WORLD.Reduce(&t_synch_fs, &global_t_synch_fs, 1, MPI::DOUBLE, MPI::SUM, 0);
+			MPI::COMM_WORLD.Reduce(&t_bp_fs, &global_t_bp_fs, 1, MPI::DOUBLE, MPI::SUM, 0);
+			MPI::COMM_WORLD.Reduce(&counter, &global_counter, 1, MPI::INT, MPI::SUM, 0);
+			MPI::COMM_WORLD.Reduce(&avg_time_rhs, &global_avg_time_rhs, 1, MPI::DOUBLE, MPI::SUM, 0);
+			MPI::COMM_WORLD.Reduce(&avg_time_update, &global_avg_time_update, 1, MPI::DOUBLE, MPI::SUM, 0);
+			MPI::COMM_WORLD.Reduce(&t_fs, &global_t_fs, 1, MPI::DOUBLE, MPI::SUM, 0);
+			MPI::COMM_WORLD.Reduce(&t_up, &global_t_up, 1, MPI::DOUBLE, MPI::SUM, 0);
 			
 			t_synch_fs = t_bp_fs = t_fs = t_up = counter = 0;
 			
@@ -201,7 +204,18 @@ public:
 		FlowStep_LSRK3(grid, CFL, gamma1, gamma2, parser, verbosity, profiler, pc1, pc2), grid(grid) 
     {
         if (verbosity>=1) cout << "GSYNCH " << parser("-gsync").asInt(LSRK3data::NCORES) << endl;
+		
+		LSRK3MPIdata::hist_update.Init("hist_UPDATE.bin", 32, parser("-report").asInt(1), 1); // peh
+		LSRK3MPIdata::hist_rhs.Init("hist_STEPID.bin", 32, parser("-report").asInt(1), 1); //peh
+		LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", 32, parser("-report").asInt(1), 1); // peh
     }
+	
+	~FlowStep_LSRK3MPI()
+	{
+		LSRK3MPIdata::hist_update.Finalize();
+		LSRK3MPIdata::hist_rhs.Finalize();
+		LSRK3MPIdata::hist_stepid.Finalize();
+	}
 	
 	Real operator()(const Real max_dt)
 	{
