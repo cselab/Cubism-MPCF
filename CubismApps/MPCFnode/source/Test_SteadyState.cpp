@@ -17,6 +17,8 @@ using namespace std;
 #endif
 
 #include "Test_SteadyState.h"
+#include "SerializerIO_WaveletCompression.h"
+#include "WaveletCompressor.h"
 
 Test_SteadyState::Test_SteadyState(const int argc, const char ** argv):
 parser(argc, argv), t(0), step_id(0), grid(NULL), stepper(NULL) { }
@@ -42,7 +44,7 @@ void Test_SteadyState::_restart()
 	if (bASCIIFILES)
 		SerializerIO<FluidGrid, StreamerGridPointASCII>().Read(*grid, "restart");
 	else
-		SerializerIO<FluidGrid, StreamerGridPoint>().Read(*grid, "restart");
+		SerializerIO<FluidGrid, StreamerGridPoint>().Read(*grid, "restart");	
 }
 
 void Test_SteadyState::_save()
@@ -77,26 +79,26 @@ void Test_SteadyState::_save()
 
 void Test_SteadyState::_dump(string filename)
 {
-  const string path = parser("-fpath").asString(".");
+	const string path = parser("-fpath").asString(".");
 	
 #ifdef _USE_HDF_ 
-  cout << "Dump to " << path << filename << "..." ;
-  DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
-  cout << "done." << endl;
+	cout << "Dump to " << path << filename << "..." ;
+	DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
+	cout << "done." << endl;
 #else
-	#warning HDF WAS DISABLED AT COMPILE TIME
+#warning HDF WAS DISABLED AT COMPILE TIME
 #endif
 }
 
 void Test_SteadyState::_ic(FluidGrid& grid)
 {
 	cout << "Initial condition..." ;
-
+	
 	const double G1 = Simulation_Environment::GAMMA1-1;
 	const double G2 = Simulation_Environment::GAMMA2-1;
 	const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
 	const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
-
+	
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
 	
 #pragma omp parallel for	
@@ -127,22 +129,90 @@ void Test_SteadyState::_ic(FluidGrid& grid)
 
 void Test_SteadyState::_vp(FluidGrid& grid)
 {
+	char bufname[1024];
+	sprintf(bufname, "compressed-step%05d.binary", step_id);
+	
+	_vp_dump(grid, bufname);
+}
+
+void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
+{
     if (bVP)
     {
-        std::stringstream streamer;
-        streamer<<"data";
-        streamer.setf(ios::dec | ios::right);
-        streamer.width(5);
-        streamer.fill('0');
-        streamer<<0;
-        streamer<<"_";
-        streamer.setf(ios::dec | ios::right);
-        streamer.width(5);
-        streamer.fill('0');
-        streamer<<step_id;
-        
-        SerializerIO_VP<FluidGrid, StreamerGridPoint> vp(BPDX, BPDY, BPDZ);
-        vp.Write(grid, streamer.str());
+		static const bool quantization = false;
+		static const bool normalize = false;
+		static const int NC = StreamerGridPoint::channels;
+		static Real gmin[NC], gmax[NC];
+		static bool reduced = false;
+				
+		if (normalize /* && !reduced */)
+		{			
+			printf("SWEEP now\n");
+
+			vector<BlockInfo> vInfo = grid.getBlocksInfo();
+			const int NBLOCKS = vInfo.size();
+	
+			bool ginitialized = false;
+			
+#pragma omp parallel
+			{
+				bool linitialized = false;
+				Real lmin[NC], lmax[NC];
+				
+#pragma omp for	
+				for(int i=0; i<NBLOCKS; i++)
+				{				
+					FluidBlock& b = *(FluidBlock*)vInfo[i].ptrBlock;
+					
+					Real bmin[NC], bmax[NC];
+					b.minmax(bmin, bmax, StreamerGridPoint());
+					
+					for(int i = 0; i<NC; ++i)
+					{
+						lmin[i] = linitialized ? std::min(bmin[i], lmin[i]) : bmin[i];
+						lmax[i] = linitialized ? std::max(bmax[i], lmax[i]) : bmax[i];
+					}
+					
+					linitialized = true;
+				}
+				
+#pragma omp critical
+				{
+					for(int i = 0; i<NC; ++i)
+					{
+						gmin[i] = ginitialized ? std::min(lmin[i], gmin[i]) : lmin[i];
+						gmax[i] = ginitialized ? std::max(lmax[i], gmax[i]) : lmax[i];
+					}
+					
+					ginitialized = true;
+				}
+			}
+			
+			/*
+			 reduced = true;
+			
+			for(int i = 0; i<NC; ++i)
+				if (fabs(gmin[i] - gmax[i]) <= numeric_limits<Real>::epsilon())
+				{
+					reduced = false; //gmin and gmax are too close to each other, we need to redoit the next time
+					break;
+				}
+			 */
+		}
+		
+		SerializerIO_WaveletCompression<FluidGrid, StreamerGridPoint> wavelet_serializer;
+		
+		wavelet_serializer.set_threshold(1e-4);
+		if (quantization)
+			wavelet_serializer.float16();
+		
+		if (normalize)
+			wavelet_serializer.normalize(gmin, gmax);
+		
+		wavelet_serializer.Write(grid, filename);
+		
+		//for consistency checking, uncomment the following line
+		//wavelet_serializer.Read(grid, bufname);
     }
 }
 

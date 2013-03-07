@@ -116,8 +116,7 @@ public:
 			streamer.fill('0');
 			streamer<<step_id;
 			
-			SerializerIO_VP<G, StreamerDensity> vp(BPDX, BPDY, BPDZ);
-			vp.Write(grid, streamer.str());
+			this->_vp_dump(grid, streamer.str());
 
 			if (isroot) cout << "done" << endl;
 		}

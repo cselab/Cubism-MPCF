@@ -138,7 +138,7 @@ template < typename TSOS>
 Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
 {
     vector<BlockInfo> vInfo = grid.getBlocksInfo();
-    const size_t N = vInfo.size();
+    const int N = vInfo.size();
     const BlockInfo * const ary = &vInfo.front();
 	
     Real * tmp = NULL;
@@ -162,7 +162,7 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
         
         TSOS kernel;
 #pragma omp for schedule(runtime)
-        for (size_t i=0; i<N; ++i)
+        for (int i=0; i<N; ++i)
         {
             FluidBlock & block = *(FluidBlock *)ary[i].ptrBlock;
             local_sos[i] =  kernel.compute(&block.data[0][0][0].rho, FluidBlock::gptfloats);

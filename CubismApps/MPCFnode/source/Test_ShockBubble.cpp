@@ -273,7 +273,7 @@ void Test_ShockBubble::run()
 			std::stringstream streamer;
 			streamer<<"data-"<<step_id;
 			_dump(streamer.str());
-			//_vp(*grid);			
+			_vp(*grid);			
 			profiler.pop_stop();
         }
         if(step_id%ANALYSISPERIOD == 0)

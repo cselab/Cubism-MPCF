@@ -271,6 +271,30 @@ struct FluidBlock
 				for(int ix=0; ix<sizeX; ix++)
 					streamer.operate(input, data[iz][iy][ix]);
 	}
+	
+	template <typename Streamer>
+	inline void minmax(Real minval[Streamer::channels], Real maxval[Streamer::channels], Streamer streamer = Streamer())
+	{
+		enum { NCHANNELS = Streamer::channels };
+				
+		streamer.operate(data[0][0][0], minval);
+		streamer.operate(data[0][0][0], maxval);
+		
+		for(int iz=0; iz<sizeZ; iz++)
+			for(int iy=0; iy<sizeY; iy++)
+				for(int ix=0; ix<sizeX; ix++)
+				{
+					Real tmp[NCHANNELS];
+					
+					streamer.operate(data[iz][iy][ix], tmp);
+					
+					for(int ic = 0; ic < NCHANNELS; ++ic)
+						minval[ic] = std::min(minval[ic], tmp[ic]);
+					
+					for(int ic = 0; ic < NCHANNELS; ++ic)
+						maxval[ic] = std::max(maxval[ic], tmp[ic]);
+				}
+	}
 };
 
 template <> inline void FluidBlock::Write<StreamerGridPoint>(ofstream& output, StreamerGridPoint streamer) const
