@@ -35,11 +35,11 @@ public:
 		const float PEAKPERF = PEAKPERF_CORE*NCORES;
 		
 		//FLOP estimation
-		const double GFLOPUPDATE = 6.*2.e-9*NBLOCKS*1.*(_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_);
-		
+		const double GFLOPUPDATE = 8 * 2.e-9 * NBLOCKS * (_BLOCKSIZE_ * _BLOCKSIZE_ * _BLOCKSIZE_);
+
 		//FLOP/s estimation
-		const float OIUpdate = 2.f/(3*sizeof(Real));
-		const float AIUpdate = 2.f/(4*sizeof(Real));
+		const float OIUpdate = 2.f/(3 * sizeof(Real));
+		const float AIUpdate = 2.f/(4 * sizeof(Real));
 		const double EPERFUPDATE   = min(OIUpdate*   PEAKBAND, PEAKPERF);
 		const double EPERFUPDATEAI   = min(AIUpdate*   PEAKBAND, PEAKPERF);
 		

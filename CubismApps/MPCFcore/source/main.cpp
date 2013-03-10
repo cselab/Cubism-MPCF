@@ -14,11 +14,25 @@
 #endif
 
 #include <iostream>
+#include <omp.h>
+
+#ifdef _USE_HPM_
+#include <mpi.h>
+extern "C" void HPM_Start(char *);
+extern "C" void HPM_Stop(char *);
+//extern "C" void HPM_Init(void);
+//extern "C" void HPM_Print(void);
+#else
+#define HPM_Start(x)
+#define HPM_Stop(x)
+#define MPI_Init(a,b)
+#define MPI_Finalize()
+#endif
 
 #ifdef _SSE_
 #include <xmmintrin.h>
 #endif
-
+#include <unistd.h>
 #include <ArgumentParser.h>
 
 #include "TestTypes.h"
@@ -26,6 +40,14 @@
 #include "Test_LocalKernel.h"
 
 #include "Convection_CPP.h"
+#include "Convection_CPP_omp.h"
+
+#ifdef _QPX_
+#include "Convection_QPX.h"
+#include "Update_QPX.h"
+#include "MaxSpeedOfSound_QPX.h"
+#endif
+
 #include "Update.h"
 #include "MaxSpeedOfSound.h"
 #ifdef _SSE_
@@ -62,8 +84,12 @@ template<typename Test , typename Kernel> void testing(Test test, Kernel kernel,
 		test.accuracy(kernel, info.accuracythreshold, false);
 		test.performance(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);	
 	}
-	else
-		test.profile(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);
+	else {
+		if (info.name == "Convection_CPP_omp")
+			test.profile2(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);
+		else
+			test.profile(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);
+	}
 	
 	printEndKernelTest();
 }
@@ -82,20 +108,24 @@ template<typename Test , typename Kernel1, typename Kernel2> void comparing(Test
 }
 
 int main (int argc, const char ** argv) 
-{	
+{
+#ifdef _USE_HPM_
+	MPI_Init(&argc, const_cast<char ***>(&argv));
+#endif  	
 	ArgumentParser parser(argc, argv);
-	
+	parser.loud();	
 	//enable/disable the handling of denormalized numbers
 #ifdef _SSE_
 	if (parser("-f2z").asBool(false))
-	#pragma omp parallel
+#pragma omp parallel
 	{
 		_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 	}
 #endif	
-
+	
 	//kernel name
 	const string kernel = parser("-kernel").asString("all");
+	//const string kernel = parser("-kernel").asString("Convection_CPP_omp");
 	
 	TestInfo info(kernel);
 	
@@ -112,30 +142,71 @@ int main (int argc, const char ** argv)
 	info.accuracythreshold = parser("-accuracy").asDouble(1e-4);
 	
 	//memory footprint per thread, in terms of blocks.
-	info.nofblocks = parser("-nblocks").asInt(512);;
+	info.nofblocks = parser("-nblocks").asInt(50);
 	
 	//number of times that the kernel will be executed
-	info.noftimes =  parser("-n").asInt(1000);
+	info.noftimes =  parser("-n").asInt(50);
 	
 	//C++ kernels
 	{
 		if (kernel == "Convection_CPP" || kernel == "all")
 			testing(Test_Convection(), Convection_CPP(0, 1), info);		
 		
-		if (kernel == "Update_CPP" || kernel == "all")
-		{
-			Test_LocalKernel lt;
-			Update_CPP update_kernel;
-			lt.profile_update(update_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
-		}
+		//this one does not pass the accuracy test
+		//if (kernel == "Convection_CPP_omp" || kernel == "all")
+		//	testing(Test_Convection(), Convection_CPP_omp(0, 1), info);		
 		
-		if (kernel == "MaxSOS_CPP" || kernel == "all")
 		{
 			Test_LocalKernel lt;
-			MaxSpeedOfSound_CPP maxsos_kernel;
-			lt.profile_maxsos(maxsos_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+			
+			if (kernel == "Update_CPP" || kernel == "all")
+			{
+				Update_CPP update_kernel;
+				HPM_Start("Update_CPP");
+				lt.profile_update(update_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+				HPM_Stop("Update_CPP");
+			}
+			
+			if (kernel == "MaxSOS_CPP" || kernel == "all")
+			{
+				MaxSpeedOfSound_CPP maxsos_kernel;
+				HPM_Start("MaxSOS_CPP");
+				lt.profile_maxsos(maxsos_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+				HPM_Stop("MaxSOS_CPP");
+			}
 		}
 	}
+	
+	//QPX kernels
+#ifdef _QPX_
+	{
+		if (kernel == "Convection_QPX" || kernel == "all")
+			testing(Test_Convection(), Convection_QPX(0, 1), info);
+
+		Test_LocalKernel lt;
+
+		if (kernel == "MaxSOS_QPX" || kernel == "all")
+		{
+			MaxSpeedOfSound_QPX maxsos_kernel;
+			MaxSpeedOfSound_CPP refkernel;
+			lt.accuracy(maxsos_kernel, refkernel, info.accuracythreshold);
+			HPM_Start("MaxSOS_QPX");
+			lt.profile_maxsos(maxsos_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+			HPM_Stop("MaxSOS_QPX");
+		}
+		
+		if (kernel == "Update_QPX" || kernel == "all")
+		{
+			Update_CPP refkernel;
+			Update_QPX update_kernel;
+			lt.accuracy(update_kernel, refkernel, info.accuracythreshold);
+			
+			HPM_Start("Update_QPX");
+			lt.profile_update(update_kernel, info.peakperf, info.peakbandwidth, info.nofblocks, info.noftimes);
+			HPM_Stop("Update_QPX");
+		}
+	}
+#endif
 	
 	//SSE kernels
 #if defined(_SSE_) && _ALIGNBYTES_ % 16 == 0
@@ -152,6 +223,10 @@ int main (int argc, const char ** argv)
 			testing(Test_Convection(), Convection_AVX(0, 1, 2.5, 2.1, 1, 0, 0), info);
 		
 	}
+#endif
+	
+#ifdef _USE_HPM_
+	MPI_Finalize();
 #endif
 	
 	return 0;

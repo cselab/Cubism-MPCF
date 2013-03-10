@@ -24,7 +24,7 @@ namespace LSRK3data
 	extern Real smoothlength ;
 	extern int verbosity;
 	extern float PEAKPERF_CORE, PEAKBAND;
-	extern int NCORES, TLP;
+	extern int NCORES;
     extern Real pc1;
     extern Real pc2 ;
 	extern string dispatcher;

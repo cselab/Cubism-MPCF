@@ -23,11 +23,12 @@ public:
 		const float PEAKPERF = PEAKPERF_CORE*NCORES;
 		
 		//FLOP estimation
-		const double GFLOPSOS = NBLOCKS*_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*122.*1.e-9; 
+		const double flopcount = 5 + 4 + mysqrt_flops<preclevel>() + 10 + 3 * myminmax_flops() + 2 * myreciprocal_flops<preclevel>();
+		const double GFLOPSOS = NBLOCKS*_BLOCKSIZE_*_BLOCKSIZE_*_BLOCKSIZE_*flopcount*1.e-9; 
 		
 		//FLOP/s estimation
-		const float OISOS = 122./(6*sizeof(float));
-		const float AISOS = 122./(6*sizeof(float)*3);
+		const float OISOS = flopcount/(8 * sizeof(Real));
+		const float AISOS = flopcount/(8 * sizeof(Real));
 		const double EPERFSOS = min(OISOS*PEAKBAND, PEAKPERF);
 		const double EPERFSOSAI = min(AISOS*PEAKBAND, PEAKPERF);
 		
@@ -36,6 +37,7 @@ public:
 		printPerformanceTitle();
 		printf("\tSOS TOTAL GFLOPS: %.2f\n", GFLOPSOS);
 		printf("\tSOS ASSUMING PP: %.2f GFLOP/s (PER CORE), %.2f GFLOP/s (OVERALL)\n\tPB: %.2f GB/s (OVERALL)\n", PEAKPERF_CORE*1e-9, PEAKPERF*1e-9, PEAKBAND*1e-9);
+		printf("\tPER ITERATION: %d FLOPs\n", (int)flopcount);
 		printf("\tSOS RIDGE AT %.2f FLOP/B\n", PEAKPERF/PEAKBAND);
 		printf("\tSOS THIS ONE IS %.2f GFLOP/s,\t\"PER SOS\" %.2f FLOP/B\n", GFLOPSOS/MEASUREDTIME, OISOS);
 		printf("\tSOS TIME PER BLOCK: %.5f ms (expected %.5f ms)\n",  1e3*MEASUREDTIME/NBLOCKS, 1e3*TSOS/NBLOCKS);

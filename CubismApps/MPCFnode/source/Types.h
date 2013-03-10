@@ -111,7 +111,7 @@ public:
 
 struct FluidElement
 {
-    Real rho, u, v, w, energy, G, P;
+  Real rho, u, v, w, energy, G, P, dummy;
 
     void clear() { rho = u = v = w = energy = G = P = 0; }
     
@@ -238,7 +238,7 @@ struct FluidBlock
 	
 	FluidElement __attribute__((__aligned__(_ALIGNBYTES_))) data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
     
-	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][gptfloats];   
+	Real __attribute__((__aligned__(_ALIGNBYTES_))) tmp[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][gptfloats];
     
 	void clear_data()
 	{
@@ -287,6 +287,30 @@ struct FluidBlock
 				for(int ix=0; ix<sizeX; ix++)
 					streamer.operate(input, data[iz][iy][ix]);
 	}
+	
+	template <typename Streamer>
+	inline void minmax(Real minval[Streamer::channels], Real maxval[Streamer::channels], Streamer streamer = Streamer())
+	{
+		enum { NCHANNELS = Streamer::channels };
+				
+		streamer.operate(data[0][0][0], minval);
+		streamer.operate(data[0][0][0], maxval);
+		
+		for(int iz=0; iz<sizeZ; iz++)
+			for(int iy=0; iy<sizeY; iy++)
+				for(int ix=0; ix<sizeX; ix++)
+				{
+					Real tmp[NCHANNELS];
+					
+					streamer.operate(data[iz][iy][ix], tmp);
+					
+					for(int ic = 0; ic < NCHANNELS; ++ic)
+						minval[ic] = std::min(minval[ic], tmp[ic]);
+					
+					for(int ic = 0; ic < NCHANNELS; ++ic)
+						maxval[ic] = std::max(maxval[ic], tmp[ic]);
+				}
+	}
 };
 
 template <> inline void FluidBlock::Write<StreamerGridPoint>(ofstream& output, StreamerGridPoint streamer) const
@@ -312,7 +336,7 @@ struct StreamerDummy_HDF5
 		const FluidElement& input = ref.data[iz][iy][ix];
 		
 		output[0] = input.rho;
-		assert(input.rho >= 0);
+		//assert(input.rho >= 0);
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;        
@@ -326,7 +350,7 @@ struct StreamerDummy_HDF5
 		FluidElement& input = ref.data[iz][iy][ix];
 		
 		input.rho = output[0];
-		assert(input.rho >= 0);
+		//assert(input.rho >= 0);
 		input.u = output[1]*output[0];
 		input.v = output[2]*output[0];
 		input.w = output[3]*output[0];

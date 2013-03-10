@@ -70,23 +70,38 @@ void Convection_CPP::hpc_info(float& flop_convert, int& traffic_convert,
 	const int ninputs = (int)powf(_BLOCKSIZE_ + 6, 3);
 	const int nfaces = (int)powf(_BLOCKSIZE_, 2) * (_BLOCKSIZE_ + 1);
 	const int ncells = (int)powf(_BLOCKSIZE_, 3);
-	const int nquantities = 6;
+	const int nquantities = 7;
 	const int ndirections = 3;
+		
+	const int rcpflop = myreciprocal_flops<preclevel>();
+	const int divflop = mydivision_flops<preclevel>();
+	const int sqrflop = mysqrt_flops<preclevel>();
+	const int mmxflop = 2;
 	
-	flop_convert = (3 + 12 + 3 * 15) * ninputs;
-	traffic_convert = (6 + 6) * sizeof(Real) * ninputs;
-	flop_weno =  82 * 2 * nfaces * nquantities * ndirections;
-	traffic_weno = (5 + 1) * sizeof(Real) * (2 * nfaces * nquantities * ndirections);
-	flop_extraterm = 2 * ndirections * ncells;
-	traffic_extraterm = (2 + 4) * sizeof(Real) * ndirections * ncells;
-	flop_charvel = (18 + 15 * 4) * ndirections * nfaces;
-	traffic_charvel = (8 + 2) * sizeof(Real) * ndirections * nfaces;
-	flop_hlle = (17 * 2 + 19 * 2 + 21 + 73) * ndirections * nfaces;
-	traffic_hlle = ((6 + 1) * 2 + (8 + 1) * 2 + (8 + 1) + (14 + 1)) * sizeof(Real) * ndirections * nfaces;
-	flop_div = (1 + 2 * 2) * ncells;
-	traffic_div = (2 + 1) * sizeof(Real) * ndirections * ncells;
+	const int reads = 1;
+	const int writes = 2;
+	
+	flop_convert = (2 * rcpflop + 13) * ninputs;
+	traffic_convert = (8 * reads + 8 * writes) * sizeof(Real) * ninputs;
+	flop_weno =  (74 + 3 * divflop + rcpflop) * 2 * nfaces * nquantities * ndirections;
+	traffic_weno = (5 * reads + 1 * writes) * sizeof(Real) * (2 * nfaces * nquantities * ndirections);
+	flop_extraterm = (2 * 2 * 2 + 2 + 3*(1 + 2 * (5 + rcpflop))) * ncells;
+	traffic_extraterm = ((8 + 3) * 2 * reads + (12 + 3) * writes) * sizeof(Real) * ndirections * ncells;
+	flop_charvel = (12 + 4*rcpflop + 2*sqrflop + 2*mmxflop) * ndirections * nfaces;
+	traffic_charvel = (10 * reads + 2 * writes) * sizeof(Real) * ndirections * nfaces;
+	flop_hlle = (3 * (14 + rcpflop) + 
+				 2 * (16 + rcpflop) + 
+				 1 * (18 + rcpflop) + 
+				 1 * (37 + rcpflop)) * ndirections * nfaces;
+	traffic_hlle = ((6 * reads + 1 * writes) * 3 + 
+					(8 * reads + 1 * writes) * 2 + 
+					(8 * reads + 1 * writes) + 
+					(16 * reads + 1 * writes)) * sizeof(Real) * ndirections * nfaces;
+	flop_div = (1 + 2 + 2) * ncells * nquantities;
+	traffic_div = (2 * reads + 1 * writes +
+				   (3 * reads + 1 * writes) * 2) * sizeof(Real) * ndirections * ncells;
 	flop_copyback = (6 * 3 + 3) * ncells;
-	traffic_copyback = (8 + 6) * sizeof(Real) * ncells;
+	traffic_copyback = (10 * reads + 8 * std::max(reads, writes)) * sizeof(Real) * ncells;
 	footprint = sizeof(Convection_CPP);
 }
 
@@ -1217,7 +1232,7 @@ void Convection_CPP::_hlle_e(const TempSOA& rm, const TempSOA& rp,
             
             const Real fother = (aplus*fminus-aminus*fpluss+aminus*aplus*(eplus-eminus))*((Real)1/(aplus-aminus));
             
-            out.ref(ix, iy) = ((Real)flagminus)*fminus + ((Real)flagplus)*fpluss + ((Real)flagother)*fother;//aminus and plus and Pminus and plus are not symmetric which is fine.
+            out.ref(ix, iy) = flagplus ? fpluss : (flagminus ? fminus : fother);
             assert(!isnan(out.ref(ix, iy)));
         }
 }

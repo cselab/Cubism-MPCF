@@ -1,11 +1,13 @@
+
+
 /*
- *  SOA2D.h
- *  
- *
- *  Created by Diego Rossinelli on 5/15/12.
- *  Copyright 2012 ETH Zurich. All rights reserved.
- *
- */
+ *  *  *  SOA2D.h
+ *   *   *  
+ *    *    *
+ *     *     *  Created by Diego Rossinelli on 5/15/12.
+ *      *      *  Copyright 2012 ETH Zurich. All rights reserved.
+ *       *       *
+ *        *        */
 
 #pragma once
 
@@ -14,6 +16,9 @@
 #include "common.h"
 
 template < int _SX, int _EX, int _SY, int _EY, typename TReal=Real > 
+#ifdef __xlC__
+__align(_ALIGNBYTES_)  
+#endif
 struct SOA2D
 {
 	static const int _CPERALIGNBYTES = _ALIGNBYTES_/sizeof(TReal);
@@ -25,7 +30,8 @@ struct SOA2D
 	
 	static const int PITCH = EX - SX;
 	
-	TReal __attribute__((__aligned__(_ALIGNBYTES_))) data[NY][PITCH];
+	__attribute__((aligned(_ALIGNBYTES_))) TReal data[NY][PITCH];
+	
 	
 	SOA2D()
 	{
@@ -34,7 +40,7 @@ struct SOA2D
 	
 	inline TReal operator()(const int ix, const int iy) const
 	{
-		assert(ix >= _SX); assert(ix < _EX);
+		assert(ix >= SX); assert(ix < EX);
 		assert(iy >= _SY); assert(iy < _EY);
 		
 		return data[iy-_SY][ix-SX];
