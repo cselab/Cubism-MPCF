@@ -14,8 +14,8 @@
 
 namespace CloudData
 {
-    const Real seed_s[3] = {0.15, 0.15, 0.05};
-    const Real seed_e[3] = {0.85, 0.85, 0.7};
+    const Real seed_s[3] = {0.10, 0.10, 0.10};
+    const Real seed_e[3] = {0.90, 0.90, 0.50};
     const int n_shapes = 40;
 };
 
@@ -37,7 +37,7 @@ public:
         }
         
         min_rad = 0.025;
-        max_rad = 0.1;
+        max_rad = 0.15;
     }
     
     void get_bbox(Real s[3], Real e[3]) const
