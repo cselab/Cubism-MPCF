@@ -120,7 +120,7 @@ public:
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
             FILE * f = fopen("integrals.dat", "a");
-            fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e %e %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3,
+            fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3,
                     g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke*h3, g_r2Int*h3, g_mach_max, g_p_max, pow(0.75*g_vol*h3/M_PI,1./3.), g_wall_p_max);
             fclose(f);
         }
