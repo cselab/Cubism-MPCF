@@ -265,9 +265,46 @@ class Test_Cloud: public Test_SIC
     
     void _my_ic(FluidGrid& grid, const vector< shape * > v_shapes);
     void _my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes);
+    void _set_energy(FluidGrid& grid);
     
 public:
 	Test_Cloud(const int argc, const char ** argv): Test_SIC(argc, argv) { }
     
     void setup();
+};
+
+//ALERT: Energy channel forces pressure for solving
+//the Laplace p = 0 at initial condition
+template<typename BlockType, template<typename X> class allocator=std::allocator>
+class BlockLabCloudLaplace: public BlockLab<BlockType,allocator>
+{
+	typedef typename BlockType::ElementType ElementTypeBlock;
+    
+protected:
+	bool is_xperiodic() {return false;}
+	bool is_yperiodic() {return false;}
+	bool is_zperiodic() {return false;}
+    
+public:
+	BlockLabCloudLaplace(): BlockLab<BlockType,allocator>(){}
+	
+	void _apply_bc(const BlockInfo& info, const Real t=0)
+	{
+        BoundaryCondition<BlockType,ElementTypeBlock,allocator> bc(this->m_stencilStart, this->m_stencilEnd, this->m_cacheBlock);
+        
+        ElementTypeBlock b;
+        b.clear();
+        b.rho = 1000;
+        b.u = b.v = b.w = 0;
+        b.G = 1./(6.59-1);
+        b.P = 4.049e3*b.G*6.59;
+        b.energy = 100.0;
+                
+        if (info.index[0]==0)           bc.template applyBC_dirichlet<0,0>(b);
+        if (info.index[0]==this->NX-1)  bc.template applyBC_dirichlet<0,1>(b);
+        if (info.index[1]==0)			bc.template applyBC_dirichlet<1,0>(b);
+        if (info.index[1]==this->NY-1)	bc.template applyBC_dirichlet<1,1>(b);
+        if (info.index[2]==0)			bc.template applyBC_dirichlet<2,0>(b);
+        if (info.index[2]==this->NZ-1)	bc.template applyBC_dirichlet<2,1>(b);
+    }
 };

@@ -14,11 +14,85 @@
 
 #define Tshape shape
 
+typedef BlockLabMPI< BlockLabCloudLaplace< FluidBlock, std::allocator> > LabLaplace;
+
+//ALERT: assuming no momenta at the initial condition
+//ALERT: assuming that initially pressure is written in energy channel
+template<typename TLab>
+struct GaussSeidel
+{
+    StencilInfo stencil;
+    
+    int stencil_start[3];
+    int stencil_end[3];
+    
+    GaussSeidel(): stencil(-2,-2,-2,3,3,3, false, 1, 4)
+    {
+        stencil_start[0] = stencil_start[1] = stencil_start[2] = -2;
+        stencil_end[0] = stencil_end[1] = stencil_end[2] = 3;
+    }
+    
+    GaussSeidel(const GaussSeidel& c): stencil(-2,-2,-2,3,3,3, false, 1, 4)
+    {
+        stencil_start[0] = stencil_start[1] = stencil_start[2] = -2;
+        stencil_end[0] = stencil_end[1] = stencil_end[2] = 3;
+    }
+    
+    inline void operator()(TLab& lab, const BlockInfo& info, FluidBlock& o) const
+    {       
+        for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+            for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                {
+                    if(lab(ix,iy,iz).G<2.5)
+                    {
+                        Real p[15];
+                        const int span = 5;
+                        
+                        for(int dir=0;dir<3;dir++)
+                            for(int i=0;i<span;i++)
+                                p[i+dir*span] = lab(ix+ (dir==0? i-2 : 0 ), iy+ (dir==1? i-2 : 0), iz+ (dir==2? i-2 : 0)).energy;
+                        
+                        Real pressure_new = 0;
+                        for(int dir=0;dir<3;dir++)
+                            pressure_new += -p[dir*span+0]+16*p[dir*span+1]+16*p[dir*span+3]-p[dir*span+4];
+                                        
+                        o(ix,iy,iz).energy = pressure_new/(Real)90.0;
+                    }
+                }
+    }
+};
+
+template<typename Lab, typename Operator, typename TGrid>
+void _process_laplace(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t=0, bool tensorial=false)
+{
+#pragma omp parallel
+    {
+        vector<BlockInfo>myInfo = vInfo;
+        BlockInfo * ary = &myInfo.front();
+        
+        Operator myrhs = rhs;
+        Lab mylab;
+        
+        const SynchronizerMPI& synch = grid.get_SynchronizerMPI(myrhs);
+        
+        const int N = vInfo.size();
+        mylab.prepare(grid, synch);
+        
+#pragma omp for schedule(runtime)
+        for(int i=0; i<N; i++)
+        {
+            mylab.load(ary[i], t);
+            myrhs(mylab, ary[i], *(FluidBlock*)ary[i].ptrBlock);
+        }
+    }
+}
+
 class Test_CloudMPI: public Test_Cloud
 {
    	Test_SteadyStateMPI * t_ssmpi;
     Test_ShockBubbleMPI * t_sbmpi;
-
+    
 protected:
 	int XPESIZE, YPESIZE, ZPESIZE;
     
@@ -34,6 +108,22 @@ public:
         t_ssmpi = new Test_SteadyStateMPI(isroot, argc, argv);
         t_sbmpi = new Test_ShockBubbleMPI(isroot, argc, argv);
 	}
+    
+    void _relax_pressure(G & grid)
+    {
+        GaussSeidel< LabLaplace > gs;
+               
+        SynchronizerMPI& synch = ((G&)grid).sync(gs);
+        
+        while (!synch.done())
+        {
+            if (isroot) printf("One avail loop of gs ");
+            vector<BlockInfo> avail = synch.avail(1);
+            
+            _process_laplace< LabLaplace >(avail, gs, (G&)grid);
+            if (isroot) printf("... done\n");            
+        }
+    }
     
 	void setup()
 	{
@@ -107,10 +197,20 @@ public:
                 }
             }
             
-           //_my_ic(*grid, v_shapes);
-           _my_ic_quad(*grid, v_shapes);
+            //_my_ic(*grid, v_shapes);
+            _my_ic_quad(*grid, v_shapes);
             
             v_shapes.clear();
+                        
+            for(int i=0; i<50; i++)
+            {
+                if (isroot) printf("iteration %d ", i);
+                _relax_pressure(*grid);
+                MPI::COMM_WORLD.Barrier();
+                if (isroot) printf("...done\n");
+            }
+            
+            _set_energy(*grid);
         }
 	}
     
