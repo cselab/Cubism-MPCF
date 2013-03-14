@@ -134,6 +134,7 @@ int mydivision_flops()
 	return 1; //we don't know if it is just 1
 }
 
+#if 1
 template<int preclevel>
 inline vector4double mysqrt(const vector4double a)
 {
@@ -143,6 +144,17 @@ inline vector4double mysqrt(const vector4double a)
 	const vector4double candidate = vec_nmsub(tmp, vec_mul(invz, vec_splats(0.5f)), z);
 	return vec_sel(candidate, vec_splats(0.f), vec_neg(a));
 }
+#else //this is supposed to be more accurate
+template<int preclevel>
+inline vector4double mysqrt(const vector4double x)
+{
+	const vector4double y0 =  vec_rsqrtes(x);
+	const vector4double term = vec_madd(x, vec_mul(y0, y0), vec_splats(3.f));
+	const vector4double candidate = vec_mul(vec_mul(y0, vec_splats(-0.5f)), term);
+	
+	return vec_mul(x, vec_sel(candidate, vec_splats(0.f), vec_neg(x)));
+}
+#endif
 
 template< int preclevel>
 int mysqrt_flops()

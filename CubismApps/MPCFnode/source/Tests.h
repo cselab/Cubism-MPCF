@@ -13,8 +13,8 @@
 
 
 #include "Test_ShockBubble.h"
-typedef BlockLab<FluidBlock, std::allocator> Lab;
-//typedef BlockLabBubble<FluidBlock, std::allocator> Lab;
+//typedef BlockLab<FluidBlock, std::allocator> Lab;
+typedef BlockLabBubble<FluidBlock, std::allocator> Lab;
 
 //#include "Test_SIC.h"
 //maybe replace it with std::allocator

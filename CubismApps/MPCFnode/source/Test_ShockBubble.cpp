@@ -272,18 +272,19 @@ void Test_ShockBubble::run()
 			profiler.push_start("DUMP");            
 			std::stringstream streamer;
 			streamer<<"data-"<<step_id;
-			_dump(streamer.str());
+			//_dump(streamer.str());
 			_vp(*grid);			
 			profiler.pop_stop();
         }
         if(step_id%ANALYSISPERIOD == 0)
         {
             profiler.push_start("DUMP ANALYSIS");
-            _analysis(*grid, step_id);
+            //_analysis(*grid, step_id);
             profiler.pop_stop();
 		}
         
-		if (step_id%SAVEPERIOD == 0) _save();
+	//if (step_id%SAVEPERIOD == 0) 
+	///	  _save();
 		
 		profiler.push_start("EVOLVE");
 
@@ -298,7 +299,7 @@ void Test_ShockBubble::run()
         if(step_id%10 == 0)
         {
             profiler.push_start("DUMP STATISTICS");
-            _dumpStatistics(*grid, step_id, t, dt);
+            //_dumpStatistics(*grid, step_id, t, dt);
             profiler.pop_stop();
         }
                 

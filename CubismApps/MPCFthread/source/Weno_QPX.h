@@ -312,7 +312,7 @@ public:
 			
 			vec_sta(result, offset, out);
 		}
-#endif
+		//#endif
 	}
 	
 	void operator()(const Real * const a, const Real * const b, const Real * const c, 

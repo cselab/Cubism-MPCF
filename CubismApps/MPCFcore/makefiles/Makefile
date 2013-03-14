@@ -55,13 +55,13 @@ mpcf-core: $(OBJECTS)
 %.o: %.cpp $(header_files)
 	$(CC) $(OPTFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-WenoSOA2D_QPX.o:	WenoSOA2D_QPX.cpp $(header_files)
+WenoSOA2D_QPX.o: WenoSOA2D_QPX.cpp WenoSOA2D_QPX.h common.h ../../MPCFthread/source/Weno_CPP.h ../../MPCFthread/source/Weno_QPX.h 
 	$(CC) $(NASTYFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-HLLESOA2D_QPX.o:        HLLESOA2D_QPX.cpp $(header_files)
+HLLESOA2D_QPX.o: HLLESOA2D_QPX.cpp HLLESOA2D_QPX.h common.h
 	$(CC) $(NASTYFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-DivSOA2D_QPX.o: 	DivSOA2D_QPX.cpp $(header_files)
+DivSOA2D_QPX.o: DivSOA2D_QPX.cpp DivSOA2D_QPX.h common.h
 	$(CC) $(NASTYFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 clean:

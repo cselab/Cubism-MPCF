@@ -15,7 +15,7 @@
 #include <algorithm>
 using namespace std;
 
-#include <xmmintrin.h>
+//#include <xmmintrin.h>
 
 #include "PUPkernelsMPI.h"
 #include "DependencyCubeMPI.h"
@@ -803,15 +803,15 @@ public:
 					
 					if (_myself(neighbor_index)) continue;
 					
-					if (NFACE_SEND > 0)
-						send.pending.insert( cartcomm.Isend(send.faces[d][s], NFACE_SEND, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + 1-s) );
-					
 					if (NFACE_RECV > 0)
 					{
 						MPI::Request rc = cartcomm.Irecv(recv.faces[d][s], NFACE_RECV, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + s);
 						recv.pending.insert(rc);
 						cube.face(rc, d, s);
 					}
+
+					if (NFACE_SEND > 0)
+					  send.pending.insert( cartcomm.Isend(send.faces[d][s], NFACE_SEND, MPIREAL, _rank(neighbor_index), 6*timestamp + 2*d + 1-s) );
 				}
 			}
 			
@@ -838,9 +838,6 @@ public:
 							
 							if (_myself(neighbor_index)) continue;
 							
-							if (NEDGE_SEND > 0)
-								send.pending.insert( cartcomm.Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a)));
-							
 							if (NEDGE_RECV > 0)
 							{
 								MPI::Request rc = cartcomm.Irecv(recv.edges[d][b][a], NEDGE_RECV, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*b + a);
@@ -849,6 +846,9 @@ public:
 								
 								cube.edge(rc, d, a, b);
 							}
+
+                                                        if (NEDGE_SEND > 0)
+							  send.pending.insert( cartcomm.Isend(send.edges[d][b][a], NEDGE_SEND, MPIREAL, _rank(neighbor_index), 12*timestamp + 4*d + 2*(1-b) + (1-a)));
 						}
 				}
 				
@@ -868,9 +868,6 @@ public:
 									
 									if (_myself(neighbor_index)) continue;
 									
-									if (NCORNERBLOCK_SEND)
-										send.pending.insert( cartcomm.Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x)) );
-									
 									if (NCORNERBLOCK_RECV)
 									{
 										MPI::Request rc = cartcomm.Irecv(recv.corners[z][y][x], NCORNERBLOCK_RECV, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*z + 2*y + x);
@@ -879,6 +876,10 @@ public:
 										
 										cube.corner(rc, x, y, z);
 									}
+
+									if (NCORNERBLOCK_SEND)
+									  send.pending.insert( cartcomm.Isend(send.corners[z][y][x], NCORNERBLOCK_SEND, MPIREAL, _rank(neighbor_index), 8*timestamp + 4*(1-z) + 2*(1-y) + (1-x)) \
+											       );
 								}
 				}
 			}

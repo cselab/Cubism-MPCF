@@ -289,17 +289,21 @@ struct LSRKstep
         vector<double> res;
         
         LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
-		
+	
+	HPM_Start("RHS");	
         timer.start();     
         _process<Lab, Kflow>(a, dtinvh, vInfo, grid, current_time);
         const double t1 = timer.stop();
-        
+        HPM_Stop("RHS");
+
         LSRK3data::Update<Kupdate> update(b, &vInfo.front());
         
+	HPM_Start("Update");
         timer.start();
         update.omp(vInfo.size());
         const double t2 = timer.stop();
-        
+        HPM_Stop("Update");
+
 		res.push_back(t1);
 		res.push_back(t2);
 		

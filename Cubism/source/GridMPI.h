@@ -204,4 +204,9 @@ public:
     {
         return timestamp;
     }
+
+    MPI::Cartcomm getCartComm() const
+      {
+	return cartcomm;
+      }
 };
