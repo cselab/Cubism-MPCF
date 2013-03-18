@@ -192,7 +192,7 @@ inline Real mysafediv(const Real a)
 
 inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, const Real e) //82 FLOP
 {
-  	const Real is0 = a*(a*(Real)(4./3.)  - b*(Real)(19./3.)  + c*(Real)(11./3.)) + b*(b*(Real)(25./3.)  - c*(Real)(31./3.)) + c*c*(Real)(10./3.);
+  /*  	const Real is0 = a*(a*(Real)(4./3.)  - b*(Real)(19./3.)  + c*(Real)(11./3.)) + b*(b*(Real)(25./3.)  - c*(Real)(31./3.)) + c*c*(Real)(10./3.);
 	const Real is1 = b*(b*(Real)(4./3.)  - c*(Real)(13./3.)  + d*(Real)(5./3.))  + c*(c*(Real)(13./3.)  - d*(Real)(13./3.)) + d*d*(Real)(4./3.);
 	const Real is2 = c*(c*(Real)(10./3.) - d*(Real)(31./3.)  + e*(Real)(11./3.)) + d*(d*(Real)(25./3.)  - e*(Real)(19./3.)) + e*e*(Real)(4./3.);
     
@@ -210,7 +210,7 @@ inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, c
     const Real omega2= 1-omega0-omega1;
 	
 	return omega0*((Real)(1.0/3.)*a-(Real)(7./6.)*b+(Real)(11./6.)*c) + omega1*(-(Real)(1./6.)*b+(Real)(5./6.)*c+(Real)(1./3.)*d) + omega2*((Real)(1./3.)*c+(Real)(5./6.)*d-(Real)(1./6.)*e);
-	/*
+  */
     const Real is0 = (c-b)*(c-b);
     const Real is1 = (d-c)*(d-c);
     
@@ -221,11 +221,10 @@ inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, c
     const Real omega1=1.-omega0;
     
      return omega0*(1.5*c-.5*b) + omega1*(.5*c+.5*d);
-	*/
 }
 
 inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, const Real f) //82 FLOP
-{
+{/*
 	const Real is0 = d*(d*(Real)(10./3.)- e*(Real)(31./3.) + f*(Real)(11./3.)) + e*(e*(Real)(25./3.) - f*(Real)(19./3.)) +	f*f*(Real)(4./3.);
 	const Real is1 = c*(c*(Real)(4./3.) - d*(Real)(13./3.) + e*(Real)(5./3.)) + d*(d*(Real)(13./3.)  - e*(Real)(13./3.)) +	e*e*(Real)(4./3.);
 	const Real is2 = b*(b*(Real)(4./3.) - c*(Real)(19./3.) + d*(Real)(11./3.)) + c*(c*(Real)(25./3.) - d*(Real)(31./3.)) +	d*d*(Real)(10./3.);
@@ -244,7 +243,7 @@ inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, co
     const Real omega2= 1-omega0-omega1;
 	
 	return omega0*((Real)(1./3.)*f-(Real)(7./6.)*e+(Real)(11./6.)*d) + omega1*(-(Real)(1./6.)*e+(Real)(5./6.)*d+(Real)(1./3.)*c) + omega2*((Real)(1./3.)*d+(Real)(5./6.)*c-(Real)(1./6.)*b);
-	/*
+ */
     const Real is0 = (d-e)*(d-e);
     const Real is1 = (d-c)*(d-c);
     
@@ -255,7 +254,6 @@ inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, co
     const Real omega1 = 1.-omega0;
 
     return omega0*(1.5*d-.5*e) + omega1*(.5*d+.5*c);
-	*/
 }
 
 /*
@@ -1360,8 +1358,8 @@ void Convection_CPP::_nucleate(const InputSOA& pin, const InputSOA& Gin, const I
             const Real l2v_factorP = 100/(0.5*1000*5.5*5.5)*min((Real)0, pin(ix,iy)-(Real)0.02)*Pv;
             const Real v2l_factorP = 100*Pv;
 
-            gout[ix + OutputSOA::PITCH*iy] += l2v_factorG*(1.0-avG)- v2l_factorG*(1.0-avG)*(1.0-avG)*avG;
-            pout[ix + OutputSOA::PITCH*iy] += l2v_factorP*(1.0-avP)- v2l_factorP*(1.0-avP)*(1.0-avP)*avP;
+            gout[ix + OutputSOA::PITCH*iy] += l2v_factorG*(1.0-avG);//- v2l_factorG*(1.0-avG)*(1.0-avG)*avG;
+            pout[ix + OutputSOA::PITCH*iy] += l2v_factorP*(1.0-avP);//- v2l_factorP*(1.0-avP)*(1.0-avP)*avP;
         }
 }
 
