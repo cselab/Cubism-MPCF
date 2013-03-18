@@ -88,6 +88,21 @@ void _process_laplace(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const
     }
 }
 
+class BS4
+{
+public:
+    static inline Real eval(Real x)
+    {
+        const Real t = fabs(x);
+        
+        if (t>2) return 0;
+        
+        if (t>1) return pow(2-t,3)/6;
+        
+        return (1 + 3*(1-t)*(1 + (1-t)*(1 - (1-t))))/6;
+    }
+};
+
 class Test_CloudMPI: public Test_Cloud
 {
    	Test_SteadyStateMPI * t_ssmpi;
@@ -234,6 +249,8 @@ public:
 			if (step_id%SAVEPERIOD==0)
 				t_ssmpi->save(*grid, step_id, t);
             
+            //stepper->set_CFL(CFL/(1+15*BS4::eval((t-0.3)/0.025)));
+            if (isroot) printf("CFL is %f, original CFL is %f\n", stepper->CFL, CFL);
 			const Real dt = (*stepper)(TEND-t);
             
 			if(step_id%10 == 0 && isroot && step_id > 0)
