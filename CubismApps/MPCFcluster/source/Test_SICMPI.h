@@ -10,8 +10,6 @@
 
 #include <limits>
 #include <Test_SIC.h>
-#include "Test_SteadyStateMPI.h"
-
 
 class Test_SICMPI: public Test_SIC
 {
@@ -69,7 +67,7 @@ public:
 	{
 		if (isroot) printf("HELLO RUN\n");
 		bool bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
-        
+                
 		while(bLoop)
 		{
 			if (isroot) printf("Step id %d,Time %f\n", step_id, t);
@@ -77,8 +75,8 @@ public:
 			if (step_id%DUMPPERIOD==0)
 			{
 				std::stringstream streamer;
-				streamer<<"data-"<<step_id;;
-				t_ssmpi->dump(*grid, step_id, streamer.str());
+				streamer<<"data-"<<step_id;
+                t_ssmpi->dump(*grid, step_id, streamer.str());
 				t_ssmpi->vp(*grid, step_id, bVP);
 			}
             
@@ -91,7 +89,8 @@ public:
 				profiler.printSummary();
             
             profiler.push_start("DUMP STATISTICS");
-            t_sbmpi->dumpStatistics(*grid, step_id, t, dt);
+            if (step_id%ANALYSISPERIOD==0)
+                t_sbmpi->dumpStatistics(*grid, step_id, t, dt);
             profiler.pop_stop();
             
             profiler.push_start("DUMP ANALYSIS");

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 using namespace std;
 
 #pragma once
@@ -37,11 +38,19 @@ struct MPI_ParIO
 	
 	float numbers[MAX_REPORTFREQ];	// vector! 
 	int numid;	// vector
-	
+
 	int mygstep;
+	long jobid;
+	
+	int async_counter;
+	int lastcall;
+
+	float *all_numbers;
+	
+	MPI_Datatype filetype, buftype;	// for ordered
 
 
-	MPI_ParIO()
+	MPI_ParIO(): mygstep(0), async_counter(0), lastcall(0), all_numbers(NULL)
 	{
 	}
 
@@ -53,10 +62,40 @@ struct MPI_ParIO
 		MPI_Comm_size(MPI_COMM_WORLD, &size);
 		
 		filename = name;
+
+#if 0
+		if (rank == 0) {
+			jobid = getpid();
+		}
+		MPI_Bcast(&jobid, 1, MPI_LONG, 0, MPI_COMM_WORLD);
+		
+		std::stringstream ss;
+		ss << "." << jobid;
+		filename.append(ss.str());
+#endif
+		
+#if 1
+		if (rank == 0) {
+			MPI_File testfile;
+
+			int mode = MPI_MODE_RDONLY;
+			int rc = MPI_File_open( MPI_COMM_SELF, (char *)filename.c_str(), mode, MPI_INFO_NULL, &testfile);
+			if (!rc) {
+ 				printf("Warning: Hist file %s already exists and will be deleted (error code %d).\n", (char *)filename.c_str(), rc);fflush(stdout);
+				rc = MPI_File_delete((char *)filename.c_str(), MPI_INFO_NULL);
+				if (rc) {
+					printf("Unable to delete file %s, error code %d\n", (char *)filename.c_str(), rc);fflush(stdout);
+				}
+				MPI_File_close(&testfile);
+			}
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+#endif
 		
 		groupsize = _groupsize;
 		reportfreq = _reportfreq;
 		layout = _layout;
+		all_numbers = (float *)malloc(groupsize*reportfreq*sizeof(float));	// explicit allocation of data buffer
 		
 		numid = 0;
 		
@@ -103,6 +142,20 @@ struct MPI_ParIO
 			int mode = MPI_MODE_CREATE | MPI_MODE_WRONLY;
 			//MPI_File_open( master_comm, (char *)filename.c_str(), mode, MPI_INFO_NULL, &outfile );
 			MPI_File_open( MPI_COMM_SELF, (char *)filename.c_str(), mode, MPI_INFO_NULL, &outfile );
+
+#if 1		/* ordered, single write call */
+			if ((layout == 1) || (layout == 3)) {
+				/* create and commit filetype */
+				MPI_Type_vector(reportfreq, groupsize, size, MPI_FLOAT, &filetype);
+				MPI_Type_commit(&filetype);
+
+				/* create and commit buftype */              
+				MPI_Type_contiguous(groupsize * reportfreq, MPI_FLOAT, &buftype);
+				MPI_Type_commit(&buftype);
+			}
+#endif
+
+			
 		}
 	}
 
@@ -112,22 +165,55 @@ struct MPI_ParIO
 		numid++;
 	}
 
-	void _consolidate_chunked(int gstep)
+	void _consolidate_chunked_async(int gstep)
 	{
+		async_counter++;
+
+		if (lastcall) {
+			printf("chunked_async: lastcall = %d\n", lastcall); fflush(0);
+		}
+
 		int step = (gstep - reportfreq)/reportfreq;	// normalized step
 		
 		numid = 0;	// reset the vector ;-)
 		
-		float all_numbers[groupsize*reportfreq];	// explicit allocation / vector?
+
+		if (new_rank == 0) {
+			MPI_Status status;
+			if (async_counter > 1) MPI_Wait(&request, &status);
+		}
 
 		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
 
 		if (new_rank == 0) {	// master: perform parallel io
 			MPI_Status status;
 		
-			/* set file view */
 			size_t base = step * size * reportfreq;
 			size_t offset = master_rank * groupsize * reportfreq;
+			
+			MPI_File_iwrite_at(outfile, (base + offset)*sizeof(float), &all_numbers[0], reportfreq*groupsize, MPI_FLOAT, &request);
+			if (lastcall) {
+				MPI_Wait(&request, &status);
+			}
+		}
+		
+	}
+
+	void _consolidate_chunked(int gstep)
+	{
+		int step = (gstep - reportfreq)/reportfreq;	// normalized step
+		
+		numid = 0;	// reset the vector ;-)
+		
+		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
+
+		if (new_rank == 0) {	// master: perform parallel io
+			MPI_Status status;
+		
+			size_t base = step * size * reportfreq;
+			size_t offset = master_rank * groupsize * reportfreq;
+		
+			printf("[%d %d %d %d %d %ld %ld]\n", step, size, reportfreq, master_rank, groupsize, base, offset);
 			
 			MPI_File_write_at(outfile, (base + offset)*sizeof(float), &all_numbers[0], reportfreq*groupsize, MPI_FLOAT, &status);
 		}
@@ -140,49 +226,106 @@ struct MPI_ParIO
 		
 		numid = 0;	// reset the vector ;-)
 		
-		float all_numbers[groupsize*reportfreq];	// explicit allocation / vector?
-		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
+		float all_numbers_unordered[groupsize*reportfreq];	// explicit allocation / vector?
+		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers_unordered, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
 
-		float all_numbers_ordered[groupsize*reportfreq];	// explicit allocation / vector?	 // todo: mpi_type and no buffering
-		
 		int k = 0;
 		for (int i = 0; i < reportfreq; i++) {
 			for (int j = i; j < groupsize*reportfreq; j+= reportfreq) {
-				all_numbers_ordered[k] = all_numbers[j];
+				all_numbers[k] = all_numbers_unordered[j];
 				k++;
 			} 
 		}
 
 		if (new_rank == 0) {	// master: perform parallel io
 			MPI_Status status;
-		
-			/* set file view */
-			for (int k = 0, istep = gstep-reportfreq; istep < gstep; istep++,k++) {
-				size_t base = istep * size;
-				size_t offset = master_rank * groupsize;
+
+			size_t base = step * (size * reportfreq) * sizeof(float);
+			size_t offset  = master_rank* groupsize * sizeof(float);
 			
-				MPI_File_write_at(outfile, (base + offset)*sizeof(float), &all_numbers_ordered[k*groupsize], groupsize, MPI_FLOAT, &status);
-			}
+			MPI_File_set_view(outfile, base+offset, MPI_CHAR, filetype, (char *)"native", MPI_INFO_NULL);
+			MPI_File_write_at(outfile, 0, (void *)&all_numbers[0], 1, buftype, &status);
+		
+//			int nbytes;
+//			MPI_Get_elements(&status, MPI_CHAR, &nbytes);
+//			printf("====== number of bytes written = %d ======\n", nbytes); fflush(0);
+
 		}
 		
 	}
 
+	void _consolidate_ordered_async(int gstep)
+	{
+		async_counter++;
+
+		if (lastcall) {
+			printf("chunked_async: lastcall = %d\n", lastcall); fflush(0);
+		}
+
+		int step = (gstep - reportfreq)/reportfreq;	// normalized step
+		
+		if (new_rank == 0) {
+			MPI_Status status;
+			if (async_counter > 1) MPI_Wait(&request, &status);
+		}
+
+		numid = 0;	// reset the vector ;-)
+		
+		float all_numbers_unordered[groupsize*reportfreq];	// explicit allocation / vector?
+		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers_unordered, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
+
+		int k = 0;
+		for (int i = 0; i < reportfreq; i++) {
+			for (int j = i; j < groupsize*reportfreq; j+= reportfreq) {
+				all_numbers[k] = all_numbers_unordered[j];
+				k++;
+			} 
+		}
+
+		if (new_rank == 0) {	// master: perform parallel io
+			MPI_Status status;
+
+			size_t base = step * (size * reportfreq) * sizeof(float);
+			size_t offset  = master_rank* groupsize * sizeof(float);
+			
+			MPI_File_set_view(outfile, base+offset, MPI_CHAR, filetype, (char *)"native", MPI_INFO_NULL);
+			
+			MPI_File_iwrite_at(outfile, 0, (void *)&all_numbers[0], 1, buftype, &request);
+			if (lastcall) {
+				MPI_Wait(&request, &status);
+			}
+
+		
+//			int nbytes;
+//			MPI_Get_elements(&status, MPI_CHAR, &nbytes);
+//			printf("====== number of bytes written = %d ======\n", nbytes); fflush(0);
+
+		}
+		
+	}
 
 	void Consolidate(int gstep)
 	{
 		mygstep = gstep;
 
 		if (layout == 0) {
-			_consolidate_chunked(gstep);
+			_consolidate_chunked_async(gstep);
 		}
-		else {
+		else if (layout == 1) {
 			_consolidate_ordered(gstep);
+		}/*
+		else if (layout == 2) {
+			_consolidate_chunked_async(gstep);
 		}
+		else if (layout == 3) {
+			_consolidate_ordered_async(gstep);
+		}*/
 	}
 
 	void Finalize()
 	{
 		if (numid > 0) {
+			lastcall = 1;
 			for (int i = numid + 1; i < MAX_REPORTFREQ; i++) numbers[i] = -1;
 			Consolidate(mygstep + reportfreq);
 		}
@@ -190,51 +333,51 @@ struct MPI_ParIO
 		if (new_rank == 0) {	// parallel io
 			MPI_File_close(&outfile);
 		}
+
+		free(all_numbers);
 	}
 
 };
 
 
 #if 0
-#include <mpi.h>
-#include "ParIO.h" 
+#include <stdio.h>
+#include "ParIO.h"
+
+using namespace std;
 
 int main(int argc, char *argv[])
 {
-	int rank, size;
+	int rank, size;             
 
-	MPI_Init(&argc,&argv); 
+	MPI_Init(&argc,&argv);     
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &size); 
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-	/* Extract the original group handle */ 
-	/* Divide tasks into two distinct groups based upon rank */ 
-
-	int groupsize = 4;
-	int reportfreq = 2;
-	int layout = 0;
+	int groupsize = 8;
+	int reportfreq = 5;
+	int layout = 3;
 
 	MPI_ParIO pio;
 
-	pio.Init((char *)"output.bin", groupsize, reportfreq, layout);	// 4, 2, 0
+	pio.Init((char *)"output.bin", groupsize, reportfreq, layout);  // 4, 2, 0
 
 	int step;
-	
-	for (step = 0; step < 10; step++) {
-		if (step% 2 == 0 && step > 0) {
+
+	for (step = 0; step < 15; step++) {
+		if (step% 5 == 0 && step > 0) {
 			pio.Consolidate(step);
 		}
 
-//		float number = rank*10.0 + rand()%10  + step*100;
-//		float number = rank;
+		//float number = rank*10.0 + rand()%10  + step*100;
+		//float number = rank;
 		float number = step;
-		pio.Notify(step, number);
+		pio.Notify(number);
 	}
-
+	
 	pio.Finalize();
-
 	MPI_Finalize();
 	
 	return 0;
-} 
+}
 #endif

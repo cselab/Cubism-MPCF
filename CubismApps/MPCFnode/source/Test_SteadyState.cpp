@@ -10,6 +10,11 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+
+#ifdef _USE_HDF_
+#include <HDF5Dumper.h>
+#endif
+
 using namespace std;
 
 #ifdef _USE_HDF_
@@ -78,13 +83,14 @@ void Test_SteadyState::_save()
 }
 
 void Test_SteadyState::_dump(string filename)
-{
-	const string path = parser("-fpath").asString(".");
+{	
+    const string path = parser("-fpath").asString(".");
 	
-#ifdef _USE_HDF_ 
-	cout << "Dump to " << path << filename << "..." ;
-	DumpHDF5<FluidGrid, StreamerDummy_HDF5>(*grid, step_id, filename, path);
-	cout << "done." << endl;
+#ifdef _USE_HDF_
+    cout << "Dump to " << path << filename << "..." ;
+    DumpHDF5<FluidGrid, StreamerGamma_HDF5>(*grid, step_id, filename+"-g", path);
+    DumpHDF5<FluidGrid, StreamerPressure_HDF5>(*grid, step_id, filename+"-p", path);
+    cout << "done." << endl;
 #else
 #warning HDF WAS DISABLED AT COMPILE TIME
 #endif
@@ -92,7 +98,7 @@ void Test_SteadyState::_dump(string filename)
 
 void Test_SteadyState::_ic(FluidGrid& grid)
 {
-	cout << "Initial condition..." ;
+	//cout << "Initial condition..." ;
 	
 	const double G1 = Simulation_Environment::GAMMA1-1;
 	const double G2 = Simulation_Environment::GAMMA2-1;
@@ -124,7 +130,7 @@ void Test_SteadyState::_ic(FluidGrid& grid)
 				}
 	}	
 	
-	cout << "done." << endl;
+	//cout << "done." << endl;
 }
 
 void Test_SteadyState::_vp(FluidGrid& grid)

@@ -34,6 +34,9 @@
 #include <mpi.h>
 extern "C" void HPM_Start(char *);
 extern "C" void HPM_Stop(char *);
+#else
+#define HPM_Start(x)
+#define HPM_Stop(x)
 #endif
 
 #include <ParIO.h>// peh
@@ -47,9 +50,9 @@ namespace LSRK3MPIdata
     double t_synch_fs = 0, t_bp_fs = 0;
     int counter = 0, GSYNCH = 0, nsynch = 0;
 
-    MPI_ParIO hist_update, hist_rhs, hist_stepid;// peh
+    MPI_ParIO hist_update, hist_rhs, hist_stepid, hist_nsync;// peh
     
-    Histogram histogram;
+    //Histogram histogram;
     
     template<typename Kflow, typename Kupdate>
     void notify(double avg_time_rhs, double avg_time_update, const size_t NBLOCKS, const size_t NTIMES)
@@ -59,18 +62,19 @@ namespace LSRK3MPIdata
 		    hist_update.Consolidate(LSRK3data::step_id);// peh
 		        hist_stepid.Consolidate(LSRK3data::step_id); // peh
 			hist_rhs.Consolidate(LSRK3data::step_id); // peh
-
-			   histogram.consolidate();
+			hist_nsync.Consolidate(LSRK3data::step_id);//peh
+			   //histogram.consolidate();
 		         }
 			
 		hist_update.Notify((float)avg_time_update);// peh
 		hist_rhs.Notify((float)avg_time_rhs); //peh
 		hist_stepid.Notify((float)LSRK3data::step_id);// peh
+		hist_stepid.Notify((float)nsynch/NTIMES);//peh
 
-		histogram.notify("FLOWSTEP", (float)avg_time_rhs);
-		histogram.notify("UPDATE", (float)avg_time_update);
-		histogram.notify("STEPID", (float)LSRK3data::step_id);
-		histogram.notify("NSYNCH", (float)nsynch/NTIMES);
+		//histogram.notify("FLOWSTEP", (float)avg_time_rhs);
+		//histogram.notify("UPDATE", (float)avg_time_update);
+		//histogram.notify("STEPID", (float)LSRK3data::step_id);
+		//histogram.notify("NSYNCH", (float)nsynch/NTIMES);
 		nsynch = 0;
 
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
@@ -160,7 +164,7 @@ template<typename TGrid>
 class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 {
     TGrid & grid;
-    Histogram histogram_sos;
+    //Histogram histogram_sos;
 
 	Real _computeSOS()
 	{
@@ -203,15 +207,15 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
             timer.start();            
 			
 #ifdef _USE_HPM_
-	    HPM_Start("RHS sync method");
+	    if (LSRK3data::step_id>0) HPM_Start("RHS sync method");
 #endif
             SynchronizerMPI& synch = ((TGrid&)grid).sync(rhs);
 #ifdef _USE_HPM_
-            HPM_Stop("RHS sync method");
+            if (LSRK3data::step_id>0) HPM_Stop("RHS sync method");
 #endif
 
 #ifdef _USE_HPM_
-	    HPM_Start("RHS");
+	    if (LSRK3data::step_id>0) HPM_Start("RHS");
 #endif
 			while (!synch.done())
 			{			
@@ -232,17 +236,17 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 				LSRK3MPIdata::nsynch++;
 			}
 #ifdef _USE_HPM_
-		      		HPM_Stop("RHS");
+			if (LSRK3data::step_id>0) HPM_Stop("RHS");
 #endif
             const double totalRHS = timer.stop();
 #ifdef _USE_HPM_
-            HPM_Start("Update");
+	    if (LSRK3data::step_id>0)             HPM_Start("Update");
 #endif
 			LSRK3data::Update<Kupdate> update(b, &vInfo.front());
 			timer.start();
 			update.omp(vInfo.size());
 #ifdef _USE_HPM_
-			HPM_Stop("Update");
+			if (LSRK3data::step_id>0) 			HPM_Stop("Update");
 #endif
 
 			const double totalUPDATE = timer.stop();
@@ -260,6 +264,7 @@ public:
 	  LSRK3MPIdata::hist_update.Finalize();
 	  LSRK3MPIdata::hist_rhs.Finalize();
 	  LSRK3MPIdata::hist_stepid.Finalize();
+	  LSRK3MPIdata::hist_nsync.Finalize();
 	  }
 
 	FlowStep_LSRK3MPI(TGrid & grid, const Real CFL, const Real gamma1, const Real gamma2, ArgumentParser& parser, const int verbosity, Profiler* profiler=NULL, const Real pc1=0, const Real pc2=0):
@@ -267,9 +272,11 @@ public:
     {
       if (verbosity>=1) cout << "GSYNCH " << parser("-gsync").asInt(omp_get_max_threads()) << endl;
 
-      LSRK3MPIdata::hist_update.Init("hist_UPDATE.bin", 32, parser("-report").asInt(1), 1); // peh
-      LSRK3MPIdata::hist_rhs.Init("hist_FLOWSTEP.bin", 32, parser("-report").asInt(1), 1); //peh
-      LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", 32, parser("-report").asInt(1), 1); // peh
+	static const int pehflag =0; 
+      LSRK3MPIdata::hist_update.Init("hist_UPDATE.bin", 8, parser("-report").asInt(1), pehflag); // peh
+      LSRK3MPIdata::hist_rhs.Init("hist_FLOWSTEP.bin", 8, parser("-report").asInt(1), pehflag); //peh
+      LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", 8, parser("-report").asInt(1), pehflag); // peh
+      LSRK3MPIdata::hist_nsync.Init("hist_NSYNCH.bin", 8, parser("-report").asInt(1), pehflag); // peh
     }
 	
 	Real operator()(const Real max_dt)
@@ -285,11 +292,11 @@ public:
 	Timer timer;
 	timer.start();
       #ifdef _USE_HPM_
-	HPM_Start("dt");
+	if (LSRK3data::step_id>0) 	HPM_Start("dt");
 	#endif
 		const Real maxSOS = _computeSOS();
       #ifdef _USE_HPM_
-		HPM_Stop("dt");
+		if (LSRK3data::step_id>0) 		HPM_Stop("dt");
         #endif
 		const double t_sos = timer.stop();
 		

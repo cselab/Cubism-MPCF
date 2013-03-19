@@ -52,18 +52,31 @@ void Test_ShockBubble::_ic(FluidGrid& grid)
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
                         
-                        const double r = sqrt(pow(p[0]-Simulation_Environment::shock_pos-1.2*radius,2)+pow(p[1]-bubble_pos[1],2));
+                        const double r = sqrt(pow(p[0]-Simulation_Environment::shock_pos-1.2*radius,2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[1],2));
                         
-                        const double bubble = Simulation_Environment::heaviside_smooth(r-radius);                                                                        
+                        const double bubble = Simulation_Environment::heaviside_smooth(r-radius);
                         
                         const Real pre_shock[3] = {1,0,1};
                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);	      
-                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);                                           
+                        const double shock = Simulation_Environment::heaviside(p[0]-Simulation_Environment::shock_pos);
                         
                         b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.138*bubble+pre_shock[0]*(1-bubble));
                         b(ix, iy, iz).u        = (shock*post_shock[1] + (1-shock)*pre_shock[1])*b(ix, iy, iz).rho;
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
+                        /*
+                                                const Real pre_shock[3] = {0.125,0,0.1};//{10,0.5,1/1.4};//{0.125,0,0.1};//{10,0.5,1/1.4};//
+                         Simulation_Environment::getPostShockRatio(pre_shock, Simulation_Environment::mach, Simulation_Environment::GAMMA1, Simulation_Environment::PC1, post_shock);
+                         const double shock = bubble;//Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);
+                         
+                        post_shock[0] = 1;//1;//1;//1;
+                        post_shock[1] = 0;//0.5;//0;//0.5;
+                        post_shock[2] = 1;//1/1.4;//1;//1/1.4;
+                         
+                         b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(1*bubble+pre_shock[0]*(1-bubble));
+                         b(ix, iy, iz).u        = 0;//(shock*post_shock[1] + (1-shock)*pre_shock[1])*b(ix, iy, iz).rho;
+                        b(ix, iy, iz).v        = 0;//0.5*b(ix, iy, iz).rho;
+                         b(ix, iy, iz).w        = 0;*/
                         
                         const double pressure  = shock*post_shock[2] + (1-shock)*pre_shock[2];
                         
@@ -90,6 +103,7 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     double rInt=0., uInt=0., vInt=0., wInt=0., eInt=0., vol=0., ke=0., r2Int=0., mach_max=-HUGE_VAL, p_max=-HUGE_VAL;
     const double h = vInfo[0].h_gridpoint;
     const double h3 = h*h*h;
+    double wall_p_max=-HUGE_VAL;
     
 	for(int i=0; i<(int)vInfo.size(); i++)
 	{
@@ -115,14 +129,16 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
                     
                     mach_max = max(mach_max, velmag/c);
                     p_max = max(p_max, pressure);
+                    
+                    if (info.index[2]==0 && iz==0)
+                        wall_p_max = max(wall_p_max, pressure);
                 }
     }
     
     FILE * f = fopen("integrals.dat", "a");
-    fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
-            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke, r2Int*h3, mach_max, p_max, -p_max/1e4);
+    fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, rInt*h3, uInt*h3, 
+            vInt*h3, wInt*h3, eInt*h3, vol*h3, ke*h3, r2Int*h3, mach_max, p_max, pow(0.75*vol*h3/M_PI,1./3.), wall_p_max);
     fclose(f);
-    /*
     
     FILE * f2 = fopen("centerline_velocities.dat", "a");
     FILE * f3 = fopen("p_center.dat", "a");
@@ -188,7 +204,7 @@ void Test_ShockBubble::_dumpStatistics(FluidGrid& grid, const int step_id, const
     
     fclose(f4);
     fclose(f3);
-    fclose(f2); */
+    fclose(f2);
 }
 
 void Test_ShockBubble::_analysis(FluidGrid& grid, const int step_id)
@@ -272,20 +288,26 @@ void Test_ShockBubble::run()
 			profiler.push_start("DUMP");            
 			std::stringstream streamer;
 			streamer<<"data-"<<step_id;
-			//_dump(streamer.str());
+			_dump(streamer.str());
 			_vp(*grid);			
 			profiler.pop_stop();
         }
         if(step_id%ANALYSISPERIOD == 0)
         {
             profiler.push_start("DUMP ANALYSIS");
-            //_analysis(*grid, step_id);
+            _analysis(*grid, step_id);
             profiler.pop_stop();
 		}
         
-	//if (step_id%SAVEPERIOD == 0) 
-	///	  _save();
-		
+		if (step_id%SAVEPERIOD == 0) _save();
+        
+        if(step_id%10 == 0)
+        {
+            profiler.push_start("DUMP STATISTICS");
+            _dumpStatistics(*grid, step_id, t, dt);
+            profiler.pop_stop();
+        }
+        
 		profiler.push_start("EVOLVE");
 
         stepper->set_current_time(t);
@@ -295,13 +317,6 @@ void Test_ShockBubble::run()
 		
 		if(step_id%10 == 0)
 			profiler.printSummary();			
-		
-        if(step_id%10 == 0)
-        {
-            profiler.push_start("DUMP STATISTICS");
-            //_dumpStatistics(*grid, step_id, t, dt);
-            profiler.pop_stop();
-        }
                 
 		t+=dt;
 		step_id++;

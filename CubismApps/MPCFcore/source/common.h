@@ -40,6 +40,14 @@ typedef RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 3> RingTempSOA3;
 
 
 //C++ related functions
+template<typename X> inline X mysqrt(X x){ abort(); return sqrt(x);}
+template<>  inline float mysqrt<float>(float x){ return sqrtf(x);}
+template<>  inline double mysqrt<double>(double x){ return sqrt(x);}
+
+template<typename X> inline X myabs(X x){ abort(); return sqrt(x);}
+template<>  inline float myabs<float>(float x){ return fabsf(x);}
+template<>  inline double myabs<double>(double x){ return fabs(x);}
+
 //che cos'e' questo odore? - non era un sospiro.
 inline Real heaviside(const Real phi, const Real inv_h) //11 FLOP
 {
@@ -134,7 +142,6 @@ int mydivision_flops()
 	return 1; //we don't know if it is just 1
 }
 
-#if 1
 template<int preclevel>
 inline vector4double mysqrt(const vector4double a)
 {
@@ -144,17 +151,6 @@ inline vector4double mysqrt(const vector4double a)
 	const vector4double candidate = vec_nmsub(tmp, vec_mul(invz, vec_splats(0.5f)), z);
 	return vec_sel(candidate, vec_splats(0.f), vec_neg(a));
 }
-#else //this is supposed to be more accurate
-template<int preclevel>
-inline vector4double mysqrt(const vector4double x)
-{
-	const vector4double y0 =  vec_rsqrtes(x);
-	const vector4double term = vec_madd(x, vec_mul(y0, y0), vec_splats(3.f));
-	const vector4double candidate = vec_mul(vec_mul(y0, vec_splats(-0.5f)), term);
-	
-	return vec_mul(x, vec_sel(candidate, vec_splats(0.f), vec_neg(x)));
-}
-#endif
 
 template< int preclevel>
 int mysqrt_flops()
@@ -349,6 +345,9 @@ inline __m128d getPC(const __m128d phi, const __m128d inv_smoothlength,
 
 #define _3ORPS_(a,b,c) _mm_or_ps(a, _mm_or_ps(b,c))
 #define _3ORPD_(a,b,c) _mm_or_pd(a, _mm_or_pd(b,c))
+
+#define _4ORPS_(a,b,c,d) _mm_or_ps(a, _mm_or_ps(b, _mm_or_ps(c,d)))
+#define _4ORPD_(a,b,c,d) _mm_or_pd(a, _mm_or_pd(b, _mm_or_pd(c,d)))
 #endif //SSE
 
 //AVX-related functions

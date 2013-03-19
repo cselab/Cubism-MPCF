@@ -65,10 +65,12 @@ public:
     
     static Real heaviside_smooth(const Real phi)
     {
-        const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/EPSILON)));
+        /*const Real x = min((Real)1, max((Real)-1, phi*(((Real)1)/EPSILON)));
         const Real val_xneg = (((Real)-0.5)*x - ((Real)1))*x + ((Real)0.5);
         const Real val_xpos = (((Real)+0.5)*x - ((Real)1))*x + ((Real)0.5);
-        return (x<0 ? val_xneg : val_xpos);
+        return (x<0 ? val_xneg : val_xpos);*/
+        const Real alpha = M_PI*min(1., max(0., (phi+0.5*EPSILON)/EPSILON));     
+        return 0.5+0.5*cos(alpha);
     }
     
     static void getPostShockRatio(const Real pre_shock[3], const Real mach, const Real gamma, const Real pc, Real postShock[3])
@@ -111,7 +113,20 @@ struct FluidElement
 {
   Real rho, u, v, w, energy, G, P, dummy;
 
-    void clear() { rho = u = v = w = energy = G = P = dummy = 0; }
+    void clear() { rho = u = v = w = energy = G = P = 0; }
+    
+    FluidElement& operator = (const FluidElement & gp)
+    {       
+        this->rho = gp.rho;
+        this->u = gp.u;
+        this->v = gp.v;
+        this->w = gp.w;
+        this->energy=gp.energy;
+        this->G = gp.G;
+        this->P = gp.P;
+        
+        return *this;
+    }
 };
 
 struct StreamerGridPointASCII
@@ -149,11 +164,12 @@ struct StreamerGridPoint //dummy
 	void operate(const FluidElement& input, Real output[7]) const
 	{
 		output[0] = input.rho;
-		assert(input.rho >= 0);
+		assert(output[0] > 0);
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;
-		output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+        output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+        assert(input.energy > 0);
 		output[5] = input.G;		
   		output[6] = input.P;		
 	}
@@ -360,10 +376,70 @@ struct StreamerFromTemp_HDF5
 		output[1] = ref.tmp[iz][iy][ix][1];
 		output[2] = ref.tmp[iz][iy][ix][2];
 	}
+
+  void operate(const Real output, const int ix, const int iy, const int iz) const
+  {
+    FluidElement& input = ref.data[iz][iy][ix];
+
+    input.G = output;
+  }
 	
 	static const char * getAttributeName() { return "Vector"; } 
 };
 
+struct StreamerGamma_HDF5
+{
+  static const int NCHANNELS = 1;
+
+  FluidBlock& ref;
+
+StreamerGamma_HDF5(FluidBlock& b): ref(b){}
+
+  void operate(const int ix, const int iy, const int iz, Real output[1]) const
+  {
+    const FluidElement& input = ref.data[iz][iy][ix];
+
+    output[0] = input.G;
+  }
+
+  static const char * getAttributeName() { return "Scalar"; }
+};
+
+struct StreamerPressure_HDF5
+{
+    static const int NCHANNELS = 1;
+    
+    FluidBlock& ref;
+    
+    StreamerPressure_HDF5(FluidBlock& b): ref(b){}
+    
+    void operate(const int ix, const int iy, const int iz, Real output[1]) const
+    {
+        const FluidElement& input = ref.data[iz][iy][ix];
+        
+        output[0] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+    }
+    
+    static const char * getAttributeName() { return "Scalar"; }
+};
+
+    struct StreamerDensity_HDF5
+    {
+        static const int NCHANNELS = 1;
+        
+        FluidBlock& ref;
+        
+        StreamerDensity_HDF5(FluidBlock& b): ref(b){}
+        
+        void operate(const int ix, const int iy, const int iz, Real output[1]) const
+        {
+            const FluidElement& input = ref.data[iz][iy][ix];
+            
+            output[0] = input.rho;
+        }
+        
+        static const char * getAttributeName() { return "Scalar"; }
+    };
 //typedef Grid<FluidBlock, tbb::scalable_allocator> FluidGrid;
 typedef Grid<FluidBlock, std::allocator> FluidGrid;
 //typedef BlockProcessing_TBB<FluidBlock> BlockProcessing;

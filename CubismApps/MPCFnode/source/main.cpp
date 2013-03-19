@@ -27,6 +27,7 @@
 #include "Test_SteadyState.h"
 #include "Test_ShockBubble.h"
 #include "Test_SIC.h"
+#include "Test_Cloud.h"
 
 using namespace std;
 
@@ -115,13 +116,14 @@ int main (int argc, const char ** argv)
 	}
 #endif
 	
-	
 	if( parser("-sim").asString() == "steady" )
 		sim = new Test_SteadyState(argc, argv);
 	else if( parser("-sim").asString() == "sb" )
 		sim = new Test_ShockBubble(argc, argv);
     else if( parser("-sim").asString() == "sic" )
         sim = new Test_SIC(argc, argv);
+    else if( parser("-sim").asString() == "cloud" )
+      sim = new Test_Cloud(argc, argv);
     else
 	{
 		printf("Study case not defined!\n"); 
