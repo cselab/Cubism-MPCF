@@ -14,10 +14,18 @@
 #endif
 
 #ifdef _FLOAT_PRECISION_
+typedef float Real;
+#else
+typedef double Real;
+#endif
+
+#ifdef _FLOAT_PRECISION_
 #define HDF_REAL H5T_NATIVE_FLOAT
 #else
 #define HDF_REAL H5T_NATIVE_DOUBLE
 #endif
+
+#include "BlockInfo.h"
 
 using namespace std;
 

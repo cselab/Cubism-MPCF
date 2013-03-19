@@ -123,7 +123,7 @@ size_t WaveletCompressor::compress(const Real threshold, const bool float16, con
 	for(int i = 0; i < BS3; ++i) dst[i] = src[i];
 	
 	full.fwt();
-	pair<vector<Real> , bitset<BS3>> survivors = full.threshold(threshold);
+	pair<vector<Real> , bitset<BS3> > survivors = full.threshold(threshold);
 
 	size_t bytes_copied = 0;
 	

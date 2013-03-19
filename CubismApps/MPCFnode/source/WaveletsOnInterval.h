@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <algorithm>
-
+#include <cmath>
 using namespace std;
 
 namespace WaveletsOnInterval 
@@ -102,39 +102,42 @@ namespace WaveletsOnInterval
 		template<int BS, bool bForward>
 		void sweep2D(Real data[BS][BS])
 		{
-			auto sweep1D = [&] {
-				for(int iy=0; iy<BS; iy++)
-				{
-					vector<Real> temp = forward_sweep(&data[iy][0], BS);
-					copy(temp.begin(), temp.end(), &data[iy][0]);
-				}
-			};
+//			auto sweep1D = [&] {
+#define sweep1D()	do {	\
+				for(int iy=0; iy<BS; iy++) \
+				{ \
+					vector<Real> temp = forward_sweep(&data[iy][0], BS); \
+					copy(temp.begin(), temp.end(), &data[iy][0]);  \
+				} \
+			} while(0)
 			
-			auto sweep1D_inv = [&] {
-				for(int iy=0; iy<BS; iy++)
-				{
-					vector<Real> temp = inverse_sweep(&data[iy][0], BS);
-					copy(temp.begin(), temp.end(), &data[iy][0]);
-				}
-			};
+//			auto sweep1D_inv = [&] {
+#define sweep1D_inv()	do { \
+				for(int iy=0; iy<BS; iy++) \
+				{ \
+					vector<Real> temp = inverse_sweep(&data[iy][0], BS); \
+					copy(temp.begin(), temp.end(), &data[iy][0]); \
+				} \
+			} while(0)
 			
-			auto transpose = [&] {
-				
-				for(int iy=0; iy<BS; iy++)
-					for(int ix=iy+1; ix<BS; ix++)
-					{
-						const Real temp = data[iy][ix];
-						data[iy][ix] = data[ix][iy];
-						data[ix][iy] = temp;
-					}
-			};
+//			auto transpose = [&] {
+#define transpose()	do { \
+				for(int iy=0; iy<BS; iy++) \
+					for(int ix=iy+1; ix<BS; ix++) \
+					{ \
+						const Real temp = data[iy][ix]; \
+						data[iy][ix] = data[ix][iy]; \
+						data[ix][iy] = temp; \
+					} \
+			} while(0)
 			
-			auto sweep = [&] {
-				if (bForward)
-					sweep1D();
-				else
-					sweep1D_inv();
-			};
+//			auto sweep = [&] {
+#define	sweep()		do { \ 
+				if (bForward) \
+					sweep1D(); \
+				else \
+					sweep1D_inv(); \
+			} while(0)
 			
 			sweep();
 			transpose();
@@ -144,17 +147,17 @@ namespace WaveletsOnInterval
 		template<int BS, bool bForward>
 		void sweep3D(Real data[BS][BS][BS])
 		{			
-			auto xz_transpose = [&] {
-				
-				for(int iy=0; iy<BS; iy++)	
-					for(int iz=0; iz<BS; iz++)
-						for(int ix=iz+1; ix<BS; ix++)
-						{
-							const Real temp = data[iz][iy][ix];
-							data[iz][iy][ix] = data[ix][iy][iz];
-							data[ix][iy][iz] = temp;
-						}
-			};
+//			auto xz_transpose = [&] {
+#define xz_transpose()	do { \
+				for(int iy=0; iy<BS; iy++)	 \
+					for(int iz=0; iz<BS; iz++) \
+						for(int ix=iz+1; ix<BS; ix++) \
+						{ \
+							const Real temp = data[iz][iy][ix]; \
+							data[iz][iy][ix] = data[ix][iy][iz]; \
+							data[ix][iy][iz] = temp; \
+						} \
+			} while(0)
 			
 			if(bForward)
 			{
@@ -261,11 +264,11 @@ namespace WaveletsOnInterval
 			child.print();
 		}
 		
-		vector<vector<Real>> collect()
+		vector<vector<Real> > collect()
 		{
 			static const int BSH = BS / 2;
 			
-			vector<vector<Real>> other = child.collect();
+			vector<vector<Real> > other = child.collect();
 			
 			vector<Real> retval;
 			
@@ -339,15 +342,15 @@ namespace WaveletsOnInterval
 			}
 		}
 		
-		pair<vector<Real>, bitset<BS * BS * BS>> threshold(const Real eps)
+		pair<vector<Real>, bitset<BS * BS * BS> > threshold(const Real eps)
 		{
 			static const int BSH = BS / 2;
 			
-			pair<vector<Real>, bitset<BS * BS * BS>> retval;
+			pair<vector<Real>, bitset<BS * BS * BS> > retval;
 			
 			//code 0
 			{
-				pair<vector<Real>, bitset<BSH * BSH * BSH>> childretval = child.threshold(eps);
+				pair<vector<Real>, bitset<BSH * BSH * BSH> > childretval = child.threshold(eps);
 				
 				retval.first = childretval.first;
 				
@@ -406,7 +409,7 @@ namespace WaveletsOnInterval
 		
 		void inverse() { }
 		
-		pair<vector<Real>, bitset<BS * BS * BS>> threshold(const Real eps) 
+		pair<vector<Real>, bitset<BS * BS * BS> > threshold(const Real eps) 
 		{ 
 			enum { N = BS * BS * BS };
 			
@@ -417,7 +420,7 @@ namespace WaveletsOnInterval
 			for(int i = 0; i < N; ++i)
 				v[i] = e[i];
 			
-			pair<vector<Real>, bitset<BS * BS * BS>> retval;
+			pair<vector<Real>, bitset<BS * BS * BS> > retval;
 			retval.first = v;
 			retval.second.set();
 			
@@ -436,7 +439,7 @@ namespace WaveletsOnInterval
 			datastream.clear();
 		}
 		
-		vector<vector<Real>> collect()
+		vector<vector<Real> > collect()
 		{
 			vector<Real> retval;
 			
@@ -445,7 +448,7 @@ namespace WaveletsOnInterval
 					for(int ix = 0; ix < BS; ++ix)
 						retval.push_back(data[iz][iy][ix]);
 			
-			return vector<vector<Real>>(1,retval);
+			return vector<vector<Real> >(1,retval);
 		}
 		
 		void print()
