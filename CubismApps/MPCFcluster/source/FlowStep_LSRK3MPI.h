@@ -50,6 +50,7 @@ namespace LSRK3MPIdata
     double t_synch_fs = 0, t_bp_fs = 0;
     int counter = 0, GSYNCH = 0, nsynch = 0;
 
+    MPI_ParIO_Group hist_group;     // peh+
     MPI_ParIO hist_update, hist_rhs, hist_stepid, hist_nsync;// peh
     
     //Histogram histogram;
@@ -69,7 +70,7 @@ namespace LSRK3MPIdata
 		hist_update.Notify((float)avg_time_update);// peh
 		hist_rhs.Notify((float)avg_time_rhs); //peh
 		hist_stepid.Notify((float)LSRK3data::step_id);// peh
-		hist_stepid.Notify((float)nsynch/NTIMES);//peh
+		hist_nsync.Notify((float)nsynch/NTIMES);//peh
 
 		//histogram.notify("FLOWSTEP", (float)avg_time_rhs);
 		//histogram.notify("UPDATE", (float)avg_time_update);
@@ -272,11 +273,13 @@ public:
     {
       if (verbosity>=1) cout << "GSYNCH " << parser("-gsync").asInt(omp_get_max_threads()) << endl;
 
-	static const int pehflag =0; 
-      LSRK3MPIdata::hist_update.Init("hist_UPDATE.bin", 8, parser("-report").asInt(1), pehflag); // peh
-      LSRK3MPIdata::hist_rhs.Init("hist_FLOWSTEP.bin", 8, parser("-report").asInt(1), pehflag); //peh
-      LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", 8, parser("-report").asInt(1), pehflag); // peh
-      LSRK3MPIdata::hist_nsync.Init("hist_NSYNCH.bin", 8, parser("-report").asInt(1), pehflag); // peh
+	static const int pehflag = 0; 
+	LSRK3MPIdata::hist_group.Init(8, parser("-report").asInt(1), pehflag); // peh
+
+      LSRK3MPIdata::hist_update.Init("hist_UPDATE.bin", &LSRK3MPIdata::hist_group); // peh
+      LSRK3MPIdata::hist_rhs.Init("hist_FLOWSTEP.bin", &LSRK3MPIdata::hist_group); //peh
+      LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", &LSRK3MPIdata::hist_group); // peh
+      LSRK3MPIdata::hist_nsync.Init("hist_NSYNCH.bin", &LSRK3MPIdata::hist_group); // peh
     }
 	
 	Real operator()(const Real max_dt)

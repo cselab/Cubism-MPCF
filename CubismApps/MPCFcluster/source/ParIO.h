@@ -12,7 +12,7 @@ using namespace std;
 
 #define MAX_REPORTFREQ	512
 
-struct MPI_ParIO
+struct MPI_ParIO_Group
 {
 	MPI_Group orig_group;	// from MPI_COMM_WORLD
 	int rank, size;			
@@ -27,78 +27,26 @@ struct MPI_ParIO
 
 	int groupsize;
 	int reportfreq;
-	int layout;	// 0: chunked, 1: ordered
+	int layout;	// 0: chunked, 1: ordered, 2: chunked+async, 3: ordered+async
+	MPI_Datatype filetype, buftype;	// for ordered
 
 	int ngroups; // = size / groupsize;
 
-	MPI_File outfile;
-	MPI_Request request;	// for asychronous writes
-
-	string filename;
-	
-	float numbers[MAX_REPORTFREQ];	// vector! 
-	int numid;	// vector
-
-	int mygstep;
-	long jobid;
-	
-	int async_counter;
-	int lastcall;
-
-	float *all_numbers;
-	
-	MPI_Datatype filetype, buftype;	// for ordered
-
-
-	MPI_ParIO(): mygstep(0), async_counter(0), lastcall(0), all_numbers(NULL)
+	MPI_ParIO_Group()
 	{
 	}
 
-	void Init(string name, int _groupsize, int _reportfreq, int _layout)
+	void Init(int _groupsize, int _reportfreq, int _layout)
 	{
 		MPI_Comm_group(MPI_COMM_WORLD, &orig_group);
 		
 		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 		MPI_Comm_size(MPI_COMM_WORLD, &size);
-		
-		filename = name;
-
-#if 0
-		if (rank == 0) {
-			jobid = getpid();
-		}
-		MPI_Bcast(&jobid, 1, MPI_LONG, 0, MPI_COMM_WORLD);
-		
-		std::stringstream ss;
-		ss << "." << jobid;
-		filename.append(ss.str());
-#endif
-		
-#if 1
-		if (rank == 0) {
-			MPI_File testfile;
-
-			int mode = MPI_MODE_RDONLY;
-			int rc = MPI_File_open( MPI_COMM_SELF, (char *)filename.c_str(), mode, MPI_INFO_NULL, &testfile);
-			if (!rc) {
- 				printf("Warning: Hist file %s already exists and will be deleted (error code %d).\n", (char *)filename.c_str(), rc);fflush(stdout);
-				rc = MPI_File_delete((char *)filename.c_str(), MPI_INFO_NULL);
-				if (rc) {
-					printf("Unable to delete file %s, error code %d\n", (char *)filename.c_str(), rc);fflush(stdout);
-				}
-				MPI_File_close(&testfile);
-			}
-		}
-		MPI_Barrier(MPI_COMM_WORLD);
-#endif
-		
+				
 		groupsize = _groupsize;
 		reportfreq = _reportfreq;
 		layout = _layout;
-		all_numbers = (float *)malloc(groupsize*reportfreq*sizeof(float));	// explicit allocation of data buffer
-		
-		numid = 0;
-		
+				
 		int range[1][3];
 //		int ngroups = size / groupsize;	
 //		printf("ngroups = %d\n", ngroups); fflush(0);
@@ -135,6 +83,119 @@ struct MPI_ParIO
 		MPI_Group_rank (master_group, &master_rank); 
 		MPI_Group_size (master_group, &master_size); 
 
+		/* ordered layout and single write call */
+		if ((layout == 1) || (layout == 3)) {
+			/* create and commit filetype */
+			MPI_Type_vector(reportfreq, groupsize, size, MPI_FLOAT, &filetype);
+			MPI_Type_commit(&filetype);
+
+			/* create and commit buftype */              
+			MPI_Type_contiguous(groupsize * reportfreq, MPI_FLOAT, &buftype);
+			MPI_Type_commit(&buftype);
+		}
+
+	}
+
+};
+
+struct MPI_ParIO
+{
+
+	MPI_File outfile;
+	MPI_Request request;	// for asychronous writes
+
+	string filename;
+	
+//	float numbers[MAX_REPORTFREQ];	// vector! 
+	float *numbers;
+	int numid;	// vector
+
+	int mygstep;
+	long jobid;
+	
+	int async_counter;
+	int lastcall;
+
+	float *all_numbers;
+	
+	MPI_ParIO_Group *group;
+
+	int groupsize, reportfreq, layout;
+	int	rank, new_rank, master_rank;
+	int	size, new_size, master_size;
+	MPI_Datatype filetype, buftype;	// for ordered
+
+	
+	MPI_ParIO(int bsize=512): mygstep(0), async_counter(0), lastcall(0), all_numbers(NULL)
+	{
+//		printf("allocating %d intermediate buffer size\n", bsize);
+		numbers = (float *)malloc(bsize*sizeof(float));
+	}
+
+	void Init(string name, MPI_ParIO_Group *_group)
+	{
+		group = _group;
+		
+#if 1	/* copy from group */
+		groupsize = group->groupsize;
+		reportfreq = group->reportfreq;
+		layout = group->layout;
+		
+		rank = group->rank;
+		new_rank = group->new_rank;
+		master_rank = group->master_rank;
+
+		size = group->size;
+		new_size = group->new_size;
+		master_size = group->master_size;
+
+		filetype = group->filetype;
+		buftype = group->buftype;
+
+/*
+		printf("%d %d %d \n %d %d %d \n %d %d %d\n", 
+			groupsize, reportfreq, layout,
+			rank, new_rank, master_rank,
+			size, new_size, master_size);
+*/
+#endif
+		
+		filename = name;
+
+#if 0
+		if (rank == 0) {
+			jobid = getpid();
+		}
+		MPI_Bcast(&jobid, 1, MPI_LONG, 0, MPI_COMM_WORLD);
+		
+		std::stringstream ss;
+		ss << "." << jobid;
+		filename.append(ss.str());
+#endif
+		
+#if 1
+		if (rank == 0) {
+			MPI_File testfile;
+
+			int mode = MPI_MODE_RDONLY;
+			int rc = MPI_File_open( MPI_COMM_SELF, (char *)filename.c_str(), mode, MPI_INFO_NULL, &testfile);
+			if (!rc) {
+ 				printf("Warning: Hist file %s already exists and will be deleted (error code %d).\n", (char *)filename.c_str(), rc);fflush(stdout);
+				rc = MPI_File_delete((char *)filename.c_str(), MPI_INFO_NULL);
+				if (rc) {
+					printf("Unable to delete file %s, error code %d\n", (char *)filename.c_str(), rc);fflush(stdout);
+				}
+				MPI_File_close(&testfile);
+			}
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+#endif
+		
+		
+		all_numbers = (float *)malloc(groupsize*reportfreq*sizeof(float));	// explicit allocation of data buffer
+		
+		numid = 0;
+		
 		if (new_rank == 0) {	// parallel io
 //			printf("I am here [master_comm = 0x%lx]!\n", master_comm);
 
@@ -143,19 +204,6 @@ struct MPI_ParIO
 			//MPI_File_open( master_comm, (char *)filename.c_str(), mode, MPI_INFO_NULL, &outfile );
 			MPI_File_open( MPI_COMM_SELF, (char *)filename.c_str(), mode, MPI_INFO_NULL, &outfile );
 
-#if 1		/* ordered, single write call */
-			if ((layout == 1) || (layout == 3)) {
-				/* create and commit filetype */
-				MPI_Type_vector(reportfreq, groupsize, size, MPI_FLOAT, &filetype);
-				MPI_Type_commit(&filetype);
-
-				/* create and commit buftype */              
-				MPI_Type_contiguous(groupsize * reportfreq, MPI_FLOAT, &buftype);
-				MPI_Type_commit(&buftype);
-			}
-#endif
-
-			
 		}
 	}
 
@@ -169,9 +217,11 @@ struct MPI_ParIO
 	{
 		async_counter++;
 
+/*
 		if (lastcall) {
 			printf("chunked_async: lastcall = %d\n", lastcall); fflush(0);
 		}
+*/
 
 		int step = (gstep - reportfreq)/reportfreq;	// normalized step
 		
@@ -183,7 +233,7 @@ struct MPI_ParIO
 			if (async_counter > 1) MPI_Wait(&request, &status);
 		}
 
-		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
+		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers, reportfreq, MPI_FLOAT, 0, group->new_comm);	// 0: master of the group (new_rank == 0)
 
 		if (new_rank == 0) {	// master: perform parallel io
 			MPI_Status status;
@@ -205,15 +255,13 @@ struct MPI_ParIO
 		
 		numid = 0;	// reset the vector ;-)
 		
-		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
+		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers, reportfreq, MPI_FLOAT, 0, group->new_comm);	// 0: master of the group (new_rank == 0)
 
 		if (new_rank == 0) {	// master: perform parallel io
 			MPI_Status status;
 		
 			size_t base = step * size * reportfreq;
 			size_t offset = master_rank * groupsize * reportfreq;
-		
-			printf("[%d %d %d %d %d %ld %ld]\n", step, size, reportfreq, master_rank, groupsize, base, offset);
 			
 			MPI_File_write_at(outfile, (base + offset)*sizeof(float), &all_numbers[0], reportfreq*groupsize, MPI_FLOAT, &status);
 		}
@@ -226,8 +274,9 @@ struct MPI_ParIO
 		
 		numid = 0;	// reset the vector ;-)
 		
-		float all_numbers_unordered[groupsize*reportfreq];	// explicit allocation / vector?
-		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers_unordered, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
+//		float all_numbers_unordered[groupsize*reportfreq];	// explicit allocation / vector?
+		float *all_numbers_unordered = (float *)malloc(groupsize*reportfreq*sizeof(float));
+		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers_unordered, reportfreq, MPI_FLOAT, 0, group->new_comm);	// 0: master of the group (new_rank == 0)
 
 		int k = 0;
 		for (int i = 0; i < reportfreq; i++) {
@@ -236,6 +285,7 @@ struct MPI_ParIO
 				k++;
 			} 
 		}
+		free(all_numbers_unordered);
 
 		if (new_rank == 0) {	// master: perform parallel io
 			MPI_Status status;
@@ -258,9 +308,11 @@ struct MPI_ParIO
 	{
 		async_counter++;
 
+/*
 		if (lastcall) {
 			printf("chunked_async: lastcall = %d\n", lastcall); fflush(0);
 		}
+*/
 
 		int step = (gstep - reportfreq)/reportfreq;	// normalized step
 		
@@ -271,8 +323,9 @@ struct MPI_ParIO
 
 		numid = 0;	// reset the vector ;-)
 		
-		float all_numbers_unordered[groupsize*reportfreq];	// explicit allocation / vector?
-		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers_unordered, reportfreq, MPI_FLOAT, 0, new_comm);	// 0: master of the group (new_rank == 0)
+//		float all_numbers_unordered[groupsize*reportfreq];	// explicit allocation / vector?
+		float *all_numbers_unordered = (float *)malloc(groupsize*reportfreq*sizeof(float));
+		MPI_Gather(&numbers[0], reportfreq, MPI_FLOAT, all_numbers_unordered, reportfreq, MPI_FLOAT, 0, group->new_comm);	// 0: master of the group (new_rank == 0)
 
 		int k = 0;
 		for (int i = 0; i < reportfreq; i++) {
@@ -281,6 +334,7 @@ struct MPI_ParIO
 				k++;
 			} 
 		}
+		free(all_numbers_unordered);
 
 		if (new_rank == 0) {	// master: perform parallel io
 			MPI_Status status;
@@ -313,13 +367,13 @@ struct MPI_ParIO
 		}
 		else if (layout == 1) {
 			_consolidate_ordered(gstep);
-		}/*
+		}
 		else if (layout == 2) {
-			_consolidate_chunked_async(gstep);
+			_consolidate_chunked(gstep);
 		}
 		else if (layout == 3) {
 			_consolidate_ordered_async(gstep);
-		}*/
+		}
 	}
 
 	void Finalize()
@@ -335,6 +389,7 @@ struct MPI_ParIO
 		}
 
 		free(all_numbers);
+		free(numbers);
 	}
 
 };
@@ -342,42 +397,53 @@ struct MPI_ParIO
 
 #if 0
 #include <stdio.h>
-#include "ParIO.h"
 
 using namespace std;
 
+#include "ParIO.h" 
+
 int main(int argc, char *argv[])
 {
-	int rank, size;             
+	int rank, size;
 
-	MPI_Init(&argc,&argv);     
+	MPI_Init(&argc,&argv); 
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_size(MPI_COMM_WORLD, &size); 
+
+	/* Extract the original group handle */ 
+	/* Divide tasks into two distinct groups based upon rank */ 
 
 	int groupsize = 8;
 	int reportfreq = 5;
-	int layout = 3;
+	int layout = 0;
 
-	MPI_ParIO pio;
+	MPI_ParIO_Group pio_group;
+	MPI_ParIO hist_rank, hist_step;
 
-	pio.Init((char *)"output.bin", groupsize, reportfreq, layout);  // 4, 2, 0
+	pio_group.Init(groupsize, reportfreq, layout);
+	hist_rank.Init((char *)"hist_rank.bin", &pio_group);
+	hist_step.Init((char *)"hist_step.bin", &pio_group);
 
 	int step;
-
+	
 	for (step = 0; step < 15; step++) {
 		if (step% 5 == 0 && step > 0) {
-			pio.Consolidate(step);
+			hist_rank.Consolidate(step);
+			hist_step.Consolidate(step);
 		}
 
-		//float number = rank*10.0 + rand()%10  + step*100;
-		//float number = rank;
-		float number = step;
-		pio.Notify(number);
+//		float number = rank*10.0 + rand()%10  + step*100;
+//		float number = rank;
+//		float number = step;
+		hist_rank.Notify((float)rank);
+		hist_step.Notify((float)step);
 	}
-	
-	pio.Finalize();
+
+	hist_rank.Finalize();
+	hist_step.Finalize();
+
 	MPI_Finalize();
 	
 	return 0;
-}
+} 
 #endif
