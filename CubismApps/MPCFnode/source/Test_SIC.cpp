@@ -19,17 +19,11 @@
 #include "Test_SIC.h"
 #include "Tests.h"
 
-static Real heaviside_smooth_local(const Real phi, const Real eps)
-{
-    const Real alpha = M_PI*min(1., max(0., (phi+0.5*eps)/eps));
-    return 0.5+0.5*cos(alpha);
-}
-
 void Test_SIC::_ic(FluidGrid& grid)
 {
-	if (VERBOSITY > 0)
+	if (VERBOSITY > 0) 
 		cout << "SIC Initial condition..." ;
-    
+		
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
     
     const double G1 = Simulation_Environment::GAMMA1-1;
@@ -40,14 +34,14 @@ void Test_SIC::_ic(FluidGrid& grid)
     const double h = vInfo.front().h_gridpoint;
     
 #pragma omp parallel
-	{
+	{	
 #ifdef _USE_NUMA_
 		const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
 		const int mynode = omp_get_thread_num() / cores_per_node;
 		numa_run_on_node(mynode);
 #endif
-        
-#pragma omp for
+
+#pragma omp for		
 		for(int i=0; i<(int)vInfo.size(); i++)
 		{
             BlockInfo info = vInfo[i];
@@ -57,44 +51,46 @@ void Test_SIC::_ic(FluidGrid& grid)
                 for(int iy=0; iy<FluidBlock::sizeY; iy++)
                     for(int ix=0; ix<FluidBlock::sizeX; ix++)
                     {
+                        
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
+
+                        const double r = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2));//+pow(p[2]-bubble_pos[2],2));
                         
-                        const double r1 = sqrt(pow(p[0]-bubble_pos[0],2)+pow(p[1]-bubble_pos[1],2)+pow(p[2]-bubble_pos[2],2));
-                        const double r2 = sqrt(pow(p[0]-bubble_pos[0]-0.05,2)+pow(p[1]-bubble_pos[1]-0.35,2)+pow(p[2]-bubble_pos[2],2));
+                        const double bubble = Simulation_Environment::heaviside_smooth(r-radius);
                         
-                        const double bubble = Simulation_Environment::heaviside_smooth(min(HUGE_VAL+r1-radius, r2-0.7*radius));
+                        const double shock_pressure = 3530;
                         
-                        const double bubble_p = Simulation_Environment::heaviside_smooth(r2-0.7*radius-4*Simulation_Environment::EPSILON);//Simulation_Environment::heaviside_smooth(r-radius);//Simulation_Environment::heaviside_smooth(r-radius);
+                        const Real pre_shock[3] = {10,0,10};
+
+                        Simulation_Environment::getPostShockRatio(pre_shock, shock_pressure, post_shock);
                         
-                        //const double shock_pressure = 3530;
-                        
-                        const Real pre_shock[3] = {1000,0,100};
-                        
-                        b(ix, iy, iz).rho      = 1.0*bubble+pre_shock[0]*(1-bubble);
-                        b(ix, iy, iz).u        = 0;
+                        const double shock = Simulation_Environment::heaviside_smooth(p[0]-Simulation_Environment::shock_pos);           
+                                                
+                        b(ix, iy, iz).rho      = shock*post_shock[0] + (1-shock)*(0.01*bubble+pre_shock[0]*(1-bubble));
+                        b(ix, iy, iz).u        = post_shock[0]*post_shock[1]*shock;
                         b(ix, iy, iz).v        = 0;
                         b(ix, iy, iz).w        = 0;
                         
-                        const double pressure  = 0.0234*bubble+pre_shock[2]*(1-bubble);
-                        
+                        const double pressure  = post_shock[2]*shock + pre_shock[2]*(1-shock);
+
                         SETUP_MARKERS_IC
                         
                         //**************************
                         //Let's do 1D in Colonius
                         //**************************
-                         /*Real p[3];
+                        /*Real p[3];
                          info.pos(p, ix, iy, iz);
                          
                          //test 5.3 equation 32
                          //const Real pre_shock[3] = {10,0,10};
                          //const Real post_shock[3] = {0.125,0,0.1};
-                         //const double bubble = Simulation_Environment::heaviside(0.5-p[0]);
+                         //const double bubble = Simulation_Environment::heaviside(0.5-p[0]);     
                          
                          //test 5.3 equation 31
                          const Real pre_shock[3] = {1.241,0,2.753};
-                         const Real post_shock[3] = {0.991,0,3.059e-4};
-                         const double bubble = Simulation_Environment::heaviside(0.5-p[0]);
+                         const Real post_shock[3] = {0.991,0,3.059e-4};                       
+                         const double bubble = Simulation_Environment::heaviside(0.5-p[0]);                                                                        
                          
                          const double shock = 1-bubble;
                          b(ix, iy, iz).rho      =  shock*pre_shock[0] + (1-shock)*post_shock[0];
@@ -106,8 +102,8 @@ void Test_SIC::_ic(FluidGrid& grid)
                          
                          SETUP_MARKERS_IC*/
                     }
-        }
-	}
+        }		
+	}	
 	
 	if (VERBOSITY > 0)
 		cout << "done." << endl;
