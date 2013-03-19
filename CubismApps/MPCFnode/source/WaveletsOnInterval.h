@@ -103,25 +103,25 @@ namespace WaveletsOnInterval
 		void sweep2D(Real data[BS][BS])
 		{
 //			auto sweep1D = [&] {
-#define sweep1D()	do {	\
+#define sweep1D() {	\
 				for(int iy=0; iy<BS; iy++) \
 				{ \
 					vector<Real> temp = forward_sweep(&data[iy][0], BS); \
 					copy(temp.begin(), temp.end(), &data[iy][0]);  \
 				} \
-			} while(0)
+			}
 			
 //			auto sweep1D_inv = [&] {
-#define sweep1D_inv()	do { \
+#define sweep1D_inv()	 { \
 				for(int iy=0; iy<BS; iy++) \
 				{ \
 					vector<Real> temp = inverse_sweep(&data[iy][0], BS); \
 					copy(temp.begin(), temp.end(), &data[iy][0]); \
 				} \
-			} while(0)
+			}
 			
 //			auto transpose = [&] {
-#define transpose()	do { \
+#define transpose() { \
 				for(int iy=0; iy<BS; iy++) \
 					for(int ix=iy+1; ix<BS; ix++) \
 					{ \
@@ -129,16 +129,16 @@ namespace WaveletsOnInterval
 						data[iy][ix] = data[ix][iy]; \
 						data[ix][iy] = temp; \
 					} \
-			} while(0)
+			}
 			
 //			auto sweep = [&] {
-#define	sweep()		do { \ 
-				if (bForward) \
-					sweep1D(); \
-				else \
-					sweep1D_inv(); \
-			} while(0)
-			
+#define	sweep()	{ \
+				if (bForward){ \
+					sweep1D();} \
+				else {\
+					sweep1D_inv();} \
+			}
+				
 			sweep();
 			transpose();
 			sweep();
@@ -148,7 +148,7 @@ namespace WaveletsOnInterval
 		void sweep3D(Real data[BS][BS][BS])
 		{			
 //			auto xz_transpose = [&] {
-#define xz_transpose()	do { \
+#define xz_transpose() { \
 				for(int iy=0; iy<BS; iy++)	 \
 					for(int iz=0; iz<BS; iz++) \
 						for(int ix=iz+1; ix<BS; ix++) \
@@ -157,7 +157,7 @@ namespace WaveletsOnInterval
 							data[iz][iy][ix] = data[ix][iy][iz]; \
 							data[ix][iy][iz] = temp; \
 						} \
-			} while(0)
+			}
 			
 			if(bForward)
 			{

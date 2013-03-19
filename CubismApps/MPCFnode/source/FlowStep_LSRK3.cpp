@@ -46,6 +46,9 @@
 #include <mpi.h>
 extern "C" void HPM_Start(char *);
 extern "C" void HPM_Stop(char *);
+#else
+#define HPM_Start(x)
+#define HPM_Stop(x)
 #endif
 
 using namespace std;
