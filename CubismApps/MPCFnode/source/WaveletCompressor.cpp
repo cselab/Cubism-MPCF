@@ -177,12 +177,13 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 	
 	WaveletsOnInterval::FullTransform<_BLOCKSIZE_, lifting_scheme> full;
 	full.load(datastream, mask);
-	full.inverse();
+	full.iwt();
 
 	Real * const dst = &data[0][0][0];
 	const WaveletsOnInterval::FwtAp * const src = &full.data[0][0][0];
 	for(int i = 0; i < BS3; ++i)
-	{ dst[i] = src[i];
-	assert(!std::isnan(dst[i]));
-}
+	{ 
+		dst[i] = src[i];
+		assert(!std::isnan(dst[i]));
+	}
 }
