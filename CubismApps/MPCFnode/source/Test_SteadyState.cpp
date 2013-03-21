@@ -146,79 +146,21 @@ void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
     if (bVP)
     {
 		static const bool quantization = false;
-		static const bool normalize = false;
 		static const int NC = StreamerGridPoint::channels;
 		static Real gmin[NC], gmax[NC];
 		static bool reduced = false;
 				
-		if (normalize /* && !reduced */)
-		{			
-			printf("SWEEP now\n");
-
-			vector<BlockInfo> vInfo = grid.getBlocksInfo();
-			const int NBLOCKS = vInfo.size();
-	
-			bool ginitialized = false;
-			
-#pragma omp parallel
-			{
-				bool linitialized = false;
-				Real lmin[NC], lmax[NC];
-				
-#pragma omp for	
-				for(int i=0; i<NBLOCKS; i++)
-				{				
-					FluidBlock& b = *(FluidBlock*)vInfo[i].ptrBlock;
-					
-					Real bmin[NC], bmax[NC];
-					b.minmax(bmin, bmax, StreamerGridPoint());
-					
-					for(int i = 0; i<NC; ++i)
-					{
-						lmin[i] = linitialized ? std::min(bmin[i], lmin[i]) : bmin[i];
-						lmax[i] = linitialized ? std::max(bmax[i], lmax[i]) : bmax[i];
-					}
-					
-					linitialized = true;
-				}
-				
-#pragma omp critical
-				{
-					for(int i = 0; i<NC; ++i)
-					{
-						gmin[i] = ginitialized ? std::min(lmin[i], gmin[i]) : lmin[i];
-						gmax[i] = ginitialized ? std::max(lmax[i], gmax[i]) : lmax[i];
-					}
-					
-					ginitialized = true;
-				}
-			}
-			
-			/*
-			 reduced = true;
-			
-			for(int i = 0; i<NC; ++i)
-				if (fabs(gmin[i] - gmax[i]) <= numeric_limits<Real>::epsilon())
-				{
-					reduced = false; //gmin and gmax are too close to each other, we need to redoit the next time
-					break;
-				}
-			 */
-		}
-		
 		SerializerIO_WaveletCompression<FluidGrid, StreamerGridPoint> wavelet_serializer;
 		
 		wavelet_serializer.set_threshold(1e-4);
+		
 		if (quantization)
 			wavelet_serializer.float16();
-		
-		if (normalize)
-			wavelet_serializer.normalize(gmin, gmax);
 		
 		wavelet_serializer.Write(grid, filename);
 		
 		//for consistency checking, uncomment the following line
-		//wavelet_serializer.Read(grid, bufname);
+		wavelet_serializer.Read(grid, filename);
     }
 }
 

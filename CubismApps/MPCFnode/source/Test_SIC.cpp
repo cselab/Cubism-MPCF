@@ -75,6 +75,13 @@ void Test_SIC::_ic(FluidGrid& grid)
                         const double pressure  = post_shock[2]*shock + pre_shock[2]*(1-shock);
 
                         SETUP_MARKERS_IC
+						
+						assert(!isnan(b(ix, iy, iz).P));
+						assert(!isinf(b(ix, iy, iz).P));
+						assert(b(ix, iy, iz).P >= 1);
+						
+						//b(ix, iy, iz).P = max(b(ix, iy, iz).P, numeric_limits<Real>::epsilon());
+ 						assert(isnormal(b(ix, iy, iz).P));
                         
                         //**************************
                         //Let's do 1D in Colonius
