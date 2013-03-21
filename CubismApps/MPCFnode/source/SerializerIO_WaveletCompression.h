@@ -95,11 +95,15 @@ public:
 	{
 		size_t written_bytes = 0;
 		
+		const int MYNTHREADS = omp_get_max_threads( );
+		//const int NTHREADS = omp_get_max_threads();
+		float t[MYNTHREADS];
+		
 #pragma omp parallel 
 		{
 			enum 
 			{ 
-				DESIREDMEM = 2 << 20, //3 megs is also cool?
+				DESIREDMEM = 4 << 20, //3 megs is also cool?
 				ENTRYSIZE = NCHANNELS * sizeof(WaveletCompressor) + sizeof(int) * 5,
 				ENTRIES_CANDIDATE = DESIREDMEM / ENTRYSIZE,
 				ENTRIES = ENTRIES_CANDIDATE ? ENTRIES_CANDIDATE : 1,
@@ -109,6 +113,9 @@ public:
 										
 			size_t mybytes = 0;
 			char buffer[BUFFERSIZE];
+
+			Timer timer;
+			timer.start();
 
 #pragma omp for
 			for(int i = 0; i < NBLOCKS; i++)
@@ -162,7 +169,12 @@ public:
 				written_bytes += mybytes;
 				mybytes = 0;
 			} 
+			
+			t[omp_get_thread_num()] = timer.stop();
 		}
+
+		for(int i=0; i<MYNTHREADS; ++i)
+		printf("t[%d] = %.2e s\n", i, t[i]);
 
 		return written_bytes;
 	}

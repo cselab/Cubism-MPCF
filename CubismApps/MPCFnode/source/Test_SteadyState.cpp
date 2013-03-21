@@ -156,7 +156,8 @@ void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
 		
 		if (quantization)
 			wavelet_serializer.float16();
-		
+		//wavelet_serializer.singlethreaded();
+		//wavelet_serializer.nozlib();
 		wavelet_serializer.Write(grid, filename);
 		
 		//for consistency checking, uncomment the following line

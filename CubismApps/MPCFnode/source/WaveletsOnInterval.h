@@ -7,7 +7,7 @@ using namespace std;
 
 namespace WaveletsOnInterval 
 {
-	typedef double FwtAp;
+	typedef float FwtAp;
 	
 	template<bool lifting>
 	struct WI4
@@ -33,7 +33,7 @@ namespace WaveletsOnInterval
 		};
 		
 		template<const int N, bool forward>
-		static void transform(FwtAp data[N])
+		static inline void transform(FwtAp data[N])
 		{			
 			assert(N >= 8);
 			assert(N%2==0);
@@ -101,14 +101,14 @@ namespace WaveletsOnInterval
 	struct WaveletSweep
 	{
 		template<int BS, bool forward>
-		void sweep1D(FwtAp data[BS][BS])
+		inline void sweep1D(FwtAp data[BS][BS])
 		{
 			for(int iy=0; iy<BS; iy++)
 				WaveletType::template transform<BS, forward>(&data[iy][0]);
 		}
 		
 		template<int BS>
-		void xy_transpose(FwtAp data[BS][BS])
+		inline void xy_transpose(FwtAp data[BS][BS])
 		{
 			for(int iy=0; iy<BS; iy++)
 					for(int ix=iy+1; ix<BS; ix++)
@@ -120,7 +120,7 @@ namespace WaveletsOnInterval
 		}
 		
 		template<int BS>
-		void xz_transpose(FwtAp data[BS][BS][BS])
+		inline void xz_transpose(FwtAp data[BS][BS][BS])
 		{
 			for(int iy=0; iy<BS; iy++)	
 				for(int iz=0; iz<BS; iz++)
@@ -133,7 +133,7 @@ namespace WaveletsOnInterval
 		}
 		
 		template<int BS, bool forward>
-		void sweep2D(FwtAp data[BS][BS])
+		inline void sweep2D(FwtAp data[BS][BS])
 		{			
 			sweep1D<BS, forward>(data);
 			xy_transpose<BS>(data);
@@ -142,7 +142,7 @@ namespace WaveletsOnInterval
 		}
 		
 		template<int BS, bool bForward>
-		void sweep3D(FwtAp data[BS][BS][BS])
+		inline void sweep3D(FwtAp data[BS][BS][BS])
 		{			
 			if(bForward)
 			{
@@ -180,7 +180,7 @@ namespace WaveletsOnInterval
 		
 		FullTransform<BS/2, lifting> child;
 		
-		void fwt()
+		inline void fwt()
 		{
 			this->template sweep3D<BS, true>(data);
 			
@@ -193,7 +193,7 @@ namespace WaveletsOnInterval
 			child.fwt();
 		}
 		
-		void iwt()
+		inline void iwt()
 		{
 			child.iwt();
 			
