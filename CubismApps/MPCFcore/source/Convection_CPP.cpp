@@ -32,25 +32,21 @@ void Convection_CPP::compute(const Real * const srcfirst, const int srcfloats, c
 	
 	_convert(srcfirst + 5*srcfloats*slicesrcs, srcfloats, rowsrcs);
 
-   	_zflux(-2, true);
-	//_zflux_hllc(-2, true);//printf("z done slice %d\n", 0);
+   	_zflux(-2);
 	_flux_next();
 
 	for(int islice=0; islice<_BLOCKSIZE_; islice++)
 	{
 	_xflux(-2);
-	  //_xflux_hllc(-2);//printf("x done slice %d\n", islice);
-	  _xrhs();
+  _xrhs();
         
 	_yflux(-2);
-	//  _yflux_hllc(-2);//printf("y done slice %d\n", islice);
 	  _yrhs();
 
 	  _next();
 	  _convert(srcfirst + (islice+6)*srcfloats*slicesrcs, srcfloats, rowsrcs);
 		
-	_zflux(-2, false);
-	//  _zflux_hllc(-2, false);//printf("z done slice %d\n", islice);
+	_zflux(-2);
 	  _zrhs();
         
 	  _copyback(dstfirst + islice*dstfloats*slicedsts, dstfloats, rowdsts);
@@ -194,7 +190,7 @@ void Convection_CPP::_convert(const Real * const gptfirst, const int gptfloats, 
 			u.ref(dx, dy) = pt.u/pt.r;
 			v.ref(dx, dy) = pt.v/pt.r;
 			w.ref(dx, dy) = pt.w/pt.r;
-			p.ref(dx, dy) = (pt.s - (pt.u*pt.u + pt.v*pt.v + pt.w*pt.w)*(((Real)0.5)/pt.r)-pt.P)/pt.G;
+			p.ref(dx, dy) = (pt.s - ( (pt.u*pt.u + pt.v*pt.v + pt.w*pt.w)*(((Real)0.5)/pt.r)+pt.P ))/pt.G;
 			G.ref(dx, dy) = pt.G;
 			P.ref(dx, dy) = pt.P;
 		}
@@ -206,7 +202,7 @@ inline Real mysafediv(const Real a)
 }
 
 inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, const Real e) //82 FLOP
-{/*
+{
   	const Real is0 = a*(a*(Real)(4./3.)  - b*(Real)(19./3.)  + c*(Real)(11./3.)) + b*(b*(Real)(25./3.)  - c*(Real)(31./3.)) + c*c*(Real)(10./3.);
 	const Real is1 = b*(b*(Real)(4./3.)  - c*(Real)(13./3.)  + d*(Real)(5./3.))  + c*(c*(Real)(13./3.)  - d*(Real)(13./3.)) + d*d*(Real)(4./3.);
 	const Real is2 = c*(c*(Real)(10./3.) - d*(Real)(31./3.)  + e*(Real)(11./3.)) + d*(d*(Real)(25./3.)  - e*(Real)(19./3.)) + e*e*(Real)(4./3.);
@@ -215,9 +211,9 @@ inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, c
     const Real is1plus = is1 + (Real)WENOEPS;
     const Real is2plus = is2 + (Real)WENOEPS;
     
-    const Real alpha0 = (Real)(0.1)*(((Real)1)/(is0plus*is0plus));
-    const Real alpha1 = (Real)(0.6)*(((Real)1)/(is1plus*is1plus));
-    const Real alpha2 = (Real)(0.3)*(((Real)1)/(is2plus*is2plus));
+    const Real alpha0 = (Real)(1)*(((Real)1)/(10.0*is0plus*is0plus));
+    const Real alpha1 = (Real)(6)*(((Real)1)/(10.0*is1plus*is1plus));
+    const Real alpha2 = (Real)(3)*(((Real)1)/(10.0*is2plus*is2plus));
     const Real alphasum = alpha0+alpha1+alpha2;
     
     const Real omega0=alpha0 * (((Real)1)/alphasum);
@@ -225,7 +221,7 @@ inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, c
     const Real omega2= 1-omega0-omega1;
 	
 	return omega0*((Real)(1.0/3.)*a-(Real)(7./6.)*b+(Real)(11./6.)*c) + omega1*(-(Real)(1./6.)*b+(Real)(5./6.)*c+(Real)(1./3.)*d) + omega2*((Real)(1./3.)*c+(Real)(5./6.)*d-(Real)(1./6.)*e);
-	*/
+/*
     const Real is0 = (c-b)*(c-b);
     const Real is1 = (d-c)*(d-c);
     
@@ -235,12 +231,12 @@ inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, c
     const Real omega0=alpha0/(alpha0+alpha1);
     const Real omega1=1.-omega0;
     
-     return omega0*(1.5*c-.5*b) + omega1*(.5*c+.5*d);
+    return omega0*(1.5*c-.5*b) + omega1*(.5*c+.5*d);*/
 }
 
 inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, const Real f) //82 FLOP
 {
-/*	const Real is0 = d*(d*(Real)(10./3.)- e*(Real)(31./3.) + f*(Real)(11./3.)) + e*(e*(Real)(25./3.) - f*(Real)(19./3.)) +	f*f*(Real)(4./3.);
+	const Real is0 = d*(d*(Real)(10./3.)- e*(Real)(31./3.) + f*(Real)(11./3.)) + e*(e*(Real)(25./3.) - f*(Real)(19./3.)) +	f*f*(Real)(4./3.);
 	const Real is1 = c*(c*(Real)(4./3.) - d*(Real)(13./3.) + e*(Real)(5./3.)) + d*(d*(Real)(13./3.)  - e*(Real)(13./3.)) +	e*e*(Real)(4./3.);
 	const Real is2 = b*(b*(Real)(4./3.) - c*(Real)(19./3.) + d*(Real)(11./3.)) + c*(c*(Real)(25./3.) - d*(Real)(31./3.)) +	d*d*(Real)(10./3.);
 	
@@ -248,9 +244,9 @@ inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, co
     const Real is1plus = is1 + (Real)WENOEPS;
     const Real is2plus = is2 + (Real)WENOEPS;
     
-    const Real alpha0 = (Real)(0.1)*(((Real)1)/(is0plus*is0plus));
-    const Real alpha1 = (Real)(0.6)*(((Real)1)/(is1plus*is1plus));
-    const Real alpha2 = (Real)(0.3)*(((Real)1)/(is2plus*is2plus));
+    const Real alpha0 = (Real)(1)*(((Real)1)/(10.0*is0plus*is0plus));
+    const Real alpha1 = (Real)(6)*(((Real)1)/(10.0*is1plus*is1plus));
+    const Real alpha2 = (Real)(3)*(((Real)1)/(10.0*is2plus*is2plus));
     const Real alphasum = alpha0+alpha1+alpha2;
     
     const Real omega0=alpha0 * (((Real)1)/alphasum);
@@ -258,7 +254,7 @@ inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, co
     const Real omega2= 1-omega0-omega1;
 	
 	return omega0*((Real)(1./3.)*f-(Real)(7./6.)*e+(Real)(11./6.)*d) + omega1*(-(Real)(1./6.)*e+(Real)(5./6.)*d+(Real)(1./3.)*c) + omega2*((Real)(1./3.)*d+(Real)(5./6.)*c-(Real)(1./6.)*b);
-*/
+/*
     const Real is0 = (d-e)*(d-e);
     const Real is1 = (d-c)*(d-c);
     
@@ -268,9 +264,8 @@ inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, co
     const Real omega0 = alpha0/(alpha0+alpha1);
     const Real omega1 = 1.-omega0;
 
-    return omega0*(1.5*d-.5*e) + omega1*(.5*d+.5*c);
+    return omega0*(1.5*d-.5*e) + omega1*(.5*d+.5*c);*/
 }
-
 /*
 inline Real weno_minus(const Real a, const Real b, const Real c, const Real d, const Real e) //82 FLOP
 {
@@ -316,7 +311,6 @@ inline Real weno_plus(const Real b, const Real c, const Real d, const Real e, co
 	return omega0*((double)(1./3.)*f-(double)(7./6.)*e+(double)(11./6.)*d) + omega1*(-(double)(1./6.)*e+(double)(5./6.)*d+(double)(1./3.)*c) + omega2*((double)(1./3.)*d+(double)(5./6.)*c-(double)(1./6.)*b);
 }
 */
-
 void Convection_CPP::_xweno_minus(const InputSOA& _in, TempSOA& _out)
 {
 	for(int iy=0; iy<TempSOA::NY; iy++)
@@ -1410,7 +1404,6 @@ void Convection_CPP::_xflux(const int relid)
     _char_vel<TempSOA::NX>(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
  
     _xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
-    //_xextraterm_v2(u.weno(0), u.weno(1), G.ring(relid), P.ring(relid), charvel(0), charvel(1));
 
     _hlle_rho<TempSOA::NX>(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), rho.flux.ref());
     _hlle_pvel<TempSOA::NX>(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), u.flux.ref());
@@ -1473,7 +1466,6 @@ void Convection_CPP::_yflux(const int relid)
     
     _char_vel<TempSOA::NX>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
     _yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
-    //_yextraterm_v2(v.weno(0), v.weno(1), G.ring(relid), P.ring(relid), charvel(0), charvel(1));
 
     _hlle_rho<TempSOA::NX>(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), rho.flux.ref());
     _hlle_vel<TempSOA::NX>(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), u.flux.ref());
@@ -1517,7 +1509,7 @@ void Convection_CPP::_yflux_hllc(const int relid)
     _hllc_phi<TempSOA::NX>(P.weno(0), P.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), star(0), P.flux.ref());
 }
 
-void Convection_CPP::_zflux(const int relid, const bool bFirst)
+void Convection_CPP::_zflux(const int relid)
 {
     _zweno_minus(relid, rho.ring, rho.weno.ref(0));
     _zweno_pluss(relid, rho.ring, rho.weno.ref(1));
@@ -1534,12 +1526,8 @@ void Convection_CPP::_zflux(const int relid, const bool bFirst)
     _zweno_minus(relid, P.ring, P.weno.ref(0));
     _zweno_pluss(relid, P.ring, P.weno.ref(1));
    
-    _char_vel<_BLOCKSIZE_>(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
-    
+    _char_vel<_BLOCKSIZE_>(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));   
     _zextraterm(w.weno(-2), w.weno(-1), w.weno(0), w.weno(1), G.weno(-1), G.weno(0), P.weno(-1), P.weno(0), charvel(-2), charvel(-1), charvel(0), charvel(1));
-    
-    //if (!bFirst)
-    //  _zextraterm_v2(w.weno(-2), w.weno(-1), w.weno(0), w.weno(1), G.ring(relid-1), P.ring(relid-1), charvel(-2), charvel(-1), charvel(0), charvel(1));
    
     _hlle_rho<_BLOCKSIZE_>(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), rho.flux.ref());
     _hlle_vel<_BLOCKSIZE_>(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), u.flux.ref());

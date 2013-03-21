@@ -140,7 +140,7 @@ private:
     FluidGrid& grid; 
     
 protected:
-    const Real CFL, gamma1, gamma2;
+    const Real gamma1, gamma2;
     Real smoothlength, h;
     Real current_time;
     Real PEAKPERF_CORE, PEAKBAND;
@@ -158,6 +158,8 @@ protected:
     Profiler * profiler;
     
 public:
+    Real CFL;
+    
     FlowStep_LSRK3(FluidGrid& grid, const Real CFL, const Real gamma1, const Real gamma2, ArgumentParser& parser, const int verbosity=1, Profiler* profiler=NULL, const Real pc1=0, const Real pc2=0, const bool bAwk=false):
     grid(grid), CFL(CFL), gamma1(gamma1), gamma2(gamma2), parser(parser), verbosity(verbosity), profiler(profiler), pc1(pc1), pc2(pc2), bAwk(bAwk) 
     {
@@ -178,4 +180,6 @@ public:
     void set_current_time(const Real _current_time) {current_time=_current_time;}
     
     void set_constants();
+    
+    void set_CFL(const Real _CFL) {CFL = _CFL;}
 };

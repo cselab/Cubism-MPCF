@@ -44,8 +44,7 @@ int main (int argc, const char ** argv)
 #pragma omp parallel
 	{
 		_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-	}
-	
+	}	
 #endif
 
 	parser.set_strict_mode();

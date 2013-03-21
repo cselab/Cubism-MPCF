@@ -56,6 +56,9 @@ FluidElement operator + (FluidElement gpa, FluidElement gpb)
     return out;
 }
 
+//ALERT: this method puts pressure into energy since we
+//will solve a laplace p = 0 without going back and forth
+//between energy and pressure
 template<typename T>
 T get_ic(const Real p[3], const vector< shape * > v_shapes)
 {
@@ -81,7 +84,7 @@ T get_ic(const Real p[3], const vector< shape * > v_shapes)
     const double mix_pinf  = (mix_gamma-1)/mix_gamma * (F1/G1*(1-bubble) + F2/G2*bubble);
     out.G  = 1./(mix_gamma-1);
     out.P = mix_gamma*mix_pinf/(mix_gamma-1);
-    out.energy   = pressure*out.G + out.P;
+    out.energy   = pressure;
     
     return out;    
 }
@@ -111,6 +114,39 @@ T integral(const Real p[3], float h, const vector< shape * > v_shapes) // h shou
 		yzintegrals[ix] = (1./6)*zintegrals[0][ix] + (2./3)*zintegrals[1][ix]+(1./6)*zintegrals[2][ix];
 	
 	return (1./6) * yzintegrals[0]+(2./3) * yzintegrals[1]+(1./6)* yzintegrals[2];
+}
+
+void Test_Cloud::_set_energy(FluidGrid& grid)
+{    
+	vector<BlockInfo> vInfo = grid.getBlocksInfo();
+    
+    const double h = vInfo.front().h_gridpoint;
+    
+#pragma omp parallel
+	{
+#ifdef _USE_NUMA_
+		const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
+		const int mynode = omp_get_thread_num() / cores_per_node;
+		numa_run_on_node(mynode);
+#endif
+        
+#pragma omp for
+		for(int i=0; i<(int)vInfo.size(); i++)
+		{
+            BlockInfo info = vInfo[i];
+            FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+            
+            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+                for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                    for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                    {
+                        Real p[3], post_shock[3];
+                        info.pos(p, ix, iy, iz);
+                        
+                        b(ix,iy,iz).energy = b(ix,iy,iz).energy*b(ix,iy,iz).G+b(ix,iy,iz).P;
+                    }
+        }
+	}
 }
 
 void Test_Cloud::_my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes)

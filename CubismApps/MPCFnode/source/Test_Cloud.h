@@ -14,9 +14,11 @@
 
 namespace CloudData
 {
-    const Real seed_s[3] = {0.10, 0.10, 0.10};
-    const Real seed_e[3] = {0.90, 0.90, 0.50};
-    const int n_shapes = 40;
+    const Real seed_s[3] = {0.1, 0.1, 0.05};
+    const Real seed_e[3] = {0.9, 0.9, 0.60};
+    const int n_shapes = 60;
+    const Real min_rad = 0.05;
+    const Real max_rad = 0.2;
 };
 
 //base class is a sphere
@@ -27,8 +29,20 @@ class shape
     Real min_rad, max_rad;
     
 public:
-    shape(const Real _center[3], const Real _radius): radius(_radius)
+    shape()
     {
+        const Real x_c = (Real)drand48();
+        const Real y_c = (Real)drand48();
+        const Real z_c = (Real)drand48();
+        const Real _center[3] = {x_c, y_c, z_c};
+        
+        
+        //adjust the radii so that the fat go inside
+       // const Real c_cloud[3] = {bbox_e[0]+bbox_s[0], bbox_e[1]+bbox_s[1], bbox_e[2]+bbox_s[2]};
+        //const Real size_cloud = max(max(bbox_e[0]-bbox_s[0],bbox_e[1]-bbox_s[1]), bbox_e[2]-bbox_s[2]);
+       // const Real distance  = sqrt( pow(x_c - c_cloud[0]*0.5,2)+pow(y_c - c_cloud[1]*0.5,2)+pow(z_c - c_cloud[2]*0.5,2) );
+        const Real _radius = (Real)drand48();
+        
         for(int i=0; i<3; ++i)
         {
             center[i] = _center[i];
@@ -36,8 +50,21 @@ public:
             bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
         }
         
-        min_rad = 0.025;
-        max_rad = 0.15;
+        min_rad = CloudData::min_rad;
+        max_rad = CloudData::max_rad;
+    }
+    
+    shape(const Real _center[3], const Real _radius): radius(radius)
+    {        
+        for(int i=0; i<3; ++i)
+        {
+            center[i] = _center[i];
+            bbox_s[i] = _center[i]-_radius-2.0*Simulation_Environment::EPSILON;
+            bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
+        }
+        
+        min_rad = CloudData::min_rad;
+        max_rad = CloudData::max_rad;
     }
     
     void get_bbox(Real s[3], Real e[3]) const
@@ -182,13 +209,7 @@ public:
         
         while(!bFull)
         {
-            const Real x_c = (Real)drand48();
-            const Real y_c = (Real)drand48();
-            const Real z_c = (Real)drand48();
-            const Real cur_cen[3] = {x_c, y_c, z_c};
-            const Real cur_rad = (Real)drand48();
-            
-            shape * cur_shape = new shape(cur_cen, cur_rad);
+            shape * cur_shape = new shape();
             
             if (reject_check(cur_shape))
             {
@@ -265,9 +286,46 @@ class Test_Cloud: public Test_SIC
     
     void _my_ic(FluidGrid& grid, const vector< shape * > v_shapes);
     void _my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes);
+    void _set_energy(FluidGrid& grid);
     
 public:
 	Test_Cloud(const int argc, const char ** argv): Test_SIC(argc, argv) { }
     
     void setup();
+};
+
+//ALERT: Energy channel forces pressure for solving
+//the Laplace p = 0 at initial condition
+template<typename BlockType, template<typename X> class allocator=std::allocator>
+class BlockLabCloudLaplace: public BlockLab<BlockType,allocator>
+{
+	typedef typename BlockType::ElementType ElementTypeBlock;
+    
+protected:
+	bool is_xperiodic() {return false;}
+	bool is_yperiodic() {return false;}
+	bool is_zperiodic() {return false;}
+    
+public:
+	BlockLabCloudLaplace(): BlockLab<BlockType,allocator>(){}
+	
+	void _apply_bc(const BlockInfo& info, const Real t=0)
+	{
+        BoundaryCondition<BlockType,ElementTypeBlock,allocator> bc(this->m_stencilStart, this->m_stencilEnd, this->m_cacheBlock);
+        
+        ElementTypeBlock b;
+        b.clear();
+        b.rho = 1000;
+        b.u = b.v = b.w = 0;
+        b.G = 1./(6.59-1);
+        b.P = 4.049e3*b.G*6.59;
+        b.energy = 100.0;
+                
+        if (info.index[0]==0)           bc.template applyBC_dirichlet<0,0>(b);
+        if (info.index[0]==this->NX-1)  bc.template applyBC_dirichlet<0,1>(b);
+        if (info.index[1]==0)			bc.template applyBC_dirichlet<1,0>(b);
+        if (info.index[1]==this->NY-1)	bc.template applyBC_dirichlet<1,1>(b);
+        if (info.index[2]==0)			bc.template applyBC_dirichlet<2,0>(b);
+        if (info.index[2]==this->NZ-1)	bc.template applyBC_dirichlet<2,1>(b);
+    }
 };

@@ -113,7 +113,7 @@ struct FluidElement
 {
   Real rho, u, v, w, energy, G, P, dummy;
 
-    void clear() { rho = u = v = w = energy = G = P = 0; }
+    void clear() { rho = u = v = w = energy = G = P = dummy = 0; }
     
     FluidElement& operator = (const FluidElement & gp)
     {       
