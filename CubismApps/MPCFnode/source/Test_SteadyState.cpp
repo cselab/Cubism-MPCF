@@ -98,7 +98,7 @@ void Test_SteadyState::_dump(string filename)
 
 void Test_SteadyState::_ic(FluidGrid& grid)
 {
-	cout << "Initial condition..." ;
+	//cout << "Initial condition..." ;
 	
 	const double G1 = Simulation_Environment::GAMMA1-1;
 	const double G2 = Simulation_Environment::GAMMA2-1;
@@ -130,7 +130,7 @@ void Test_SteadyState::_ic(FluidGrid& grid)
 				}
 	}	
 	
-	cout << "done." << endl;
+	//cout << "done." << endl;
 }
 
 void Test_SteadyState::_vp(FluidGrid& grid)

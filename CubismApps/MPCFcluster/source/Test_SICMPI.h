@@ -110,9 +110,9 @@ public:
 		std::stringstream streamer;
 		streamer<<"data-"<<step_id;;
 		t_ssmpi->dump(*grid, step_id, streamer.str());
-        
+
+		delete stepper;
 		if (isroot) printf("Finishing RUN\n");
-		MPI_Finalize();
 	}
 };
 

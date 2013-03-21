@@ -46,6 +46,9 @@
 #include <mpi.h>
 extern "C" void HPM_Start(char *);
 extern "C" void HPM_Stop(char *);
+#else
+#define HPM_Start(x)
+#define HPM_Stop(x)
 #endif
 
 using namespace std;
@@ -377,21 +380,31 @@ struct LSRKstep
         vector<double> res;
         
         LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);
-        
-        timer.start();
+	
+#ifdef _USE_HPM_
+	HPM_Start("RHS");	
+#endif
+        timer.start();     
         _process<Lab, Kflow>(a, dtinvh, vInfo, grid, current_time);
         const double t1 = timer.stop();
-        
+#ifdef _USE_HPM_
+        HPM_Stop("RHS");
+#endif
         LSRK3data::Update<Kupdate> update(b, &vInfo.front());
         
+#ifdef _USE_HPM_
+	HPM_Start("Update");
+#endif
         timer.start();
         update.omp(vInfo.size());
         const double t2 = timer.stop();
-        
-        res.push_back(t1);
-        res.push_back(t2);
-        
-        return res;
+#ifdef _USE_HPM_
+        HPM_Stop("Update");
+#endif
+		res.push_back(t1);
+		res.push_back(t2);
+		
+		return res;
     }
 };
 

@@ -158,15 +158,20 @@ public:
 	
 	void run()
 	{
-		printf("HELLO RUN\n");
-		
-		while(t < TEND)
+	  if(isroot) 
+	    printf("HELLO RUN\n");
+
+		int i=0;
+		while(i < NSTEPS)
 		{
-            if (isroot) printf("Time is %f\n", t);
+			if (isroot) printf("Time is %f and step is %d\n", t, i);
 			const Real dt = (*mystepper)(TEND-t);
 			t += dt;
+			i++;
 		}
-		
-        printf("Finishing RUN\n");
+
+		delete stepper;
+		if (isroot)
+		  printf("Finishing RUN\n");
 	}
 };

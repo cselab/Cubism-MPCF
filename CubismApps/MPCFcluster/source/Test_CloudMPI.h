@@ -89,7 +89,7 @@ public:
                 }
             }
             
-            MPI::Cartcomm cartcomm = grid->getCommunicator();
+            MPI::Cartcomm cartcomm = grid->getCartComm();
             cartcomm.Bcast(bcast_buffer, 4*n_shapes, MPI_REAL, 0);
             
             if (!isroot)
@@ -162,7 +162,9 @@ public:
 		streamer<<"data-"<<step_id;;
 		t_ssmpi->dump(*grid, step_id, streamer.str());
         
+		delete stepper;
 		if (isroot) printf("Finishing RUN\n");
+
 		MPI_Finalize();
 	}
 };

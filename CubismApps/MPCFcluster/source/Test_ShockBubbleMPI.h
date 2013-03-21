@@ -311,7 +311,10 @@ public:
 		while(bLoop)
 		{
 			if (isroot) printf("Step id %d,Time %f\n", step_id, t);
-            
+
+#ifdef _USE_HPM_
+                        HPM_Start("Dumping");
+#endif            
 			if (step_id%DUMPPERIOD==0)
 			{
 				std::stringstream streamer;
@@ -322,17 +325,24 @@ public:
             
 			if (step_id%SAVEPERIOD==0)
 				t_ssmpi->save(*grid, step_id, t);
-            
+#ifdef _USE_HPM_
+                        HPM_Stop("Dumping");
+#endif            
 			const Real dt = (*stepper)(TEND-t);
             
 			if(step_id%10 == 0 && isroot && step_id > 0)
 				profiler.printSummary();
-            
-			dumpStatistics(*grid, step_id, t, dt);
-            
+#ifdef _USE_HPM_
+			HPM_Start("Diagnostics");
+#endif
             if (step_id%ANALYSISPERIOD==0)
-                dumpAnalysis(*grid, step_id, t, dt);
-            
+            {
+	      ;//dumpStatistics(*grid, step_id, t, dt);
+	      ;// dumpAnalysis(*grid, step_id, t, dt);
+            }
+#ifdef _USE_HPM_
+	    HPM_Stop("Diagnostics");
+#endif            
 			t+=dt;
 			step_id++;
             
@@ -345,10 +355,9 @@ public:
 		std::stringstream streamer;
 		streamer<<"data-"<<step_id;;
 		t_ssmpi->dump(*grid, step_id, streamer.str());
-        
+
+		delete stepper;        
 		if (isroot) printf("Finishing RUN\n");
-		MPI_Finalize();
-		exit(0);
 	}
 };
 
