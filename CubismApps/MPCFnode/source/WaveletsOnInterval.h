@@ -445,7 +445,7 @@ namespace WaveletsOnInterval
 		void inverse() { }
 		
 		pair<vector<Real>, bitset<BS * BS * BS>> threshold(const FwtAp eps) 
-		{ 
+		{
 			enum { N = BS * BS * BS };
 			
 			const FwtAp * const e = &data[0][0][0];
