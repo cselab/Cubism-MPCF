@@ -45,7 +45,7 @@ public:
 protected:
 	
 	//Assumed input/output grid point type
-	struct AssumedType { Real r, u, v, w, s, G, P; };
+	struct AssumedType { Real r, u, v, w, s, G, P, dummy; };
 	
 	//working dataset types
 	typedef SOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3> InputSOA; //associated with weno5
@@ -256,7 +256,7 @@ protected:
 	
 	virtual void _xflux(const int relsliceid);
 	virtual void _yflux(const int relsliceid);
-	virtual void _zflux(const int relsliceid, const bool bFirst=false);
+	virtual void _zflux(const int relsliceid);
 	
     virtual void _xflux_hllc(const int relsliceid);
     virtual void _yflux_hllc(const int relsliceid);

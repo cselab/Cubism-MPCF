@@ -216,7 +216,7 @@ public:
             _my_ic_quad(*grid, v_shapes);
             
             v_shapes.clear();
-                        
+            /*
             for(int i=0; i<50; i++)
             {
                 if (isroot) printf("iteration %d ", i);
@@ -224,7 +224,7 @@ public:
                 MPI::COMM_WORLD.Barrier();
                 if (isroot) printf("...done\n");
             }
-            
+            */
             _set_energy(*grid);
         }
 	}
