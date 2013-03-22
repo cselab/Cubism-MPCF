@@ -49,9 +49,9 @@ class ChainedWriteBuffer_MPI: public ChainedWriteBuffer<DESIREDMEM, NSLOTS>
 	public:
 
 		ChainedWriteBuffer_MPI(MPI_Streamer& mympistreamer):
-			ChainedWriteBuffer<DESIREDMEM, NSLOTS>(), mympistreamer(mympistreamer)
-	{
-	}
+			ChainedWriteBuffer<DESIREDMEM, NSLOTS>(), mympistreamer(mympistreamer) { }
+
+		void Reset() { this->_reset(); }
 };
 
 
@@ -63,13 +63,16 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 		NPTS = _BLOCKSIZE_ * _BLOCKSIZE_ * _BLOCKSIZE_
 	};
 
+	int callscounter; //number of times the "Write" method has been called
+
 	MPI_Streamer mympistreamer;
+
+	//say we want a heap buffer of 50 MB, two slots
+	typedef ChainedWriteBuffer_MPI<50, 2> MyChainedBuffer;
+	MyChainedBuffer * chainedbuffer;
 
 	template<typename CompressorType> size_t _to_mpi_file(vector<BlockInfo>& vInfo, const int NBLOCKS, Streamer streamer)
 	{
-		//say we want a heap buffer of 50 MB, two slots
-		ChainedWriteBuffer_MPI<50, 2> * chainedbuffer = new ChainedWriteBuffer_MPI<50, 2>(mympistreamer);
-
 		const int MYNTHREADS = omp_get_max_threads( );
 		float t[MYNTHREADS];
 
@@ -148,18 +151,25 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 		}
 
 		//print out the thread timings to check the imbalance
-		//if(false)
-		for(int i=0; i<MYNTHREADS; ++i)
-			printf("t[%d] = %.2e s\n", i, t[i]);
+		if(false)
+			for(int i=0; i<MYNTHREADS; ++i)
+				printf("t[%d] = %.2e s\n", i, t[i]);
 
-		size_t written_bytes = chainedbuffer->get_written_bytes();
-
-		delete chainedbuffer;
-		
-		return written_bytes;
+		return chainedbuffer->get_written_bytes();
 	}
 
 	public:
+
+	SerializerIO_WaveletCompression_MPI(): callscounter(0), mympistreamer(), chainedbuffer(NULL)
+	{
+		chainedbuffer = new MyChainedBuffer(mympistreamer);
+	}
+
+	~SerializerIO_WaveletCompression_MPI()
+	{	
+		delete chainedbuffer;
+	}
+
 	void Write(GridType & inputGrid, string fileName, 
 			Streamer streamer = Streamer())
 	{		
@@ -169,18 +179,24 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 		vector<BlockInfo> vInfo = inputGrid.getBlocksInfo();
 		const int NBLOCKS = vInfo.size();
 
-		mympistreamer.Init(fileName);
-		
+		if (callscounter > 0)
+		{
+			mympistreamer.Flush();
+			chainedbuffer->Reset();
+			mympistreamer.Init(fileName);
+		}
+
 		//send to panos gigantic compressed streams
 		//what do we do with the written bytes, panos? we sum them all?
 		const size_t written_bytes = _to_mpi_file<WaveletCompressor_zlib>(vInfo, NBLOCKS, streamer);	
 		
-		mympistreamer.Flush();
 
 		const double naive = (double)(sizeof(Real) * NPTS * NCHANNELS * NBLOCKS);
 		const double compr = written_bytes;
 
 		printf("overall compression-rate: %f, time spent: %.2f s\n", naive / compr, timer.stop());
+
+		callscounter++;
 	}
 };
 

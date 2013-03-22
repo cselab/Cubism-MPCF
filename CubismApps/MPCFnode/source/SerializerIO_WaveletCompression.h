@@ -47,9 +47,7 @@ class ChainedWriteBuffer //this class is thread safe
 	{
 	}
 
-	public:
-
-	ChainedWriteBuffer(): slot(0), mystream(NULL)
+	void _reset()
 	{
 		for(int i = 0; i < NSLOTS; ++i)
 			nbytes[i] = 0;
@@ -58,7 +56,14 @@ class ChainedWriteBuffer //this class is thread safe
 			pending[i] = 0;
 
 		for(int i = 0; i < NSLOTS; ++i)
-			hot[i] = false;	
+			hot[i] = false;
+	}
+
+	public:
+
+	ChainedWriteBuffer(): slot(0), mystream(NULL)
+	{
+		_reset();
 	}
 
 	virtual ~ChainedWriteBuffer()
