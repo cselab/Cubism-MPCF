@@ -30,12 +30,29 @@ class ChainedWriteBuffer //this class is thread safe
 	int pending[NSLOTS];
 
 	//output entity - it can be replaced	
-	ofstream& mystream;
+	ofstream * mystream;
 	size_t written_bytes;
+
+
+	protected:
+	
+	virtual void _nonblocking_write(const int targetslot)
+	{
+		assert(mystream != NULL);
+		mystream->write(buffers[targetslot], nbytes[targetslot] * sizeof(char));
+	}
+
+	virtual void _wait_resolve(const int targetslot)
+	{
+	}
+
+	virtual void _conclude()
+	{
+	}
 
 	public:
 
-	ChainedWriteBuffer(ofstream& mystream): slot(0), mystream(mystream)
+	ChainedWriteBuffer(): slot(0), mystream(NULL)
 	{
 		for(int i = 0; i < NSLOTS; ++i)
 			nbytes[i] = 0;
@@ -59,12 +76,15 @@ class ChainedWriteBuffer //this class is thread safe
 				while(pending[i] > 0) ;
 
 				//nonblocking IO write
-				mystream.write(buffers[slot], nbytes[slot] * sizeof(char));
+				//mystream.write(buffers[i], nbytes[i] * sizeof(char));
+				_nonblocking_write(i);
 			}
-		} 
+		}
 
 		//trigger something like a "conclude" here
 	}	
+
+	void set_ofstream(ofstream& mystream) { this->mystream = &mystream; }
 
 	void * initiate_write(const int arrivingbytes)
 	{
@@ -83,14 +103,15 @@ class ChainedWriteBuffer //this class is thread safe
 				while (pending[slot] > 0);
 
 				//the idea is that this might be non-blocking later
-				mystream.write(buffers[slot], nbytes[slot] * sizeof(char));
+				//mystream.write(buffers[slot], nbytes[slot] * sizeof(char));
+				_nonblocking_write(slot);
 				hot[slot] = true;
 
 				//change buffer
 				slot = (slot + 1) % NSLOTS;
 
 				//wait for termination of the old buffer content in the new slot
-				if (hot[slot]) ;
+				if (hot[slot]) _wait_resolve(slot);
 
 				//reset the buffer status
 				nbytes[slot] = arrivingbytes;
@@ -121,7 +142,7 @@ class ChainedWriteBuffer //this class is thread safe
 		pending[slot]--;
 	}
 
-	size_t get_written_bytes() { return written_bytes; }
+	size_t get_written_bytes() const { return written_bytes; }
 };
 
 template<typename GridType, typename Streamer>
@@ -206,17 +227,18 @@ class SerializerIO_WaveletCompression
 			size_t written_bytes = 0;
 #else
 			//say we want a heap buffer of 50 MB, two slots
-			ChainedWriteBuffer<50, 2> * chainedbuffer = new ChainedWriteBuffer<50, 2>(myfile); 
+			ChainedWriteBuffer<50, 2> * chainedbuffer = new ChainedWriteBuffer<50, 2>();
+			chainedbuffer->set_ofstream(myfile); 
 #endif
 			const int MYNTHREADS = omp_get_max_threads( );
 			//const int NTHREADS = omp_get_max_threads();
 			float t[MYNTHREADS];
 
-#pragma omp parallel 
+#pragma omp parallel  
 			{
 				enum 
 				{ 
-					DESIREDMEM = 4 << 20, //3 megs is also cool?
+					DESIREDMEM = 2 << 20, //3 megs is also cool?
 					ENTRYSIZE = NCHANNELS * sizeof(WaveletCompressor) + sizeof(int) * 5,
 					ENTRIES_CANDIDATE = DESIREDMEM / ENTRYSIZE,
 					ENTRIES = ENTRIES_CANDIDATE ? ENTRIES_CANDIDATE : 1,
