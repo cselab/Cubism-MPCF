@@ -43,7 +43,7 @@ FlowStep_SSE_diego.o: FlowStep_SSE_diego.cpp
 
 WaveletCompressor.o: WaveletCompressor.cpp
 #	$(CC) $(OPTFLAGS) $(CPPFLAGS) -c $^ -o $@
-	$(CC) $(OPTFLAGS) $(CPPFLAGS) --std=c++0x -c $^ -o $@
+	$(CC) $(OPTFLAGS) $(CPPFLAGS)  -c $^ -o $@
 
 %.o: %.cpp
 	$(CC)  $(OPTFLAGS) $(CPPFLAGS) -c $^ -o $@

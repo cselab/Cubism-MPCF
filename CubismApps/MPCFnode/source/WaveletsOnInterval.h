@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cmath>
 #include <vector>
 #include <algorithm>
 
@@ -206,15 +206,15 @@ namespace WaveletsOnInterval
 			this->template sweep3D<BS, false>(data);
 		}
 		
-		pair<vector<Real>, bitset<BS * BS * BS>> threshold(const FwtAp eps)
+		pair<vector<Real>, bitset<BS * BS * BS> > threshold(const FwtAp eps)
 		{
 			static const int BSH = BS / 2;
 			
-			pair<vector<Real>, bitset<BS * BS * BS>> retval;
+			pair<vector<Real>, bitset<BS * BS * BS> > retval;
 
 			//code 0
 			{
-				pair<vector<Real>, bitset<BSH * BSH * BSH>> childretval = child.threshold(eps);
+				pair<vector<Real>, bitset<BSH * BSH * BSH> > childretval = child.threshold(eps);
 				
 				retval.first = childretval.first;
 				
@@ -325,7 +325,7 @@ namespace WaveletsOnInterval
 		
 		void iwt() { }
 		
-		pair<vector<Real>, bitset<BS * BS * BS>> threshold(const FwtAp eps) 
+		pair<vector<Real>, bitset<BS * BS * BS> > threshold(const FwtAp eps) 
 		{
 			enum { N = BS * BS * BS };
 			
@@ -336,7 +336,7 @@ namespace WaveletsOnInterval
 			for(int i = 0; i < N; ++i)
 				v[i] = e[i];
 			
-			pair<vector<Real>, bitset<BS * BS * BS>> retval;
+			pair<vector<Real>, bitset<BS * BS * BS> > retval;
 			retval.first = v;
 			retval.second.set();
 			

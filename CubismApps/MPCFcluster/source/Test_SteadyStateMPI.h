@@ -11,6 +11,7 @@
 #include <GridMPI.h>
 #include <HDF5Dumper_MPI.h>
 
+#include "SerializerIO_WaveletCompression_MPI.h"
 #include "FlowStep_LSRK3MPI.h"
 #include <Test_SteadyState.h>
 
@@ -23,7 +24,7 @@ protected:
 	
     G * grid;
 	FlowStep_LSRK3MPI<G> * mystepper;
-    
+    	SerializerIO_WaveletCompression_MPI<G, StreamerGridPoint> mywaveletdumper;
 public:
 	
 	const bool isroot;
@@ -106,17 +107,20 @@ public:
 			streamer<<path;
 			streamer<<"/";
 			streamer<<"data";
+			/* we don't need this anymore as we dont create one file per rank
 			streamer.setf(ios::dec | ios::right);
 			streamer.width(5);
 			streamer.fill('0');
 			streamer<<MPI::COMM_WORLD.Get_rank();
-			streamer<<"_";
+			streamer<<"_";*/
 			streamer.setf(ios::dec | ios::right);
 			streamer.width(5);
 			streamer.fill('0');
 			streamer<<step_id;
-			
-			this->_vp_dump(grid, streamer.str());
+
+			mywaveletdumper.Write(grid, streamer.str()); 
+
+			//this line is now obsolete: this->_vp_dump(grid, streamer.str());
 
 			if (isroot) cout << "done" << endl;
 		}
