@@ -118,6 +118,7 @@ public:
 			streamer.fill('0');
 			streamer<<step_id;
 
+			mywaveletdumper.set_threshold(1e-4);
 			mywaveletdumper.Write(grid, streamer.str()); 
 
 			//this line is now obsolete: this->_vp_dump(grid, streamer.str());

@@ -66,9 +66,10 @@ class ChainedWriteBuffer //this class is thread safe
 		_reset();
 	}
 
-	virtual ~ChainedWriteBuffer()
+//	virtual ~ChainedWriteBuffer()
+	void flush()
 	{
-		printf("hello destructor...\n");
+		//printf("hello destructor...\n");
 
 		for(int i = 0; i < NSLOTS; ++i)
 		{
@@ -334,6 +335,7 @@ class SerializerIO_WaveletCompression
 					printf("t[%d] = %.2e s\n", i, t[i]);
 #ifdef _CHAINBUFFER_
 				size_t written_bytes = chainedbuffer->get_written_bytes();
+				chainedbuffer->flush();
 
 				delete chainedbuffer;
 #endif

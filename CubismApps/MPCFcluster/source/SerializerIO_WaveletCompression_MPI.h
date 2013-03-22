@@ -13,19 +13,7 @@
 #include "SerializerIO_WaveletCompression.h"
 
 /* this class will be provided by panos, into another header file */
-class MPI_Streamer //DUMMY IMPL - TRUE IMPL PROVIDED BY PANOS
-{
-	public:
-		MPI_Streamer(int _groupsize=-1) { }
-
-		~MPI_Streamer() { }
-
-		void Init(string _filename) { }
-
-		void Write(char *buf, int nbytes) { }
-		void WaitResolve(char * buf) { } //panos, this is the new method we agreed upon this morning
-		void Flush() { }
-};
+#include "MPI_Streamer.h"
 
 template<int DESIREDMEM, int NSLOTS>
 class ChainedWriteBuffer_MPI: public ChainedWriteBuffer<DESIREDMEM, NSLOTS> 
@@ -192,7 +180,8 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 		//send to panos gigantic compressed streams
 		//what do we do with the written bytes, panos? we sum them all?
 		const size_t written_bytes = _to_mpi_file<WaveletCompressor_zlib>(vInfo, NBLOCKS, streamer);	
-		
+
+		chainedbuffer->flush();
 
 		const double naive = (double)(sizeof(Real) * NPTS * NCHANNELS * NBLOCKS);
 		const double compr = written_bytes;
