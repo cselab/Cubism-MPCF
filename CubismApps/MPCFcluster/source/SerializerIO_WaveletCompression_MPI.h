@@ -167,6 +167,9 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 
 	~SerializerIO_WaveletCompression_MPI()
 	{	
+		if (callscounter > 0)
+			mympistreamer.Flush();
+
 		delete chainedbuffer;
 	}
 
@@ -183,8 +186,8 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 		{
 			mympistreamer.Flush();
 			chainedbuffer->Reset();
-			mympistreamer.Init(fileName);
 		}
+		mympistreamer.Init(fileName);
 
 		//send to panos gigantic compressed streams
 		//what do we do with the written bytes, panos? we sum them all?
