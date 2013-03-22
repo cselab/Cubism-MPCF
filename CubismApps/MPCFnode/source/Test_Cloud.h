@@ -43,6 +43,8 @@ public:
        // const Real distance  = sqrt( pow(x_c - c_cloud[0]*0.5,2)+pow(y_c - c_cloud[1]*0.5,2)+pow(z_c - c_cloud[2]*0.5,2) );
         const Real _radius = (Real)drand48();
         
+        radius = _radius;
+        
         for(int i=0; i<3; ++i)
         {
             center[i] = _center[i];
@@ -54,7 +56,7 @@ public:
         max_rad = CloudData::max_rad;
     }
     
-    shape(const Real _center[3], const Real _radius): radius(radius)
+    shape(const Real _center[3], const Real _radius): radius(_radius)
     {        
         for(int i=0; i<3; ++i)
         {
