@@ -19,6 +19,38 @@
 #include "Test_Cloud.h"
 #include "Tests.h"
 
+namespace CloudData
+{
+    int n_shapes = 0;
+    Real min_rad = 0;
+    Real max_rad = 0;
+    Real seed_s[3], seed_e[3];
+}
+
+Test_Cloud::Test_Cloud(const int argc, const char ** argv): Test_SIC(argc, argv)
+{
+    ifstream f_read("cloud_config.dat");
+    if(f_read)
+    {
+        cout << "cloud config file is there" << endl;
+        f_read >> CloudData::n_shapes;
+        f_read >> CloudData::min_rad >> CloudData::max_rad;
+        f_read >> CloudData::seed_s[0] >> CloudData::seed_s[1] >> CloudData::seed_s[2];
+        f_read >> CloudData::seed_e[0] >> CloudData::seed_e[1] >> CloudData::seed_e[2];
+        f_read.close();
+    }
+    else
+    {
+        cout << "cloud config file not there...aborting" << endl;
+        abort();
+    }
+    
+    if (VERBOSITY > 0)
+        printf("cloud data: N %d Rmin %f Rmax %f s=%f,%f,%f e=%f,%f,%f\n", CloudData::n_shapes, CloudData::min_rad, CloudData::max_rad,
+               CloudData::seed_s[0], CloudData::seed_s[1], CloudData::seed_s[2],
+               CloudData::seed_e[0], CloudData::seed_e[1], CloudData::seed_e[2]);
+}
+
 void Test_Cloud::_ic(FluidGrid& grid)
 {
     cout << "Not supposed to call _ic in Cloud\n" ;

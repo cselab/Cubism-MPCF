@@ -176,8 +176,8 @@ class Convection_QPX : public Convection_CPP
 				vector4double d3B = vec_splats(0);
 				
 				vector4double mydivu = vec_lda(0L, divuptr + ix);
-				d1B = vec_mul(lambda, vec_madd(d1, mydivu, vec_lda(0L, Gptr + ix)));
-				d2B = vec_mul(lambda, vec_madd(d2, mydivu, vec_lda(0L, Pptr + ix)));
+				d1B = vec_mul(lambda, vec_madd(d1B, mydivu, vec_lda(0L, Gptr + ix)));
+				d2B = vec_mul(lambda, vec_madd(d2B, mydivu, vec_lda(0L, Pptr + ix)));
 				
 				_DIEGO_TRANSPOSE4(d0, d1, d2, d3);
 				_DIEGO_TRANSPOSE4(d0B, d1B, d2B, d3B);

@@ -14,11 +14,11 @@
 
 namespace CloudData
 {
-    const Real seed_s[3] = {0.1, 0.1, 0.05};
-    const Real seed_e[3] = {0.9, 0.9, 0.60};
-    const int n_shapes = 60;
-    const Real min_rad = 0.05;
-    const Real max_rad = 0.2;
+    extern Real seed_s[3];
+    extern Real seed_e[3];
+    extern int n_shapes;
+    extern Real min_rad;
+    extern Real max_rad;
 };
 
 //base class is a sphere
@@ -35,7 +35,6 @@ public:
         const Real y_c = (Real)drand48();
         const Real z_c = (Real)drand48();
         const Real _center[3] = {x_c, y_c, z_c};
-        
         
         //adjust the radii so that the fat go inside
        // const Real c_cloud[3] = {bbox_e[0]+bbox_s[0], bbox_e[1]+bbox_s[1], bbox_e[2]+bbox_s[2]};
@@ -291,8 +290,8 @@ class Test_Cloud: public Test_SIC
     void _set_energy(FluidGrid& grid);
     
 public:
-	Test_Cloud(const int argc, const char ** argv): Test_SIC(argc, argv) { }
-    
+    Test_Cloud(const int argc, const char ** argv);
+
     void setup();
 };
 
