@@ -26,8 +26,12 @@ struct MPI_Streamer
 	MPI_Comm new_comm;
 	int new_rank, new_size;
 
+	int *counter_mem;
+	MPI_Win win;
+
 
 	string filename;
+	char header[512];
 
 	MPI_File fh;
 	int mode;
@@ -38,33 +42,15 @@ struct MPI_Streamer
 	MPI_Request req[3];
 	int wbytes[3];
 
-	int counter_mem;
-	MPI_Win win;
-
 
 	MPI_Streamer(int _groupsize=-1)
 	{
 		groupsize = _groupsize;
-	}
-
-	~MPI_Streamer()
-	{
-		if (new_rank == mymaster) {
-			printf("counter_mem = %d\n", counter_mem);
-		}
-	}
-
-	void Init(string _filename)
-	{
-		counter_mem = 0;
-		old_offset = -1;
 
 		MPI_Comm_group(MPI_COMM_WORLD, &orig_group);
 
 		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 		MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-		filename = _filename;
 
 		if ((groupsize == -1)||(groupsize > size)) {
 			groupsize = size;
@@ -110,13 +96,44 @@ struct MPI_Streamer
 #endif
 		}
 		
+//		if (new_rank == mymaster) {
+		MPI_Alloc_mem(4, MPI_INFO_NULL, &counter_mem);
+		MPI_Win_create(counter_mem, 1*sizeof(int), sizeof(int), MPI_INFO_NULL, new_comm, &win);
+//		}
+//		else {
+//		MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &win); 
+//		}
+
+	}
+
+	~MPI_Streamer()
+	{
+		if (new_rank == mymaster) {
+			printf("*counter_mem = %d\n", *counter_mem);
+		}
+		MPI_Free_mem(counter_mem);
+		MPI_Win_free(&win);
+	}
+
+	void SetHeader(char * _header)
+	{
+		strcpy(header, _header);
+	}
+
+	void Init(string _filename)
+	{
+		*counter_mem = 0;	/* only for the master */
+		old_offset = -1;
+
+		filename = _filename;
+
 		stringstream ss;
 //		ss << "." << mygroup;
 //		ss << "." << first << "_" << last << ".dat" ;
 		ss << "." << setfill('0') << setw(5) << first << "_" << setfill('0') << setw(5) << last << ".dat" ;
 		filename.append(ss.str());
 
-			/* open file */
+		/* open file */
 		mode = MPI_MODE_CREATE | MPI_MODE_WRONLY;
 
 		//MPI_File_open(MPI_COMM_WORLD, filename.c_str(), mode, MPI_INFO_NULL, &fh);
@@ -124,15 +141,17 @@ struct MPI_Streamer
 
 		MPI_Barrier(MPI_COMM_WORLD);
 
-//		if (new_rank == 0) {
-//		MPI_Win_create(&counter_mem, 1*sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
-		MPI_Win_create(&counter_mem, 1*sizeof(int), sizeof(int), MPI_INFO_NULL, new_comm, &win);
-//		}
-//		else {
-//		MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &win); 
-//		}
-
-
+		if (new_rank == mymaster) {
+			MPI_Status tmp_status;
+			printf("header:\n%s\n", header);
+			MPI_File_write_at(fh, 0, (void *)header, 512, MPI_CHAR, &tmp_status);
+			*counter_mem += 512;
+			
+			int firstoffset[groupsize];
+			for (int i = 0; i < groupsize; i++) firstoffset[i] = -i;
+			MPI_File_write_at(fh, 512, (void *)firstoffset, groupsize*sizeof(int), MPI_CHAR, &tmp_status);
+			*counter_mem += groupsize*sizeof(int);
+		}
 	}
 
 	void WaitResolve(char *buf)
@@ -146,12 +165,12 @@ struct MPI_Streamer
 		MPI_Wait(&req[1], &status[1]);
 		MPI_Wait(&req[2], &status[2]);
 
-		if (req[0] != MPI_REQUEST_NULL) {
-			MPI_Get_elements(&status[0], MPI_CHAR, &wbytes[0]);
-		}
-		else {
-			wbytes[0] = 0;
-		}
+//		if (req[0] != MPI_REQUEST_NULL) {
+		MPI_Get_elements(&status[0], MPI_CHAR, &wbytes[0]);
+//		}
+//		else {
+//			wbytes[0] = 0;
+//		}
 		MPI_Get_elements(&status[1], MPI_CHAR, &wbytes[1]);
 		MPI_Get_elements(&status[2], MPI_CHAR, &wbytes[2]);
 		printf( "TASK %d ====== number of bytes written = %d ======\n", rank, wbytes[0]+wbytes[1]+wbytes[2]);
@@ -159,11 +178,10 @@ struct MPI_Streamer
 	
 	void iWrite(char *buf, int nbytes)
 	{
-#define TAGSIZE (3*sizeof(int))
-		static int tag[3];
-		tag[0] = rank;
-		tag[1] = nbytes;
-		tag[2] = -1;
+#define TAGSIZE (2*sizeof(int))
+		static int tag[2];
+		tag[0] = nbytes;
+		tag[1] = -1;
 
 		static int base_offset;
 		base_offset = fetch_and_add(win, rank, size, nbytes+TAGSIZE);
@@ -172,11 +190,12 @@ struct MPI_Streamer
 
 		/*  write buffer to file */
 		if (old_offset > -1) {
-			MPI_File_iwrite_at(fh, old_offset+2*sizeof(int), (void *)&base_offset, sizeof(int), MPI_CHAR, &req[0]);
+			MPI_File_iwrite_at(fh, old_offset+1*sizeof(int), (void *)&base_offset, sizeof(int), MPI_CHAR, &req[0]);
 		}
 		else {
-			req[0] = MPI_REQUEST_NULL;
+			MPI_File_iwrite_at(fh, 512+new_rank*sizeof(int), (void *)&base_offset, sizeof(int), MPI_CHAR, &req[0]);
 		}
+
 		old_offset = base_offset;
 
 		MPI_File_iwrite_at(fh, base_offset, (void *)tag, TAGSIZE, MPI_CHAR, &req[1]);
@@ -188,11 +207,10 @@ struct MPI_Streamer
 
 	void Write(char *buf, int nbytes)
 	{
-#define TAGSIZE (3*sizeof(int))
-		int tag[3];
-		tag[0] = rank;
-		tag[1] = nbytes;
-		tag[2] = -1;
+#define TAGSIZE (2*sizeof(int))
+		int tag[2];
+		tag[0] = nbytes;
+		tag[1] = -1;
 
 		int base_offset = fetch_and_add(win, rank, size, nbytes+TAGSIZE);
 
@@ -200,12 +218,13 @@ struct MPI_Streamer
 
 		/*  write buffer to file */
 		if (old_offset > -1) {
-			MPI_File_write_at(fh, old_offset+2*sizeof(int), (void *)&base_offset, sizeof(int), MPI_CHAR, &status[0]);
-			MPI_Get_elements(&status[0], MPI_CHAR, &wbytes[0]);
+			MPI_File_write_at(fh, old_offset+1*sizeof(int), (void *)&base_offset, sizeof(int), MPI_CHAR, &status[0]);
 		}
 		else {
-			wbytes[0] = 0;
+			MPI_File_write_at(fh, 512+new_rank*sizeof(int), (void *)&base_offset, sizeof(int), MPI_CHAR, &status[0]);
 		}
+		MPI_Get_elements(&status[0], MPI_CHAR, &wbytes[0]);
+		
 		old_offset = base_offset;
 
 		MPI_File_write_at(fh, base_offset, (void *)tag, TAGSIZE, MPI_CHAR, &status[1]);
@@ -223,7 +242,6 @@ struct MPI_Streamer
 	{
 		/* close file */
 		MPI_File_close(&fh);
-		MPI_Win_free(&win);
 	}
 
 	int fetch_and_add(MPI_Win win, int rank, int nprocs, int num) 
