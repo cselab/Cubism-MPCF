@@ -275,7 +275,7 @@ public:
 	FlowStep_LSRK3MPI(TGrid & grid, const Real CFL, const Real gamma1, const Real gamma2, ArgumentParser& parser, const int verbosity, Profiler* profiler=NULL, const Real pc1=0, const Real pc2=0):
     FlowStep_LSRK3(grid, CFL, gamma1, gamma2, parser, verbosity, profiler, pc1, pc2), grid(grid)
     {
-      if (verbosity>=1) cout << "GSYNCH " << parser("-gsync").asInt(omp_get_max_threads()) << endl;
+      if (verbosity) cout << "GSYNCH " << parser("-gsync").asInt(omp_get_max_threads()) << endl;
 
 	static const int pehflag = 0; 
 	LSRK3MPIdata::hist_group.Init(8, parser("-report").asInt(1), pehflag); // peh
@@ -291,7 +291,7 @@ public:
 	  set_constants();
         
 	  //here we just check stuff and compute the next dt
-	  if (verbosity>=1 && LSRK3data::step_id==0)
+	  if (verbosity && LSRK3data::step_id==0)
             cout << "Grid spacing and smoothing length are: " << h << ", " << smoothlength << endl; 
         
 	LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(omp_get_max_threads());
@@ -312,11 +312,15 @@ public:
 		  histogram_sos.consolidate();
 		*/
 		double dt = min(max_dt, CFL*h/maxSOS);
-		
-		if (verbosity>=1)
+
+        if (MPI::COMM_WORLD.Get_rank()==0)
+      {
+          cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";
+          cout << "dt is "<< dt << "\n";
+      }
+          
+		if (verbosity)
 		{
-			cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";   
-			cout << "dt is "<< dt << "\n";
 			cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
 			cout << "Profiling information for sos is " << t_sos << endl;
 		}

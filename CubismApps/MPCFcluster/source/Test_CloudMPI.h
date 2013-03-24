@@ -142,18 +142,18 @@ public:
     
 	void setup()
 	{
-		if (isroot && VERBOSITY)
+		_setup_constants();
+        t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
+
+        if (!isroot)
+			VERBOSITY = 0;
+    
+        if (VERBOSITY)
 		{
 			printf("////////////////////////////////////////////////////////////\n");
 			printf("///////////               TEST Cloud MPI         ///////////\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
-        
-		_setup_constants();
-        t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
-        
-		if (!isroot)
-			VERBOSITY = 0;
         
 		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ);
         
@@ -169,6 +169,8 @@ public:
 		}
 		else
         {
+            _initialize_cloud();
+            
             bRestartedSeed = parser("-seed").asBool(0);
             
             const int n_shapes = CloudData::n_shapes;

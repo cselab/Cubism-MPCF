@@ -8,17 +8,14 @@
  */
 #pragma once
 
-#include "Test_SIC.h"
+#include "Test_ShockBubble.h"
 #include "Types.h"
 #include <fstream>
 
 namespace CloudData
 {
-    extern Real seed_s[3];
-    extern Real seed_e[3];
-    extern int n_shapes;
-    extern Real min_rad;
-    extern Real max_rad;
+    extern Real seed_s[3], seed_e[3], min_rad, max_rad;
+    extern int n_shapes, n_small, small_count;
 };
 
 //base class is a sphere
@@ -26,7 +23,6 @@ class shape
 {
     Real center[3], radius;
     Real bbox_s[3], bbox_e[3];
-    Real min_rad, max_rad;
     
 public:
     shape()
@@ -36,11 +32,7 @@ public:
         const Real z_c = (Real)drand48();
         const Real _center[3] = {x_c, y_c, z_c};
         
-        //adjust the radii so that the fat go inside
-       // const Real c_cloud[3] = {bbox_e[0]+bbox_s[0], bbox_e[1]+bbox_s[1], bbox_e[2]+bbox_s[2]};
-        //const Real size_cloud = max(max(bbox_e[0]-bbox_s[0],bbox_e[1]-bbox_s[1]), bbox_e[2]-bbox_s[2]);
-       // const Real distance  = sqrt( pow(x_c - c_cloud[0]*0.5,2)+pow(y_c - c_cloud[1]*0.5,2)+pow(z_c - c_cloud[2]*0.5,2) );
-        const Real _radius = (Real)drand48();
+        const Real _radius = (Real)drand48()*(CloudData::max_rad-CloudData::min_rad)+CloudData::min_rad;
         
         radius = _radius;
         
@@ -50,9 +42,6 @@ public:
             bbox_s[i] = _center[i]-_radius-2.0*Simulation_Environment::EPSILON;
             bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
         }
-        
-        min_rad = CloudData::min_rad;
-        max_rad = CloudData::max_rad;
     }
     
     shape(const Real _center[3], const Real _radius): radius(_radius)
@@ -63,9 +52,6 @@ public:
             bbox_s[i] = _center[i]-_radius-2.0*Simulation_Environment::EPSILON;
             bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
         }
-        
-        min_rad = CloudData::min_rad;
-        max_rad = CloudData::max_rad;
     }
     
     void get_bbox(Real s[3], Real e[3]) const
@@ -96,17 +82,7 @@ public:
     {
         return radius;
     }
-    
-    Real get_min_rad() const
-    {
-        return min_rad;
-    }
-    
-    Real get_max_rad() const
-    {
-        return max_rad;
-    }
-    
+
     Real eval(const Real pos[3]) const
     {
         return sqrt(pow(pos[0]-center[0],2)+pow(pos[1]-center[1],2)+pow(pos[2]-center[2],2))-radius;
@@ -115,15 +91,29 @@ public:
     //Every other derived shape should implement this method.
     bool rejection_check(shape * this_shape, const Real start[3], const Real end[3]) const
     {
+        //this rule is to stop making smaller bubbles after n_small smalle bubbles.
+        const Real rad_av_rough = 0.5*(CloudData::min_rad+CloudData::max_rad);
+        const Real rad_cut = 1.2*rad_av_rough;
+        //if (CloudData::small_count==CloudData::n_small && this_shape->get_rad()<rad_cut)
+         //   return true;
+        
         Real s[3], e[3];
         this->get_bbox(s,e);
         
+        //this rule checks that the buble is inside the bounding box
         const bool bOut = s[0]<start[0] || s[1]<start[1] || s[2]<start[2] ||
-        e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
+            e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
         
-        const bool bRadOut = this->get_rad()<this->get_min_rad() || this->get_rad()>this->get_max_rad();
+        //this rule is to keep larger bubbles outside
+        //larger w.r.t. rad_avg_rough
+        const Real c_box[3] = {end[0]+start[0], end[1]+start[1], end[2]+start[2]};
+        Real this_c[3];
+        this_shape->get_center(this_c);
+        const Real d_c_box = pow(this_c[0]-0.5*c_box[0],2)+pow(this_c[1]-0.5*c_box[1],2)+pow(this_c[2]-0.5*c_box[2],2);
+        const Real R_cutoff = pow( pow((end[0]-start[0])*(end[1]-start[1])*(end[2]-start[2]),(Real)3)*0.75/(8*M_PI),1./3);
+        const bool bLargeOuter = (d_c_box>=R_cutoff && this_shape->get_rad()>=rad_av_rough);
         
-        if (bOut || bRadOut)
+        if (bOut || bLargeOuter)
             return true;
         
         if(this!=this_shape)
@@ -151,6 +141,9 @@ public:
             if (bOverlap)
                 return true;
         }
+        
+        if (this_shape->get_rad()<rad_cut)
+            CloudData::small_count++;
         
         return false;
     }
@@ -277,7 +270,7 @@ inline double eval(const vector<shape*> v_shapes, const Real pos[3])
     return 0.5+0.5*cos(alpha);
 }
 
-class Test_Cloud: public Test_SIC
+class Test_Cloud: public Test_ShockBubble
 {
     friend class Test_CloudMPI;
     
@@ -288,6 +281,7 @@ class Test_Cloud: public Test_SIC
     void _my_ic(FluidGrid& grid, const vector< shape * > v_shapes);
     void _my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes);
     void _set_energy(FluidGrid& grid);
+    void _initialize_cloud();
     
 public:
     Test_Cloud(const int argc, const char ** argv);

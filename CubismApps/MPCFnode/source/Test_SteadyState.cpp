@@ -275,16 +275,16 @@ void Test_SteadyState::_setup_constants()
 }
 
 void Test_SteadyState::setup()
-{	
-	if (VERBOSITY)
+{
+	_setup_constants();
+	    
+    if (VERBOSITY)
 	{
 		printf("////////////////////////////////////////////////////////////\n");
 		printf("////////////         TEST STEADY STATE       ///////////////\n");
 		printf("////////////////////////////////////////////////////////////\n");
 	}
-	
-	_setup_constants();
-	
+    
 	grid = new FluidGrid(BPDX, BPDY, BPDZ);
 	
 	assert(grid != NULL);

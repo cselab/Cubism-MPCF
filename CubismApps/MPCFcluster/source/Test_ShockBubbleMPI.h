@@ -35,18 +35,18 @@ public:
     
 	void setup()
 	{
-		if (isroot && VERBOSITY)
+        _setup_constants();
+        t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
+        
+        if (!isroot)
+			VERBOSITY = 0;
+        
+        if (VERBOSITY)
 		{
 			printf("////////////////////////////////////////////////////////////\n");
 			printf("///////////   TEST SHOCK BUBBLE INTERACTION MPI  ///////////\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
-        
-		_setup_constants();
-		t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
-        
-		if (!isroot)
-			VERBOSITY = 0;
         
 		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ);
         
