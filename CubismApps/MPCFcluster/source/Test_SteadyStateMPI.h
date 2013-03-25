@@ -12,8 +12,7 @@
 #include <HDF5Dumper_MPI.h>
 
 #include "SerializerIO_WaveletCompression_MPI_Simple.h"
-#include "SerializerIO_WaveletCompression_MPI.h"
-#include "SerializerVP_WaveletCompression_MPI.h"
+
 #include "FlowStep_LSRK3MPI.h"
 #include <Test_SteadyState.h>
 
@@ -30,7 +29,7 @@ protected:
 	FlowStep_LSRK3MPI<G> * mystepper;
 	
 	SerializerIO_WaveletCompression_MPI_Simple<G, StreamerGridPointIterative> mywaveletdumper;
-	SerializerVP_WaveletCompression_MPI<G, StreamerPressure> myvpdumper;
+	//SerializerVP_WaveletCompression_MPI<G, StreamerPressure> myvpdumper;
 	
 public:
 	
@@ -127,11 +126,16 @@ public:
 			
 			mywaveletdumper.verbose();
 			mywaveletdumper.set_threshold(1e-4);
-			mywaveletdumper.Write(grid, streamer.str()); 
+			
+			//if (false)//skipping the write for now
+				mywaveletdumper.Write(grid, streamer.str()); 
 			
 			//this line is now obsolete: this->_vp_dump(grid, streamer.str());
-			
+			if (isroot)
 			{
+				printf("\n\nREADING BEGINS===================\n");
+				//just checking
+				mywaveletdumper.Read(streamer.str());
 				/*streamer<<"_";
 				streamer.setf(ios::dec | ios::right);
 				streamer.width(5);
@@ -139,7 +143,11 @@ public:
 				streamer<<MPI::COMM_WORLD.Get_rank();*/
 				//streamer<<".vp";
 				//myvpdumper.Write(grid, streamer.str());
+				printf("\n\nREADING ENDS===================\n");
+
 			}
+			
+			MPI::COMM_WORLD.Barrier();
 			
 			if (isroot) cout << "done" << endl;
 			

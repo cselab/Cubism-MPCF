@@ -18,6 +18,7 @@ using namespace std;
 #include "WaveletCompressor.h"
 
 inline int deflate_inplace(z_stream *strm, unsigned char *buf, unsigned len, unsigned *max);
+inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned char * outputbuf, const size_t maxsize);
 
 template<typename GridType, typename IterativeStreamer>
 class SerializerIO_WaveletCompression_MPI_Simple
@@ -37,7 +38,6 @@ class SerializerIO_WaveletCompression_MPI_Simple
 	
 	Real threshold;
 	bool halffloat, verbosity;
-	int callscounter; //number of times the "Write" method has been called
 
 	vector< float > workload; //per-thread cpu time for imbalance insight
 
@@ -70,19 +70,19 @@ class SerializerIO_WaveletCompression_MPI_Simple
 		}
 				
 		//2-3.
-		#pragma critical
+		#pragma omp critical
 		{
 			dstoffset = written_bytes;
 			written_bytes += zbytes;
 
 			idcompression = lut_compression.size();
-			lut_compression.push_back(zbytes);
+			lut_compression.push_back(dstoffset);
 		}
 		
 		//4.
 		assert(allmydata.size() >= written_bytes);
-		memcpy(&allmydata.front(), zptr, zbytes);
-
+		memcpy(&allmydata.front() + dstoffset, zptr, zbytes);
+		
 		//5.
 		for(int i = 0; i < nblocks; ++i)
 		{
@@ -91,6 +91,7 @@ class SerializerIO_WaveletCompression_MPI_Simple
 			
 			myblockindices[entry] = metablocks[i];
 			myblockindices[entry].idcompression = idcompression;
+			myblockindices[entry].subid = i;
 		}
 		
 		//6.
@@ -104,7 +105,7 @@ class SerializerIO_WaveletCompression_MPI_Simple
 		{
 			enum //some considerations about the per-thread working set 
 			{ 
-				DESIREDMEM = (4 * 1024) * 1024,
+				DESIREDMEM = (2 * 1024) * 1024,
 				ENTRYSIZE = sizeof(WaveletCompressor) + sizeof(int),
 				ENTRIES_CANDIDATE = DESIREDMEM / ENTRYSIZE,
 				ENTRIES = ENTRIES_CANDIDATE ? ENTRIES_CANDIDATE : 1,
@@ -114,6 +115,7 @@ class SerializerIO_WaveletCompression_MPI_Simple
 						
 			BlockMetadata hotblocks[ENTRIES];
 			unsigned char compressedbuffer[BUFFERSIZE];
+			//int * header = (int *)compressedbuffer;
 
 			int mybytes = 0, myhotblocks = 0;
 			
@@ -152,6 +154,8 @@ class SerializerIO_WaveletCompression_MPI_Simple
 					myhotblocks++;
 				}
 				
+				//*header = -1;//lets fake it
+				
 				if (mybytes >= ALERT || myhotblocks >= ENTRIES)
 					_zcompress_and_flush(compressedbuffer, mybytes, BUFFERSIZE, hotblocks, myhotblocks);
 			}
@@ -169,6 +173,10 @@ class SerializerIO_WaveletCompression_MPI_Simple
 		const int ytotalbpd = inputGrid.getBlocksPerDimension(1);
 		const int ztotalbpd = inputGrid.getBlocksPerDimension(2);
 		
+		const int xbpd = inputGrid.getResidentBlocksPerDimension(0);
+		const int ybpd = inputGrid.getResidentBlocksPerDimension(1);
+		const int zbpd = inputGrid.getResidentBlocksPerDimension(2);
+		
 		std::stringstream ss;
 			
 		ss << "\n==============START-ASCI-HEADER==============\n";
@@ -182,8 +190,9 @@ class SerializerIO_WaveletCompression_MPI_Simple
 		
 		ss << "sizeofReal: " << sizeof(Real) << "\n";
 		ss << "Blocks: " << xtotalbpd << " x "  << ytotalbpd << " x " << ztotalbpd  << "\n";
+		ss << "SubdomainBlocks: " << xbpd << " x "  << ybpd << " x " << zbpd  << "\n";
 		ss << "HalfFloat: " << (this->halffloat ? "yes" : "no") << "\n";
-		ss << "==============START-BINARY-LUT==============\n";
+		ss << "==============START-BINARY-METABLOCKS==============\n";
 		
 		return ss.str();
 	}
@@ -207,14 +216,16 @@ class SerializerIO_WaveletCompression_MPI_Simple
 
 			_compress(infos, infos.size(), streamer, channel);
 
-			lut_compression.insert(lut_compression.begin(), lut_compression.size()); //insert nchunks at the beginning
-			lut_compression.push_back(allmydata.size()); //add the "#nchunk+1 start"
+			const int nchunks = lut_compression.size();
+			lut_compression.insert(lut_compression.begin(), nchunks); //insert nchunks at the beginning
+			lut_compression.push_back(written_bytes); //add the "#nchunk+1 start"
+			
 		}
 		
 		const MPI::Comm& mycomm = inputGrid.getCartComm();
 		
 		const size_t mygid = mycomm.Get_rank();
-		
+
 		string binaryocean_title = "\n==============START-BINARY-OCEAN==============\n";
 		
 		MPI::File myfile = MPI::File::Open(mycomm, fileName.c_str(),  MPI::MODE_WRONLY|MPI::MODE_CREATE, MPI::INFO_NULL);
@@ -232,11 +243,11 @@ class SerializerIO_WaveletCompression_MPI_Simple
 				
 		//write the buffer - alias the binary ocean 
 		{
-			myfile.Seek_shared(current_displacement, MPI_SEEK_CUR);
+			myfile.Seek_shared(current_displacement, MPI_SEEK_SET);
 
 			myfile.Write_ordered(&allmydata.front(), written_bytes, MPI_CHAR);
 			
-			current_displacement += myfile.Get_position_shared();			
+			current_displacement = myfile.Get_position_shared();			
 		}
 		
 		//go back at the blank address and fill it with the displacement
@@ -280,7 +291,7 @@ class SerializerIO_WaveletCompression_MPI_Simple
 		
 		//write the local buffer entries 
 		{
-			myfile.Seek_shared(current_displacement, MPI_SEEK_CUR);
+			myfile.Seek_shared(current_displacement, MPI_SEEK_SET);
 			
 			const int lut_bytes = lut_compression.size() * sizeof(size_t);
 		
@@ -319,13 +330,248 @@ class SerializerIO_WaveletCompression_MPI_Simple
 		}
 	}
 	
+	struct CompressedBlock{ size_t start, extent; int subid; } ;
+	
+	void _read(string path)
+	{
+		//THE FIRST PART IS SEQUENTIAL
+		//THE SECOND ONE IS RANDOM ACCESS
+		
+		size_t global_header_displacement = -1;
+		int NBLOCKS = -1;
+		int totalbpd[3] = {-1, -1, -1};
+		int bpd[3] = { -1, -1, -1};
+		string binaryocean_title = "\n==============START-BINARY-OCEAN==============\n";	
+		const int miniheader_bytes = sizeof(size_t) + binaryocean_title.size();		
+		
+		vector<BlockMetadata> metablocks;
+		
+		//random access data structures: meta2subchunk, lutchunks;
+		map<int, map<int, map<int, CompressedBlock > > > meta2subchunk;
+		vector<size_t> lutchunks;
+				
+		//printf("reading %s\n", path.c_str());
+		
+		{
+			FILE * file = fopen(path.c_str(), "rb");
+		
+			assert(file);
+			
+			//reading the header and mini header
+			{
+				size_t header_displacement = -1;
+				fread(&header_displacement, sizeof(size_t), 1, file);
+				
+				fseek(file, header_displacement, SEEK_SET);
+				global_header_displacement = header_displacement;
+			
+				char buf[1024];
+				fgets(buf, sizeof(buf), file);
+				fgets(buf, sizeof(buf), file);
+				assert(string("==============START-ASCI-HEADER==============\n") == string(buf));
+			
+				fscanf(file, "Endianess:  %s\n", buf);
+				assert(string(buf) == "little");
+			
+				int sizeofreal = -1;
+				fscanf(file, "sizeofReal:  %d\n", &sizeofreal);
+				assert(sizeof(Real) == sizeofreal);		
+			
+				fscanf(file, "Blocks: %d x %d x %d\n", totalbpd, totalbpd + 1, totalbpd + 2);
+				fscanf(file, "SubdomainBlocks: %d x %d x %d\n", bpd, bpd + 1, bpd + 2);
+
+				fscanf(file, "HalfFloat: %s\n", buf);
+				this->halffloat = (string(buf) == "yes");
+					
+				fgets(buf, sizeof(buf), file);
+				assert(string("==============START-BINARY-METABLOCKS==============\n") == string(buf));
+				
+				NBLOCKS = totalbpd[0] * totalbpd[1] * totalbpd[2];
+				//printf("Blocks: %d -> %dx%dx%d -> subdomains of %dx%dx%d\n", 
+				//	NBLOCKS, totalbpd[0], totalbpd[1], totalbpd[2], bpd[0], bpd[1], bpd[2]);
+				
+			}
+			
+			//reading the binary lut
+			{
+				metablocks.resize(NBLOCKS);
+				
+				for(int i = 0; i < NBLOCKS; ++i)
+				{
+					BlockMetadata entry;
+					fread(&entry, sizeof(entry), 1, file);
+					//printf("reading metablock %d -> %d %d %d  cid %d\n", i, entry.ix, entry.iy, entry.iz, entry.idcompression); 
+					assert(entry.idcompression >= 0 && entry.idcompression < bpd[0] * bpd[1] * bpd[2]);
+					metablocks[i] = entry;
+				}
+			}
+			
+			//reading the compression lut
+			{				
+				char buf[1024];
+				fgetc(file);//buf, sizeof(buf), file);
+				fgets(buf, sizeof(buf), file);
+				assert(string("==============START-BINARY-LUT==============\n") == string(buf));
+
+				//printf("reading compression lut..at location %d\n", ftell(file));
+				
+				bool done = false;
+				
+				size_t base = miniheader_bytes;
+				
+				const int BPS = bpd[0] * bpd[1] * bpd[2];
+				assert(NBLOCKS % BPS == 0);
+				const int SUBDOMAINS = NBLOCKS / BPS;
+				
+				for(int s = 0, currblock = 0; s < SUBDOMAINS; ++s)
+				{
+					const int nglobalchunks = lutchunks.size();
+					
+					assert(!feof(file));
+					
+					size_t nchunks = -1;
+					fread(&nchunks, sizeof(nchunks), 1, file);
+					//printf("this buffer has %d entries\n", nchunks);
+
+					vector<size_t> start_lut(nchunks + 1);
+					fread(&start_lut.front(), sizeof(size_t), start_lut.size(), file);
+					const size_t myamount = start_lut.back();
+					printf("my amount is %d\n", myamount);
+					start_lut.pop_back();
+					
+					//compute the global positioning of the compressed chunks within the file				
+					for(int i = 0; i < start_lut.size(); ++i)
+					{
+						assert(start_lut[i] < myamount);
+						start_lut[i] += base;
+					}
+						
+					assert(myamount > 0);
+					base += myamount;
+					assert(base <= global_header_displacement);
+					
+					//compute the base for this blocks
+					for(int i = 0; i < BPS; ++i, ++currblock)
+						metablocks[currblock].idcompression += nglobalchunks;
+					
+					lutchunks.insert(lutchunks.end(), start_lut.begin(), start_lut.end());					
+				} 
+				
+				//printf("minheader takes %d bytes\n", miniheader_bytes);
+				//printf("my base is now 0x%x whereas my header is at 0x%x -> discrepancy is %d bytes\n", base, global_header_displacement, global_header_displacement - base);
+				assert(base == global_header_displacement);
+				lutchunks.push_back(base);
+			
+				{
+					int c = fgetc(file);
+					
+					do 
+					{ 
+						//printf("shouldnt be here! 0x%x\n", c); 
+						c = fgetc(file);
+					}
+					while (! feof(file) );
+				}			
+			}
+			
+			fclose(file);
+		}
+		
+		for(int i = 0; i < NBLOCKS ; ++i)
+		{
+			BlockMetadata entry = metablocks[i];
+			
+			assert(entry.idcompression >= 0);
+			assert(entry.idcompression < lutchunks.size()-1);
+			
+			size_t start_address = lutchunks[entry.idcompression];
+			size_t end_address = lutchunks[entry.idcompression + 1];
+			
+			assert(start_address < end_address);
+			assert(end_address <= global_header_displacement);
+			assert( start_address < global_header_displacement );
+			
+			CompressedBlock compressedblock = { start_address, end_address - start_address, entry.subid };
+			
+			meta2subchunk[entry.iz][entry.iy][entry.ix] = compressedblock;
+		}
+		
+		//at this point we can access every block
+		{
+			//lets try with block 7, 3, 5
+			FILE * f = fopen(path.c_str(), "rb");
+			assert(f);
+			
+			const int ix = 0;
+			const int iy = 2;
+			const int iz = 0;
+			
+			assert(ix >= 0 && ix < totalbpd[0]);
+			assert(iy >= 0 && iy < totalbpd[1]);
+			assert(iz >= 0 && iz < totalbpd[2]);
+			
+			assert(meta2subchunk.find(iz) != meta2subchunk.end());
+			assert(meta2subchunk[iz].find(iy) != meta2subchunk[iz].end());
+			assert(meta2subchunk[iz][iy].find(ix) != meta2subchunk[iz][iy].end());
+			
+			CompressedBlock compressedchunk = meta2subchunk[2][0][3];
+			
+			size_t start = compressedchunk.start;
+			assert(start >= miniheader_bytes);
+			assert(start < global_header_displacement);
+			assert(start + compressedchunk.extent < global_header_displacement);
+			
+			vector<unsigned char> compressedbuf(compressedchunk.extent);
+			fseek(f, compressedchunk.start, SEEK_SET);
+			fread(&compressedbuf.front(), compressedchunk.extent, 1, f);
+			assert(!feof(f));
+			//printf("my steart: 0x%x extent is %d my subid %d\n" , compressedchunk.start, compressedchunk.extent, compressedchunk.subid);
+
+			
+			vector<unsigned char> waveletbuf(4 << 20);
+			const size_t decompressedbytes = zdecompress(&compressedbuf.front(), compressedbuf.size(), &waveletbuf.front(), waveletbuf.size());
+			//printf("decompressed bytes is %d\n", decompressedbytes);
+			int readbytes = 0;
+			for(int i = 0; i<compressedchunk.subid; ++i)
+			{
+				int nbytes = *(int *)&waveletbuf[readbytes];
+				readbytes += sizeof(int);
+				assert(readbytes <= decompressedbytes);
+				//printf("scanning nbytes...%d\n", nbytes);
+				readbytes += nbytes;
+								assert(readbytes <= decompressedbytes);
+
+			}
+			
+			Real MYBLOCK[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
+			
+			{
+				int nbytes = *(int *)&waveletbuf[readbytes];
+				readbytes += sizeof(int);
+				assert(readbytes <= decompressedbytes);
+
+				//printf("OK MY BYTES ARE: %d\n", nbytes);
+				
+				WaveletCompressor compressor;
+				memcpy(compressor.data(), &waveletbuf[readbytes], nbytes);
+				readbytes += nbytes;
+
+				compressor.decompress(halffloat, nbytes, MYBLOCK);
+			}
+			
+			printf("OK FINAL TEST: THE DATA\n");
+			for(int iz = 0; iz< _BLOCKSIZE_; ++iz)
+				for(int iy = 0; iy< _BLOCKSIZE_; ++iy)
+					for(int ix = 0; ix< _BLOCKSIZE_; ++ix)
+						printf("%d %d %d: %e\n", ix, iy, iz, MYBLOCK[iz][iy][ix]);
+				
+			fclose(f);
+		}
+	}
+	
 public:
 	
-	void set_threshold(const Real threshold) 
-	{ 
-		//printf("setting the threshold to %e\n", threshold);
-		this->threshold = threshold; 
-	}
+	void set_threshold(const Real threshold) { this->threshold = threshold; }
 
 	void float16() { halffloat = true; }
 	
@@ -344,7 +590,46 @@ public:
 			_write(inputGrid, fileName + ss.str(), streamer, channel);
 		}
 	}
+	
+	void Read(string fileName, IterativeStreamer streamer = IterativeStreamer())
+	{
+		for(int channel = 0; channel < NCHANNELS; ++channel)
+		{
+			std::stringstream ss;
+			ss << "." << streamer.name() << ".channel"  << channel;
+			
+			_read(fileName + ss.str());
+		}
+	}
 };
+
+inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned char * outputbuf, const size_t maxsize)
+{
+	int decompressedbytes = 0;
+
+	z_stream datastream = {0};
+	datastream.total_in = datastream.avail_in = ninputbytes;
+	datastream.total_out = datastream.avail_out = maxsize;
+	datastream.next_in = inputbuf;
+	datastream.next_out = outputbuf;
+
+	const int retval = inflateInit(&datastream);
+
+	if (retval == Z_OK && inflate(&datastream, Z_FINISH))
+	{
+		printf("goooooood\n");
+		decompressedbytes = datastream.total_out;
+	}
+	else
+	{
+			printf("ZLIB DECOMPRESSION FAILURE!!\n");
+			abort();
+	}
+
+	inflateEnd(&datastream);
+	printf("ADSDSO %d\n", decompressedbytes);
+	return decompressedbytes;
+}
 
 /* THIS CODE SERVES US TO COMPRESS IN-PLACE. TAKEN FROM THE WEB
  * http://stackoverflow.com/questions/12398377/is-it-possible-to-have-zlib-read-from-and-write-to-the-same-memory-buffer
