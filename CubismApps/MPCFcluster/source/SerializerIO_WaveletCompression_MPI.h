@@ -18,30 +18,29 @@
 template<int DESIREDMEM, int NSLOTS>
 class ChainedWriteBuffer_MPI: public ChainedWriteBuffer<DESIREDMEM, NSLOTS> 
 {
-	protected:
-
-		MPI_Streamer& mympistreamer;
-
-		void _nonblocking_write(const int targetslot)
-		{
-			//panos, dont worry this method is not called concurrently
-			mympistreamer.Write(this->buffers[targetslot], this->nbytes[targetslot] * sizeof(char));
-		}
-
-		void _wait_resolve(const int targetslot)
-		{
-			//panos, dont worry this method is not called concurrently
-			mympistreamer.WaitResolve(this->buffers[targetslot]);
-		}
-
-	public:
-
-		ChainedWriteBuffer_MPI(MPI_Streamer& mympistreamer):
-			ChainedWriteBuffer<DESIREDMEM, NSLOTS>(), mympistreamer(mympistreamer) { }
-
-		void Reset() { this->_reset(); }
+protected:
+	
+	MPI_Streamer& mympistreamer;
+	
+	void _nonblocking_write(const int targetslot)
+	{
+		//panos, dont worry this method is not called concurrently
+		mympistreamer.Write(this->buffers[targetslot], this->nbytes[targetslot] * sizeof(char));
+	}
+	
+	void _wait_resolve(const int targetslot)
+	{
+		//panos, dont worry this method is not called concurrently
+		mympistreamer.WaitResolve(this->buffers[targetslot]);
+	}
+	
+public:
+	
+	ChainedWriteBuffer_MPI(MPI_Streamer& mympistreamer):
+	ChainedWriteBuffer<DESIREDMEM, NSLOTS>(), mympistreamer(mympistreamer) { }
+	
+	void Reset() { this->_reset(); }
 };
-
 
 template<typename GridType, typename Streamer>
 class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompression<GridType, Streamer> 

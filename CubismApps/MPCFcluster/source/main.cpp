@@ -91,5 +91,8 @@ int main (int argc, const char ** argv)
 	if (isroot)
 		printf("we spent: %2.2f \n", wallclock);
 	
+	sim->dispose();
+	
+	MPI::Finalize();
 	return 0;
 }

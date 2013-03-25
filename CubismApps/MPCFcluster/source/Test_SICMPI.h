@@ -76,8 +76,10 @@ public:
 			{
 				std::stringstream streamer;
 				streamer<<"data-"<<step_id;
-                t_ssmpi->dump(*grid, step_id, streamer.str());
+                
+				t_ssmpi->dump(*grid, step_id, streamer.str());
 				t_ssmpi->vp(*grid, step_id, bVP);
+				return ;
 			}
             
 			if (step_id%SAVEPERIOD==0)
@@ -112,7 +114,17 @@ public:
 		t_ssmpi->dump(*grid, step_id, streamer.str());
         
 		if (isroot) printf("Finishing RUN\n");
-		MPI_Finalize();
+		
+	
+		//MPI_Finalize();
+	}
+	
+	void dispose()
+	{		
+		t_ssmpi->dispose();
+		t_sbmpi->dispose();
+		
+		delete stepper;
 	}
 };
 

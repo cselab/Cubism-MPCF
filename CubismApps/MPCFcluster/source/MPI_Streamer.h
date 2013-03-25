@@ -120,7 +120,7 @@ struct MPI_Streamer
 		mode = MPI_MODE_CREATE | MPI_MODE_WRONLY;
 
 		//MPI_File_open(MPI_COMM_WORLD, filename.c_str(), mode, MPI_INFO_NULL, &fh);
-		MPI_File_open(MPI_COMM_SELF, filename.c_str(), mode, MPI_INFO_NULL, &fh);
+		MPI_File_open(MPI_COMM_SELF, const_cast<char *>(filename.c_str()), mode, MPI_INFO_NULL, &fh);
 
 		MPI_Barrier(MPI_COMM_WORLD);
 
