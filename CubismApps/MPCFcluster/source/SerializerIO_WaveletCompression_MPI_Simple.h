@@ -190,11 +190,11 @@ class SerializerIO_WaveletCompression_MPI_Simple
 	
 	void _write(GridType & inputGrid, string fileName, IterativeStreamer streamer, const int channel)
 	{				
+		const vector<BlockInfo> infos = inputGrid.getBlocksInfo();
+		const int NBLOCKS = infos.size();
+			
 		//compress my data, prepare for serialization
 		{			
-			const vector<BlockInfo> infos = inputGrid.getBlocksInfo();
-			const int NBLOCKS = infos.size();
-		
 			written_bytes = 0;
 			
 			if (allmydata.size() == 0)
@@ -310,8 +310,12 @@ class SerializerIO_WaveletCompression_MPI_Simple
 			tmed /= mycomm.Get_size();
 			
 			if (mygid == 0)
-				printf("channel %d: %.2f kB, workload imbalance (min, avg-median, max): %.2f %.2f %.2f\n", 
-					channel, aggregate_written_bytes/1024., tmin, tmed, tmax);
+			{
+				printf("Channel %d: %.2f kB, wavelet-threshold: %.1e, compr. rate: %.2f, imbalance (min, avg-median, max): %.2f %.2f %.2f\n", 
+					channel, aggregate_written_bytes/1024., 
+					threshold, NPTS * sizeof(Real) * NBLOCKS * mycomm.Get_size() / (float) aggregate_written_bytes, 
+					tmin, tmed, tmax);
+			}
 		}
 	}
 	
@@ -319,7 +323,7 @@ public:
 	
 	void set_threshold(const Real threshold) 
 	{ 
-		printf("setting the threshold to %e\n", threshold);
+		//printf("setting the threshold to %e\n", threshold);
 		this->threshold = threshold; 
 	}
 
