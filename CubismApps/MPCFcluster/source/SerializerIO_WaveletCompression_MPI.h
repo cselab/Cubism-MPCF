@@ -174,6 +174,33 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 			mympistreamer.Flush();
 			chainedbuffer->Reset();
 		}
+
+#if 1
+		{
+		ostringstream ss;
+		
+	        int one = 1;
+	        bool isone = *(char *)(&one);
+
+		ss << "Endianess: "  << (isone ? "little" : "big") << endl;
+		ss << "sizeofReal: " << sizeof(Real) << endl;
+		ss << "Blocks: " << NBLOCKS << endl;
+		ss << "Blocksize: " << _BLOCKSIZE_ << endl;
+		ss << "Channels: " <<  NCHANNELS << endl;
+//		ss << "HalfFloat: " << (halffloat ? "yes" : "no")  << endl;
+//		ss << "Normalized: " << (normalized ? "yes" : "no") << endl;
+		ss << "Groupsize: " << mympistreamer.groupsize << endl;
+		ss << "First_Rank: " << mympistreamer.first << endl;
+		ss << "Last_Rank: " << mympistreamer.last << endl;
+		ss << "==============START-BINARY-DATA==============" << endl;
+
+//		printf("header\n"); 
+//		cout << ss.str();
+//		cout << ss.str().size();
+
+		mympistreamer.SetHeader((char *)ss.str().c_str());
+		}
+#endif
 		mympistreamer.Init(fileName);
 
 		//send to panos gigantic compressed streams
