@@ -11,6 +11,8 @@
 #include <GridMPI.h>
 #include <HDF5Dumper_MPI.h>
 
+#include "SerializerIO_WaveletCompression_MPI_Simple.h"
+
 #include "FlowStep_LSRK3MPI.h"
 #include <Test_SteadyState.h>
 
@@ -19,18 +21,23 @@ typedef GridMPI< FluidGrid > G;
 class Test_SteadyStateMPI: public Test_SteadyState
 {
 protected:
+	
 	int XPESIZE, YPESIZE, ZPESIZE;
 	
     G * grid;
+	
 	FlowStep_LSRK3MPI<G> * mystepper;
-    
+	
+	SerializerIO_WaveletCompression_MPI_Simple<G, StreamerGridPointIterative> mywaveletdumper;
+	//SerializerVP_WaveletCompression_MPI<G, StreamerPressure> myvpdumper;
+	
 public:
 	
 	const bool isroot;
 	
 	Test_SteadyStateMPI(const bool isroot, const int argc, const char ** argv):
-		Test_SteadyState(argc, argv), isroot(isroot) { }
-        
+	Test_SteadyState(argc, argv), isroot(isroot) { }
+	
     void setup_mpi_constants(int& xpesize, int& ypesize, int& zpesize)
 	{	
 		xpesize = parser("-xpesize").asInt(2);
@@ -74,52 +81,78 @@ public:
     
     void save(G& grid, const int step_id, const Real t)
     {
-      if (isroot) cout << "Saving...";
+		if (isroot) cout << "Saving...";
         
         const string path = parser("-fpath").asString(".");
-       
+		
         if (isroot)
         {
             const string restart_status = path+"/restart.status";
             ofstream status(restart_status.c_str());
             
             status << t << " " << step_id;
-           
+			
             printf( "time: %20.20e\n", t);
             printf( "stepid: %d\n", step_id);
         }
         
         DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, "data_restart", path.c_str());
         
-         if (isroot) cout << "done" <<endl;
-     
-      }
+		if (isroot) cout << "done" <<endl;
+		
+	}
     
     void vp(G& grid, const int step_id, const bool bVP)
     {
 		if (bVP)
 		{
 			if (isroot) cout << "dumping MPI VP ..." ;
-		   
+			
 			const string path = parser("-fpath").asString(".");
-	 
+			
 			std::stringstream streamer;
 			streamer<<path;
 			streamer<<"/";
-			streamer<<"data";
-			streamer.setf(ios::dec | ios::right);
-			streamer.width(5);
-			streamer.fill('0');
-			streamer<<MPI::COMM_WORLD.Get_rank();
-			streamer<<"_";
+			streamer<<"dataserialized";
+			/* we don't need this anymore as we dont create one file per rank
+			 streamer.setf(ios::dec | ios::right);
+			 streamer.width(5);
+			 streamer.fill('0');
+			 streamer<<MPI::COMM_WORLD.Get_rank();
+			 streamer<<"_";*/
 			streamer.setf(ios::dec | ios::right);
 			streamer.width(5);
 			streamer.fill('0');
 			streamer<<step_id;
 			
-			this->_vp_dump(grid, streamer.str());
+			mywaveletdumper.verbose();
+			mywaveletdumper.set_threshold(1e-4);
+			
+			//if (false)//skipping the write for now
+				mywaveletdumper.Write(grid, streamer.str()); 
+			
+			//this line is now obsolete: this->_vp_dump(grid, streamer.str());
+			if (isroot)
+			{
+				printf("\n\nREADING BEGINS===================\n");
+				//just checking
+				mywaveletdumper.Read(streamer.str());
+				/*streamer<<"_";
+				streamer.setf(ios::dec | ios::right);
+				streamer.width(5);
+				streamer.fill('0');
+				streamer<<MPI::COMM_WORLD.Get_rank();*/
+				//streamer<<".vp";
+				//myvpdumper.Write(grid, streamer.str());
+				printf("\n\nREADING ENDS===================\n");
 
+			}
+			
+			MPI::COMM_WORLD.Barrier();
+			
 			if (isroot) cout << "done" << endl;
+			
+			//exit(0);
 		}
     }
     
@@ -172,6 +205,23 @@ public:
 
 		delete stepper;
 		if (isroot)
-		  printf("Finishing RUN\n");
+			printf("Finishing RUN\n");
+
+		MPI::Finalize();
+	}
+	
+	void dispose()
+	{
+		if (grid!=NULL)
+		{
+			delete grid;
+			grid = NULL;
+		}
+		
+		if (mystepper != NULL)
+		{
+			delete mystepper;
+			mystepper = NULL;
+		}
 	}
 };

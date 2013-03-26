@@ -41,6 +41,7 @@ void serialize_bitset(bitset<N> mybits, unsigned char * const buf, const int nby
 		buf[B] = c;
 	}
 	
+	if (nicebits < N)
 	{
 		unsigned char c = 0;
 		
@@ -68,6 +69,7 @@ int deserialize_bitset(bitset<N>& mybits, const unsigned char * const buf, const
 			sum += mybits[i + b] = (c >> b) & 1;		
 	}
 	
+	if (nicebits < N)
 	{
 		const unsigned char c = buf[nbytes - 1];
 		
@@ -119,7 +121,7 @@ size_t WaveletCompressor::compress(const Real threshold, const bool float16, con
 	WaveletsOnInterval::FullTransform<_BLOCKSIZE_, lifting_scheme> full;
 		
 	const Real * const src = &data[0][0][0];
-	Real * const dst = &full.data[0][0][0];
+	WaveletsOnInterval::FwtAp * const dst = &full.data[0][0][0];
 	for(int i = 0; i < BS3; ++i) dst[i] = src[i];
 	
 	full.fwt();
@@ -158,8 +160,8 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 	size_t bytes_read = BITSETSIZE;
 	
 	const int nelements = (bytes - bytes_read) / (float16 ? sizeof(unsigned short) : sizeof(Real));
-		assert(expected == nelements);
-	
+	assert(expected == nelements);
+
 	vector<Real> datastream(nelements);
 	
 	if (!float16)
@@ -175,9 +177,13 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 	
 	WaveletsOnInterval::FullTransform<_BLOCKSIZE_, lifting_scheme> full;
 	full.load(datastream, mask);
-	full.inverse();
+	full.iwt();
 
 	Real * const dst = &data[0][0][0];
-	const Real * const src = &full.data[0][0][0];
-	for(int i = 0; i < BS3; ++i) dst[i] = src[i];
+	const WaveletsOnInterval::FwtAp * const src = &full.data[0][0][0];
+	for(int i = 0; i < BS3; ++i)
+	{ 
+		dst[i] = src[i];
+		assert(!std::isnan(dst[i]));
+	}
 }
