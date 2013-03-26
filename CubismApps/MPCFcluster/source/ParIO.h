@@ -169,9 +169,9 @@ struct MPI_ParIO
 	{
 		async_counter++;
 
-		if (lastcall) {
-			printf("chunked_async: lastcall = %d\n", lastcall); fflush(0);
-		}
+		//if (lastcall) {
+		//	printf("chunked_async: lastcall = %d\n", lastcall); fflush(0);
+		//}
 
 		int step = (gstep - reportfreq)/reportfreq;	// normalized step
 		

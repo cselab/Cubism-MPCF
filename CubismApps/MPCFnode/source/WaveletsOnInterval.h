@@ -1,3 +1,12 @@
+/*
+ *  WaveletsOnInterval.h
+ *  
+ *
+ *  Created by Diego Rossinelli and Babak Hejazialhosseini on 3/1/13.
+ *  Copyright 2013 ETH Zurich. All rights reserved.
+ *
+ */
+
 #pragma once
 #include <cmath>
 #include <vector>

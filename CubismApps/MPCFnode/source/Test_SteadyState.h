@@ -65,6 +65,5 @@ public:
 	int get_stepid() const { return step_id; }
     
 	Test_SteadyState(const int argc, const char ** argv);
-	virtual ~Test_SteadyState() { }
 };
 
