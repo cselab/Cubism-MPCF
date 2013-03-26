@@ -176,6 +176,28 @@ public:
         //read seed if needed
         if (bRestartedSeed)
         {
+            //For the moment we just read the cloud.dat
+            //and ignore seed and cloud_config.dat
+            {
+                ifstream f_read_cloud("cloud.dat");
+                for(int i=0; i<CloudData::n_shapes; ++i)
+                {
+                    int idx;
+                    Real c[3], rad;
+                    f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
+                    cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+                    
+                    shape * cur_shape = new shape(c,rad);
+                    v_shapes.push_back(cur_shape);
+                }
+                
+                f_read_cloud.close();
+                
+                cout << "number of shapes are " << v_shapes.size() << endl;
+            }
+            
+            return;
+            
             ifstream f_read("seed.dat");
             if(f_read)
             {
