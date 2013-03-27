@@ -95,34 +95,46 @@ public:
 				fgets(buf, sizeof(buf), file);
 				fgets(buf, sizeof(buf), file);
 				
+				printf("\n%s", buf);
 				assert(string("==============START-ASCI-HEADER==============\n") == string(buf));
 				
 				fscanf(file, "Endianess:  %s\n", buf);
+				printf("Endianess: <%s>\n", buf);
 				assert(string(buf) == "little");
 				
 				int sizeofreal = -1;
 				fscanf(file, "sizeofReal:  %d\n", &sizeofreal);
+				printf("sizeofReal: <%d>\n", sizeofreal);
+
 				MYASSERT(sizeof(Real) == sizeofreal, 
 						 "\nATTENZIONE:\nSizeof(Real) in the file is " << sizeofreal << " which is wrong\n");		
 				
 				int bsize = -1;
 				fscanf(file, "Blocksize: %d\n", &bsize);
+				printf("Blocksize: <%d>\n", bsize);
+
 				MYASSERT(bsize == _BLOCKSIZE_,
 					    "\nATTENZIONE:\nBlocksize in the file is " << bsize << 
 						 " and i have " << _BLOCKSIZE_ << "\n");
 				
 				fscanf(file, "Blocks: %d x %d x %d\n", totalbpd, totalbpd + 1, totalbpd + 2);
+				printf("Blocks: %d x %d x %d\n", totalbpd[0], totalbpd[1], totalbpd[2]);
+				
 				fscanf(file, "SubdomainBlocks: %d x %d x %d\n", bpd, bpd + 1, bpd + 2);
+				printf("SubdomainBlocks: <%d x %d x %d>\n", bpd[0], bpd[1], bpd[2]);
 				
 				fscanf(file, "HalfFloat: %s\n", buf);
+				printf("HalfFloat: <%s>\n", buf);
 				this->halffloat = (string(buf) == "yes");
 				
 				fscanf(file, "Wavelets: %s\n", buf);
+				printf("Wavelets: <%s>\n", buf);
 				MYASSERT(buf == string(WaveletsOnInterval::ChosenWavelets_GetName()),
 					   "\nATTENZIONE:\nWavelets in the file is " << buf << 
 						 " and i have " << WaveletsOnInterval::ChosenWavelets_GetName() << "\n");
 				
 				fscanf(file, "Encoder: %s\n", buf);
+				printf("Encoder: <%s>\n", buf);
 				MYASSERT(buf == string("zlib"),
 					   "\nATTENZIONE:\nWavelets in the file is " << buf << 
 					   " and i have zlib.\n");
@@ -130,7 +142,7 @@ public:
 				fgets(buf, sizeof(buf), file);
 				
 				assert(string("==============START-BINARY-METABLOCKS==============\n") == string(buf));
-				
+				printf("==============END ASCI-HEADER==============\n\n");
 				NBLOCKS = totalbpd[0] * totalbpd[1] * totalbpd[2];
 				
 				//printf("Blocks: %d -> %dx%dx%d -> subdomains of %dx%dx%d\n", 
