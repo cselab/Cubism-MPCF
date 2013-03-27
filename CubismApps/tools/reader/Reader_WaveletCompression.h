@@ -41,6 +41,7 @@ std::exit(EXIT_FAILURE); \
 
 class Reader_WaveletCompression
 {
+protected:
 	string path;
 	int miniheader_bytes;
 	size_t global_header_displacement;
@@ -63,8 +64,12 @@ class Reader_WaveletCompression
 	
 public:
 	
-	Reader_WaveletCompression(string path): NBLOCKS(-1), global_header_displacement(-1), path(path)
+	Reader_WaveletCompression(): NBLOCKS(-1), global_header_displacement(-1) {	}
+	
+	virtual void load_file(const string path)
 	{
+		this->path = path;
+		
 		for(int i = 0; i < 3; ++i)
 			totalbpd[i] = -1;
 		
@@ -77,7 +82,7 @@ public:
 		
 		vector<BlockMetadata> metablocks;
 		vector<size_t> lutchunks;
-
+		
 		{
 			FILE * file = fopen(path.c_str(), "rb");
 			
@@ -105,16 +110,16 @@ public:
 				int sizeofreal = -1;
 				fscanf(file, "sizeofReal:  %d\n", &sizeofreal);
 				printf("sizeofReal: <%d>\n", sizeofreal);
-
+				
 				MYASSERT(sizeof(Real) == sizeofreal, 
 						 "\nATTENZIONE:\nSizeof(Real) in the file is " << sizeofreal << " which is wrong\n");		
 				
 				int bsize = -1;
 				fscanf(file, "Blocksize: %d\n", &bsize);
 				printf("Blocksize: <%d>\n", bsize);
-
+				
 				MYASSERT(bsize == _BLOCKSIZE_,
-					    "\nATTENZIONE:\nBlocksize in the file is " << bsize << 
+						 "\nATTENZIONE:\nBlocksize in the file is " << bsize << 
 						 " and i have " << _BLOCKSIZE_ << "\n");
 				
 				fscanf(file, "Blocks: %d x %d x %d\n", totalbpd, totalbpd + 1, totalbpd + 2);
@@ -130,14 +135,14 @@ public:
 				fscanf(file, "Wavelets: %s\n", buf);
 				printf("Wavelets: <%s>\n", buf);
 				MYASSERT(buf == string(WaveletsOnInterval::ChosenWavelets_GetName()),
-					   "\nATTENZIONE:\nWavelets in the file is " << buf << 
+						 "\nATTENZIONE:\nWavelets in the file is " << buf << 
 						 " and i have " << WaveletsOnInterval::ChosenWavelets_GetName() << "\n");
 				
 				fscanf(file, "Encoder: %s\n", buf);
 				printf("Encoder: <%s>\n", buf);
 				MYASSERT(buf == string("zlib"),
-					   "\nATTENZIONE:\nWavelets in the file is " << buf << 
-					   " and i have zlib.\n");
+						 "\nATTENZIONE:\nWavelets in the file is " << buf << 
+						 " and i have zlib.\n");
 				
 				fgets(buf, sizeof(buf), file);
 				
@@ -260,7 +265,7 @@ public:
 			
 			idx2chunk[_id(entry.ix, entry.iy, entry.iz)] = compressedblock;
 		}
-				
+		
 		const bool verbose = true;
 		
 		if (verbose)
@@ -322,5 +327,38 @@ public:
 		}
 		
 		fclose(f);
+	}
+};
+
+class Reader_WaveletCompressionMPI: public Reader_WaveletCompression
+{
+	const MPI::Comm& comm;
+	
+public: 
+
+	Reader_WaveletCompressionMPI(const MPI::Comm& comm): 
+		Reader_WaveletCompression(), comm(comm)
+	{
+		
+	}
+	
+	virtual void load_file(const string path)
+	{
+		const int myrank = comm.Get_rank();
+		
+		if (myrank == 0)
+			Reader_WaveletCompression::load_file(path);
+		
+		size_t nentries = idx2chunk.size();
+				
+		comm.Bcast(&nentries, sizeof(nentries), MPI_CHAR, 0);
+		
+		if (myrank)		
+			idx2chunk.resize(nentries);
+		
+		const size_t nbytes = nentries * sizeof(CompressedBlock);
+		char * const entries = (char *)&idx2chunk.front();
+
+		comm.Bcast(entries, nbytes, MPI_CHAR, 0);
 	}
 };
