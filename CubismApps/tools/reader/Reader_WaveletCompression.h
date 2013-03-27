@@ -50,8 +50,7 @@ class Reader_WaveletCompression
 	
 	bool halffloat;
 
-	vector<size_t> lutchunks;
-	vector<CompressedBlock> meta2subchunk;
+	vector<CompressedBlock> idx2chunk;
 	
 	int _id(int ix, int iy, int iz) const
 	{
@@ -77,7 +76,8 @@ public:
 		this->miniheader_bytes = sizeof(size_t) + binaryocean_title.size();		
 		
 		vector<BlockMetadata> metablocks;
-		
+		vector<size_t> lutchunks;
+
 		{
 			FILE * file = fopen(path.c_str(), "rb");
 			
@@ -228,7 +228,7 @@ public:
 			fclose(file);
 		}
 		
-		meta2subchunk.resize(NBLOCKS);
+		idx2chunk.resize(NBLOCKS);
 		
 		for(int i = 0; i < NBLOCKS ; ++i)
 		{
@@ -246,16 +246,15 @@ public:
 			
 			CompressedBlock compressedblock = { start_address, end_address - start_address, entry.subid };
 			
-			meta2subchunk[_id(entry.ix, entry.iy, entry.iz)] = compressedblock;
+			idx2chunk[_id(entry.ix, entry.iy, entry.iz)] = compressedblock;
 		}
 				
 		const bool verbose = true;
 		
 		if (verbose)
 		{
-			const size_t size_lut = lutchunks.size() * sizeof(size_t);
-			const size_t size_meta2subchunk = meta2subchunk.size() * sizeof(CompressedBlock);
-			const double footprint_mb = (size_lut + size_meta2subchunk) / 1024. / 1024.;
+			const size_t size_idx2chunk = idx2chunk.size() * sizeof(CompressedBlock);
+			const double footprint_mb =  size_idx2chunk / 1024. / 1024.;
 			printf("the header data is taking %.2f MB\n", footprint_mb);
 		}
 	}
@@ -270,7 +269,7 @@ public:
 		
 		assert(f);
 		
-		CompressedBlock compressedchunk = meta2subchunk[_id(ix, iy, iz)];
+		CompressedBlock compressedchunk = idx2chunk[_id(ix, iy, iz)];
 		
 		size_t start = compressedchunk.start;
 		
