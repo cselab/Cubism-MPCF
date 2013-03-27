@@ -16,6 +16,7 @@
 
 using namespace std;
 
+#include "FullWaveletTransform.h"
 #include "WaveletCompressor.h"
 
 inline int deflate_inplace(z_stream *strm, unsigned char *buf, unsigned len, unsigned *max);
@@ -103,7 +104,6 @@ protected:
 		
 #pragma omp atomic
 		++completed_writes;
-		
 		
 		//5.
 		for(int i = 0; i < nblocks; ++i)
@@ -226,7 +226,7 @@ protected:
 		
 		//write the header
 		{
-			const size_t header_bytes = header.length();
+			const size_t header_bytes = header.size();
 			
 			if (mygid == 0)
 				myfile.Write_at(current_displacement, header.c_str(), header_bytes, MPI_CHAR);
@@ -243,7 +243,7 @@ protected:
 			current_displacement += metadata_bytes * nranks;			
 		}
 		
-		//write the lut header
+		//write the lut title
 		{			
 			const int title_bytes = binarylut_title.size();
 			
@@ -300,6 +300,8 @@ protected:
 				ss << "Blocks: " << xtotalbpd << " x "  << ytotalbpd << " x " << ztotalbpd  << "\n";
 				ss << "SubdomainBlocks: " << xbpd << " x "  << ybpd << " x " << zbpd  << "\n";
 				ss << "HalfFloat: " << (this->halffloat ? "yes" : "no") << "\n";
+				ss << "Wavelets: " << WaveletsOnInterval::ChosenWavelets_GetName() << "\n";
+				ss << "Encoder: " << "zlib" << "\n";
 				ss << "==============START-BINARY-METABLOCKS==============\n";
 				
 				this->header = ss.str();
@@ -425,6 +427,12 @@ protected:
 				
 				fscanf(file, "HalfFloat: %s\n", buf);
 				this->halffloat = (string(buf) == "yes");
+				
+				fscanf(file, "Wavelets: %s\n", buf);
+				assert(buf == string(WaveletsOnInterval::ChosenWavelets_GetName()));
+				
+				fscanf(file, "Encoder: %s\n", buf);
+				assert(buf == string("zlib"));
 				
 				fgets(buf, sizeof(buf), file);
 				assert(string("==============START-BINARY-METABLOCKS==============\n") == string(buf));
@@ -750,7 +758,7 @@ class SerializerIO_WaveletCompression_MPI_Simple : public SerializerIO_WaveletCo
 		
 		//write the header
 		{
-			const size_t header_bytes = this->header.length();
+			const size_t header_bytes = this->header.size();
 			
 			if (mygid == 0)
 				pending_requests.push_back( myopenfile.Iwrite_at(current_displacement, this->header.c_str(), header_bytes, MPI_CHAR) );
@@ -767,7 +775,7 @@ class SerializerIO_WaveletCompression_MPI_Simple : public SerializerIO_WaveletCo
 			current_displacement += metadata_bytes * nranks;			
 		}
 		
-		//write the lut header
+		//write the lut title
 		{			
 			const int title_bytes = this->binarylut_title.size();
 			
