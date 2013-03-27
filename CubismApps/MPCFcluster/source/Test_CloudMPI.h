@@ -214,8 +214,10 @@ public:
                 }
             }
             
+            if (isroot) printf("Setting ic now...");
             //_my_ic(*grid, v_shapes);
             _my_ic_quad(*grid, v_shapes);
+            if (isroot) printf("done\n");
             
             v_shapes.clear();
             /*
@@ -227,7 +229,9 @@ public:
                 if (isroot) printf("...done\n");
             }
             */
+            if (isroot) printf("Setting energy now...");
             _set_energy(*grid);
+            if (isroot) printf("done\n");
         }
 	}
     
@@ -239,7 +243,8 @@ public:
 		while(bLoop)
 		{
 			if (isroot) printf("Step id %d,Time %f\n", step_id, t);
-            
+
+            profiler.push_start("IO");
 			if (step_id%DUMPPERIOD==0)
 			{
 				std::stringstream streamer;
@@ -247,16 +252,18 @@ public:
                 t_ssmpi->dump(*grid, step_id, streamer.str());
 				t_ssmpi->vp(*grid, step_id, bVP);
 			}
+            profiler.pop_stop();
             
+            profiler.push_start("SAVE");
 			if (step_id%SAVEPERIOD==0)
 				t_ssmpi->save(*grid, step_id, t);
+            profiler.pop_stop();
             
+            profiler.push_start("STEP");
             //stepper->set_CFL(CFL/(1+15*BS4::eval((t-0.3)/0.025)));
             if (isroot) printf("CFL is %f, original CFL is %f\n", stepper->CFL, CFL);
 			const Real dt = (*stepper)(TEND-t);
-            
-			if(step_id%10 == 0 && isroot && step_id > 0)
-				profiler.printSummary();
+            profiler.pop_stop();
             
             profiler.push_start("DUMP STATISTICS");
             if (step_id%ANALYSISPERIOD==0)
@@ -267,6 +274,9 @@ public:
             if (step_id%ANALYSISPERIOD==0)
                 t_sbmpi->dumpAnalysis(*grid, step_id, t, dt);
             profiler.pop_stop();
+            
+            if(step_id%10 == 0 && isroot && step_id > 0)
+				profiler.printSummary();
             
 			t+=dt;
 			step_id++;

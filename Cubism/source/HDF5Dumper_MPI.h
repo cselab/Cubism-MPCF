@@ -123,9 +123,10 @@ void DumpHDF5_MPI(TGrid &grid, const int iCounter, const string f_name, const st
 	
 	fapl_id = H5Pcreate(H5P_DATASET_XFER);
 	H5Pset_dxpl_mpio(fapl_id, H5FD_MPIO_COLLECTIVE);
-	
+    
 	fspace_id = H5Screate_simple(4, dims, NULL);
 	dataset_id = H5Dcreate(file_id, "data", HDF_REAL, fspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
 	fspace_id = H5Dget_space(dataset_id);
 	H5Sselect_hyperslab(fspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
 	mspace_id = H5Screate_simple(4, count, NULL); 

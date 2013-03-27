@@ -105,7 +105,7 @@ class SerializerIO_WaveletCompression_MPI_Simple
 		{
 			enum //some considerations about the per-thread working set 
 			{ 
-				DESIREDMEM = (2 * 1024) * 1024,
+				DESIREDMEM = (1 * 1024) * 1024,
 				ENTRYSIZE = sizeof(WaveletCompressor) + sizeof(int),
 				ENTRIES_CANDIDATE = DESIREDMEM / ENTRYSIZE,
 				ENTRIES = ENTRIES_CANDIDATE ? ENTRIES_CANDIDATE : 1,
@@ -222,7 +222,7 @@ class SerializerIO_WaveletCompression_MPI_Simple
 			
 		}
 		
-		const MPI::Comm& mycomm = inputGrid.getCartComm();
+		const MPI::Intracomm& mycomm = inputGrid.getCartComm();
 		
 		const size_t mygid = mycomm.Get_rank();
 

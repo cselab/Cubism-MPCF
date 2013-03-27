@@ -126,13 +126,13 @@ public:
 			streamer<<step_id;
 			
 			mywaveletdumper.verbose();
-			mywaveletdumper.set_threshold(1e-4);
+			mywaveletdumper.set_threshold(1e-3);
 			
 			//if (false)//skipping the write for now
 				mywaveletdumper.Write(grid, streamer.str()); 
 			
 			//this line is now obsolete: this->_vp_dump(grid, streamer.str());
-			if (isroot)
+			/*if (isroot)
 			{
 				printf("\n\nREADING BEGINS===================\n");
 				//just checking
@@ -141,12 +141,12 @@ public:
 				streamer.setf(ios::dec | ios::right);
 				streamer.width(5);
 				streamer.fill('0');
-				streamer<<MPI::COMM_WORLD.Get_rank();*/
+				streamer<<MPI::COMM_WORLD.Get_rank();* /
 				//streamer<<".vp";
 				//myvpdumper.Write(grid, streamer.str());
 				printf("\n\nREADING ENDS===================\n");
 
-			}
+			}*/
 			
 			MPI::COMM_WORLD.Barrier();
 			
