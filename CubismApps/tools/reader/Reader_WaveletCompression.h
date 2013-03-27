@@ -17,7 +17,6 @@
 
 using namespace std;
 
-
 #ifdef _FLOAT_PRECISION_
 typedef float Real;
 #else
@@ -31,7 +30,6 @@ typedef double Real;
 #include "../../MPCFnode/source/FullWaveletTransform.h"
 
 //MACRO TAKEN FROM http://stackoverflow.com/questions/3767869/adding-message-to-assert
-#ifndef NDEBUG
 #   define MYASSERT(condition, message) \
 do { \
 if (! (condition)) { \
@@ -40,9 +38,6 @@ std::cerr << "Assertion `" #condition "` failed in " << __FILE__ \
 std::exit(EXIT_FAILURE); \
 } \
 } while (false)
-#else
-#   define MYASSERT(condition, message) do { } while (false)
-#endif
 
 class Reader_WaveletCompression
 {
@@ -176,11 +171,23 @@ public:
 				vector<HeaderLUT> headerluts(SUBDOMAINS); //oh mamma mia
 				fread(&headerluts.front(), sizeof(HeaderLUT), SUBDOMAINS, file);
 				
+				{
+					int c = fgetc(file);
+					
+					do 
+					{ 
+						printf("shouldnt be here! 0x%x\n", c); 
+						//abort();
+						c = fgetc(file);
+					}
+					while (! feof(file) );
+				}	
+				//assert(feof(file));
+				
 				for(int s = 0, currblock = 0; s < SUBDOMAINS; ++s)
 				{
 					const int nglobalchunks = lutchunks.size();
 					
-					assert(!feof(file));
 					
 					const int nchunks = headerluts[s].nchunks;
 					const size_t myamount = headerluts[s].aggregate_bytes;
@@ -216,18 +223,6 @@ public:
 				assert(base == global_header_displacement);
 				
 				lutchunks.push_back(base);
-				
-				{
-					int c = fgetc(file);
-					
-					do 
-					{ 
-						printf("shouldnt be here! 0x%x\n", c); 
-						//abort();
-						c = fgetc(file);
-					}
-					while (! feof(file) );
-				}			
 			}
 			
 			fclose(file);
@@ -258,8 +253,10 @@ public:
 		
 		if (verbose)
 		{
-			//const size_t 
-			printf("the header data is taking %.2f MB\n");
+			const size_t size_lut = lutchunks.size() * sizeof(size_t);
+			const size_t size_meta2subchunk = meta2subchunk.size() * sizeof(CompressedBlock);
+			const double footprint_mb = (size_lut + size_meta2subchunk) / 1024. / 1024.;
+			printf("the header data is taking %.2f MB\n", footprint_mb);
 		}
 	}
 	

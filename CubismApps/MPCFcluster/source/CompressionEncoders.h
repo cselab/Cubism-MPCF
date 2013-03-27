@@ -29,7 +29,6 @@ inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned
 	
 	if (retval == Z_OK && inflate(&datastream, Z_FINISH))
 	{
-		printf("goooooood\n");
 		decompressedbytes = datastream.total_out;
 	}
 	else
@@ -39,7 +38,7 @@ inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned
 	}
 	
 	inflateEnd(&datastream);
-	printf("ADSDSO %d\n", decompressedbytes);
+
 	return decompressedbytes;
 }
 
