@@ -108,6 +108,7 @@ public:
 	virtual void paint() { }
 	virtual void setup() { }
 	virtual void dispose() { }
+	virtual ~Simulation() { }
 };
 
 struct FluidElement

@@ -18,7 +18,6 @@
 
 #include <FlowStep_LSRK3.h>
 #include <Convection_CPP.h>
-#include <Diffusion_CPP.h>
 #include <Update.h>
 
 #ifdef _SSE_

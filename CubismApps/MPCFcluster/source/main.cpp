@@ -87,11 +87,17 @@ int main (int argc, const char ** argv)
 		wallclock = timer.stop();
 	}
 	
+	sim->dispose();
+	
+	delete sim;
+	
+	sim = NULL;
+	
 	if (isroot)
 		printf("we spent: %2.2f \n", wallclock);
 	
-	sim->dispose();
-	
+	MPI::COMM_WORLD.Barrier();
 	MPI::Finalize();
+	
 	return 0;
 }
