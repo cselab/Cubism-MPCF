@@ -44,8 +44,7 @@ int main (int argc, const char ** argv)
 #pragma omp parallel
 	{
 		_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-	}
-	
+	}	
 #endif
 
 	parser.set_strict_mode();
@@ -91,5 +90,8 @@ int main (int argc, const char ** argv)
 	if (isroot)
 		printf("we spent: %2.2f \n", wallclock);
 	
+	sim->dispose();
+	
+	MPI::Finalize();
 	return 0;
 }

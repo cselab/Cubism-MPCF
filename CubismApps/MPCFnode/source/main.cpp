@@ -15,13 +15,18 @@
 
 #ifdef _USE_NUMA_
 #include <numa.h>
+//#include <omp.h>
+#endif
+
 #include <omp.h>
+
+#ifdef _USE_HPM_
+#include <mpi.h>
 #endif
 
 #include "Test_SteadyState.h"
 #include "Test_ShockBubble.h"
 #include "Test_SIC.h"
-#include "Test_1D.h"
 #include "Test_Cloud.h"
 
 using namespace std;
@@ -87,6 +92,12 @@ struct VisualSupport
 int main (int argc, const char ** argv) 
 {
 
+  cout << "Potential number of threads is " << omp_get_max_threads() << endl;
+
+#ifdef _USE_HPM_
+  MPI::Init();
+#endif
+
 #ifdef _USE_NUMA_
 	if (numa_available() < 0)
 		printf("WARNING: The system does not support NUMA API!\n");
@@ -111,8 +122,6 @@ int main (int argc, const char ** argv)
 		sim = new Test_ShockBubble(argc, argv);
     else if( parser("-sim").asString() == "sic" )
         sim = new Test_SIC(argc, argv);
-    else if( parser("-sim").asString() == "1d" )
-        sim = new Test_1D(argc, argv);
     else if( parser("-sim").asString() == "cloud" )
       sim = new Test_Cloud(argc, argv);
     else
@@ -139,6 +148,10 @@ int main (int argc, const char ** argv)
 	}
 	
 	printf("we spent: %2.2f \n", wallclock);
+
+#ifdef _USE_HPM_
+	MPI::Finalize();
+#endif
 	
     return 0;
 }

@@ -45,14 +45,7 @@ public:
 protected:
 	
 	//Assumed input/output grid point type
-	struct AssumedType { Real r, u, v, w, s, G, P; };
-	
-	//working dataset types
-	typedef SOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3> InputSOA; //associated with weno5
-	typedef RingSOA2D<-3, _BLOCKSIZE_+3, -3, _BLOCKSIZE_+3, 6> RingInputSOA; //associated with weno5
-	typedef SOA2D<0,_BLOCKSIZE_+1, 0,_BLOCKSIZE_> TempSOA; //associated with hlle
-	typedef RingSOA2D<0, _BLOCKSIZE_+1, 0,_BLOCKSIZE_, 2> RingTempSOA; //associated with hlle
-	typedef RingSOA2D<0,_BLOCKSIZE_+1, 0, _BLOCKSIZE_, 3> RingTempSOA3;//associated with hlle
+	struct AssumedType { Real r, u, v, w, s, G, P, dummy; };
 	
 	template<int zslices=2>
 	struct WorkingSet {
@@ -94,17 +87,15 @@ protected:
         
         star.next();
 	}
-    
-	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
+    	
+	void _xweno_minus(const InputSOA& in, TempSOA& out);
+	void _xweno_pluss(const InputSOA& in, TempSOA& out);
+	void _yweno_minus(const InputSOA& in, TempSOA& out);
+	void _yweno_pluss(const InputSOA& in, TempSOA& out);
+	void _zweno_minus(const int relid, const RingInputSOA& in, TempSOA& out);
+	void _zweno_pluss(const int relid, const RingInputSOA& in, TempSOA& out);
 	
-	virtual void _xweno_minus(const InputSOA& in, TempSOA& out);
-	virtual void _xweno_pluss(const InputSOA& in, TempSOA& out);
-	virtual void _yweno_minus(const InputSOA& in, TempSOA& out);
-	virtual void _yweno_pluss(const InputSOA& in, TempSOA& out);
-	virtual void _zweno_minus(const int relid, const RingInputSOA& in, TempSOA& out);
-	virtual void _zweno_pluss(const int relid, const RingInputSOA& in, TempSOA& out);
-	
-	virtual void _xextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
+	void _xextraterm(const TempSOA& um, const TempSOA& up, const TempSOA& Gm, const TempSOA& Gp
 							 , const TempSOA& Pm, const TempSOA& Pp
                              , const TempSOA& am, const TempSOA& ap);
     
@@ -164,7 +155,7 @@ protected:
 						 const TempSOA& Pminus, const TempSOA& Pplus,
 						 const TempSOA& aminus, const TempSOA& aplus,
 						 TempSOA& out);
-    
+
     virtual Real _u_hllc(const Real v_minus, const Real v_plus, const Real s_minus, const Real s_plus, const Real star);
     
     virtual void _xextraterm_hllc(const TempSOA& vm, const TempSOA& vp
@@ -250,15 +241,18 @@ protected:
                          const TempSOA& star,
                          TempSOA& out);
     
+
     void _nucleate(const InputSOA& p, const InputSOA& G, const InputSOA& P, OutputSOA& Gout, OutputSOA& Pout);
 
-	virtual void _xdivergence(const TempSOA& flux, OutputSOA& rhs);
+    	virtual void _xdivergence(const TempSOA& flux, OutputSOA& rhs);
 	virtual void _ydivergence(const TempSOA& flux, OutputSOA& rhs);
 	virtual void _zdivergence(const TempSOA& fback, const TempSOA& fforward, OutputSOA& rhs);
+    	
+	virtual void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts);
 	
 	virtual void _xflux(const int relsliceid);
 	virtual void _yflux(const int relsliceid);
-	virtual void _zflux(const int relsliceid, const bool bFirst=false);
+	virtual void _zflux(const int relsliceid);
 	
     virtual void _xflux_hllc(const int relsliceid);
     virtual void _yflux_hllc(const int relsliceid);
@@ -270,3 +264,4 @@ protected:
 	
 	virtual void _copyback(Real * const gptfirst, const int gptfloats, const int rowgpts);
 };
+

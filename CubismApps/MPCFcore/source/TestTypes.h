@@ -13,10 +13,29 @@
 
 #include "common.h"
 
-struct StateVector { Real r, u, v, w, s, G, P;};
+struct StateVector
+{
+	Real r, u, v, w, s, G, P, dummy;
+
+	void clear()
+	{
+		r = u = v = w = s = G = P = dummy = 0.0;
+	}
+};
 
 //union GP { StateVector s; StateVector dsdt; };
-struct GP {StateVector s; StateVector dsdt;};
+struct GP
+{
+	StateVector s; 
+	StateVector dsdt;
+
+	void clear()
+	{
+		s.clear();
+		dsdt.clear();
+	}
+};
+
 template < int _LX, int _LY, int _LZ> 
 struct MatrixGP
 {
@@ -140,3 +159,4 @@ struct TestLab_S2 : MatrixGP<_BLOCKSIZE_+2, _BLOCKSIZE_+2, _BLOCKSIZE_+2>
 		return nobjects*sizeof(TestLab_S2)/1024.;
 	}
 };
+

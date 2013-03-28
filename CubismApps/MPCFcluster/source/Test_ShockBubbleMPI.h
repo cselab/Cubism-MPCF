@@ -35,18 +35,18 @@ public:
     
 	void setup()
 	{
-		if (isroot && VERBOSITY)
+        _setup_constants();
+        t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
+        
+        if (!isroot)
+			VERBOSITY = 0;
+        
+        if (VERBOSITY)
 		{
 			printf("////////////////////////////////////////////////////////////\n");
 			printf("///////////   TEST SHOCK BUBBLE INTERACTION MPI  ///////////\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
-        
-		_setup_constants();
-		t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
-        
-		if (!isroot)
-			VERBOSITY = 0;
         
 		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ);
         
@@ -120,7 +120,7 @@ public:
         if (MPI::COMM_WORLD.Get_rank()==0)
         {
             FILE * f = fopen("integrals.dat", "a");
-            fprintf(f, "%d  %e  %e  %e  %e  %e  %e  %e %e   %e %e   %e  %e %e %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3,
+            fprintf(f, "%d %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", step_id, t, dt, g_rInt*h3, g_uInt*h3,
                     g_vInt*h3, g_wInt*h3, g_eInt*h3, g_vol*h3, g_ke*h3, g_r2Int*h3, g_mach_max, g_p_max, pow(0.75*g_vol*h3/M_PI,1./3.), g_wall_p_max);
             fclose(f);
         }
@@ -311,7 +311,10 @@ public:
 		while(bLoop)
 		{
 			if (isroot) printf("Step id %d,Time %f\n", step_id, t);
-            
+
+#ifdef _USE_HPM_
+                        HPM_Start("Dumping");
+#endif            
 			if (step_id%DUMPPERIOD==0)
 			{
 				std::stringstream streamer;
@@ -322,17 +325,24 @@ public:
             
 			if (step_id%SAVEPERIOD==0)
 				t_ssmpi->save(*grid, step_id, t);
-            
+#ifdef _USE_HPM_
+                        HPM_Stop("Dumping");
+#endif            
 			const Real dt = (*stepper)(TEND-t);
             
 			if(step_id%10 == 0 && isroot && step_id > 0)
 				profiler.printSummary();
-            
-			dumpStatistics(*grid, step_id, t, dt);
-            
+#ifdef _USE_HPM_
+			HPM_Start("Diagnostics");
+#endif
             if (step_id%ANALYSISPERIOD==0)
-                dumpAnalysis(*grid, step_id, t, dt);
-            
+            {
+	      ;//dumpStatistics(*grid, step_id, t, dt);
+	      ;// dumpAnalysis(*grid, step_id, t, dt);
+            }
+#ifdef _USE_HPM_
+	    HPM_Stop("Diagnostics");
+#endif            
 			t+=dt;
 			step_id++;
             
@@ -345,10 +355,9 @@ public:
 		std::stringstream streamer;
 		streamer<<"data-"<<step_id;;
 		t_ssmpi->dump(*grid, step_id, streamer.str());
-        
+
+		delete stepper;        
 		if (isroot) printf("Finishing RUN\n");
-		MPI_Finalize();
-		exit(0);
 	}
 };
 

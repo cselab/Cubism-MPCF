@@ -17,7 +17,13 @@
 
 using namespace std;
 
+#ifdef _USE_HDF_
+#include <HDF5Dumper.h>
+#endif
+
 #include "Test_SteadyState.h"
+#include "SerializerIO_WaveletCompression.h"
+#include "WaveletCompressor.h"
 
 Test_SteadyState::Test_SteadyState(const int argc, const char ** argv):
 parser(argc, argv), t(0), step_id(0), grid(NULL), stepper(NULL) { }
@@ -43,7 +49,7 @@ void Test_SteadyState::_restart()
 	if (bASCIIFILES)
 		SerializerIO<FluidGrid, StreamerGridPointASCII>().Read(*grid, "restart");
 	else
-		SerializerIO<FluidGrid, StreamerGridPoint>().Read(*grid, "restart");
+		SerializerIO<FluidGrid, StreamerGridPoint>().Read(*grid, "restart");	
 }
 
 void Test_SteadyState::_save()
@@ -92,7 +98,13 @@ void Test_SteadyState::_dump(string filename)
 
 void Test_SteadyState::_ic(FluidGrid& grid)
 {
-	cout << "Initial condition..." ;
+	//cout << "Initial condition..." ;
+	
+	const double G1 = Simulation_Environment::GAMMA1-1;
+	const double G2 = Simulation_Environment::GAMMA2-1;
+	const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
+	const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
+	
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
 	
 #pragma omp parallel for	
@@ -107,37 +119,50 @@ void Test_SteadyState::_ic(FluidGrid& grid)
 				{
 					Real p[3];
 					info.pos(p, ix, iy, iz);
-					b(ix, iy, iz).rho      = sqrt(pow(p[0]-0.5,2)+pow(p[1]-0.5,2)+pow(p[2]-0.5,2))+0.1;
-					b(ix, iy, iz).u        = sqrt(pow(p[0]-0.3,2)+pow(p[1]-0.7,2)+pow(p[2]-0.35,2))-0.1;
-					b(ix, iy, iz).v        = 1.32;
-					b(ix, iy, iz).w        = -11.2;
-					b(ix, iy, iz).energy   = 2.5+0.5*3;
-					b(ix, iy, iz).G = Simulation_Environment::GAMMA1;
-                    b(ix, iy, iz).P = Simulation_Environment::PC1;
+					b(ix, iy, iz).rho      = 1.132;//sqrt(pow(p[0]-0.5,2)+pow(p[1]-0.5,2)+pow(p[2]-0.5,2))+0.1;
+					b(ix, iy, iz).u        = -2.*b(ix, iy, iz).rho;//sqrt(pow(p[0]-0.3,2)+pow(p[1]-0.7,2)+pow(p[2]-0.35,2))-0.1;
+					b(ix, iy, iz).v        = 3*b(ix, iy, iz).rho;//1.32;
+					b(ix, iy, iz).w        = -100*b(ix, iy, iz).rho;//-11.2;
+					const double pressure = 10;
+					const double bubble = 0;
+
+					SETUP_MARKERS_IC
 				}
 	}	
 	
-	cout << "done." << endl;
+	//cout << "done." << endl;
 }
 
 void Test_SteadyState::_vp(FluidGrid& grid)
 {
+	char bufname[1024];
+	sprintf(bufname, "compressed-step%05d.binary", step_id);
+	
+	_vp_dump(grid, bufname);
+}
+
+void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
+{
     if (bVP)
     {
-        std::stringstream streamer;
-        streamer<<"data";
-        streamer.setf(ios::dec | ios::right);
-        streamer.width(5);
-        streamer.fill('0');
-        streamer<<0;
-        streamer<<"_";
-        streamer.setf(ios::dec | ios::right);
-        streamer.width(5);
-        streamer.fill('0');
-        streamer<<step_id;
-        
-        SerializerIO_VP<FluidGrid, StreamerGridPoint> vp(BPDX, BPDY, BPDZ);
-        vp.Write(grid, streamer.str());
+		static const bool quantization = false;
+		static const int NC = StreamerGridPoint::channels;
+		static Real gmin[NC], gmax[NC];
+		static bool reduced = false;
+				
+		SerializerIO_WaveletCompression<FluidGrid, StreamerGridPoint> wavelet_serializer;
+		
+		wavelet_serializer.set_threshold(1e-4);
+		
+		if (quantization)
+			wavelet_serializer.float16();
+		//wavelet_serializer.singlethreaded();
+		//wavelet_serializer.nozlib();
+		wavelet_serializer.Write(grid, filename);
+		
+		//for consistency checking, uncomment the following line
+		wavelet_serializer.Read(grid, filename);
+		//exit(0);
     }
 }
 
@@ -145,12 +170,8 @@ void Test_SteadyState::run()
 {
 	for(int i=0; i<NSTEPS; ++i)
 	{
-		(*stepper)(TEND-t);
-	}
-	
-	_dump("ciao.vti");
-	_save();
-	_vp(*grid);
+	  	(*stepper)(TEND-t);
+	}      
 }
 
 void Test_SteadyState::paint() { }
@@ -198,30 +219,30 @@ void Test_SteadyState::_setup_constants()
 }
 
 void Test_SteadyState::setup()
-{	
-	if (VERBOSITY)
+{
+	_setup_constants();
+	    
+    if (VERBOSITY)
 	{
 		printf("////////////////////////////////////////////////////////////\n");
 		printf("////////////         TEST STEADY STATE       ///////////////\n");
 		printf("////////////////////////////////////////////////////////////\n");
 	}
-	
-	_setup_constants();
-	
+    
 	grid = new FluidGrid(BPDX, BPDY, BPDZ);
 	
 	assert(grid != NULL);
 	
-	stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser);
+	stepper = new FlowStep_LSRK3(*grid, CFL, Simulation_Environment::GAMMA1, Simulation_Environment::GAMMA2, parser, VERBOSITY);
 	
 	if(bRESTART)
 	{
 		_restart();
-		_dump("restartedcondition.vti");
+		_dump("restartedcondition");
 	}
 	else
 	{
 		_ic(*grid);
-		_dump("initialcondition.vti");
+		_dump("initialcondition");
 	}
 }

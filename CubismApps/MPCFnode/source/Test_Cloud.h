@@ -8,15 +8,14 @@
  */
 #pragma once
 
-#include "Test_SIC.h"
+#include "Test_ShockBubble.h"
 #include "Types.h"
 #include <fstream>
 
 namespace CloudData
 {
-    const Real seed_s[3] = {0.15, 0.15, 0.05};
-    const Real seed_e[3] = {0.85, 0.85, 0.5};
-    const int n_shapes = 20;
+    extern Real seed_s[3], seed_e[3], min_rad, max_rad;
+    extern int n_shapes, n_small, small_count;
 };
 
 //base class is a sphere
@@ -24,20 +23,35 @@ class shape
 {
     Real center[3], radius;
     Real bbox_s[3], bbox_e[3];
-    Real min_rad, max_rad;
     
 public:
-    shape(const Real _center[3], const Real _radius): radius(_radius)
+    shape()
     {
+        const Real x_c = (Real)drand48();
+        const Real y_c = (Real)drand48();
+        const Real z_c = (Real)drand48();
+        const Real _center[3] = {x_c, y_c, z_c};
+        
+        const Real _radius = (Real)drand48()*(CloudData::max_rad-CloudData::min_rad)+CloudData::min_rad;
+        
+        radius = _radius;
+        
         for(int i=0; i<3; ++i)
         {
             center[i] = _center[i];
             bbox_s[i] = _center[i]-_radius-2.0*Simulation_Environment::EPSILON;
             bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
         }
-        
-        min_rad = 0.025;
-        max_rad = 0.1;
+    }
+    
+    shape(const Real _center[3], const Real _radius): radius(_radius)
+    {        
+        for(int i=0; i<3; ++i)
+        {
+            center[i] = _center[i];
+            bbox_s[i] = _center[i]-_radius-2.0*Simulation_Environment::EPSILON;
+            bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
+        }
     }
     
     void get_bbox(Real s[3], Real e[3]) const
@@ -68,17 +82,7 @@ public:
     {
         return radius;
     }
-    
-    Real get_min_rad() const
-    {
-        return min_rad;
-    }
-    
-    Real get_max_rad() const
-    {
-        return max_rad;
-    }
-    
+
     Real eval(const Real pos[3]) const
     {
         return sqrt(pow(pos[0]-center[0],2)+pow(pos[1]-center[1],2)+pow(pos[2]-center[2],2))-radius;
@@ -87,15 +91,29 @@ public:
     //Every other derived shape should implement this method.
     bool rejection_check(shape * this_shape, const Real start[3], const Real end[3]) const
     {
+        //this rule is to stop making smaller bubbles after n_small smalle bubbles.
+        const Real rad_av_rough = 0.5*(CloudData::min_rad+CloudData::max_rad);
+        const Real rad_cut = 1.2*rad_av_rough;
+        //if (CloudData::small_count==CloudData::n_small && this_shape->get_rad()<rad_cut)
+         //   return true;
+        
         Real s[3], e[3];
         this->get_bbox(s,e);
         
+        //this rule checks that the buble is inside the bounding box
         const bool bOut = s[0]<start[0] || s[1]<start[1] || s[2]<start[2] ||
-        e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
+            e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
         
-        const bool bRadOut = this->get_rad()<this->get_min_rad() || this->get_rad()>this->get_max_rad();
+        //this rule is to keep larger bubbles outside
+        //larger w.r.t. rad_avg_rough
+        const Real c_box[3] = {end[0]+start[0], end[1]+start[1], end[2]+start[2]};
+        Real this_c[3];
+        this_shape->get_center(this_c);
+        const Real d_c_box = pow(this_c[0]-0.5*c_box[0],2)+pow(this_c[1]-0.5*c_box[1],2)+pow(this_c[2]-0.5*c_box[2],2);
+        const Real R_cutoff = pow( pow((end[0]-start[0])*(end[1]-start[1])*(end[2]-start[2]),(Real)3)*0.75/(8*M_PI),1./3);
+        const bool bLargeOuter = (d_c_box>=R_cutoff && this_shape->get_rad()>=rad_av_rough);
         
-        if (bOut || bRadOut)
+        if (bOut || bLargeOuter)
             return true;
         
         if(this!=this_shape)
@@ -123,6 +141,9 @@ public:
             if (bOverlap)
                 return true;
         }
+        
+        if (this_shape->get_rad()<rad_cut)
+            CloudData::small_count++;
         
         return false;
     }
@@ -155,6 +176,28 @@ public:
         //read seed if needed
         if (bRestartedSeed)
         {
+            //For the moment we just read the cloud.dat
+            //and ignore seed and cloud_config.dat
+            {
+                ifstream f_read_cloud("cloud.dat");
+                for(int i=0; i<CloudData::n_shapes; ++i)
+                {
+                    int idx;
+                    Real c[3], rad;
+                    f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
+                    cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+                    
+                    shape * cur_shape = new shape(c,rad);
+                    v_shapes.push_back(cur_shape);
+                }
+                
+                f_read_cloud.close();
+                
+                cout << "number of shapes are " << v_shapes.size() << endl;
+            }
+            
+            return;
+            
             ifstream f_read("seed.dat");
             if(f_read)
             {
@@ -182,13 +225,7 @@ public:
         
         while(!bFull)
         {
-            const Real x_c = (Real)drand48();
-            const Real y_c = (Real)drand48();
-            const Real z_c = (Real)drand48();
-            const Real cur_cen[3] = {x_c, y_c, z_c};
-            const Real cur_rad = (Real)drand48();
-            
-            shape * cur_shape = new shape(cur_cen, cur_rad);
+            shape * cur_shape = new shape();
             
             if (reject_check(cur_shape))
             {
@@ -255,7 +292,7 @@ inline double eval(const vector<shape*> v_shapes, const Real pos[3])
     return 0.5+0.5*cos(alpha);
 }
 
-class Test_Cloud: public Test_SIC
+class Test_Cloud: public Test_ShockBubble
 {
     friend class Test_CloudMPI;
     
@@ -265,9 +302,47 @@ class Test_Cloud: public Test_SIC
     
     void _my_ic(FluidGrid& grid, const vector< shape * > v_shapes);
     void _my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes);
+    void _set_energy(FluidGrid& grid);
+    void _initialize_cloud();
     
 public:
-	Test_Cloud(const int argc, const char ** argv): Test_SIC(argc, argv) { }
-    
+    Test_Cloud(const int argc, const char ** argv);
+
     void setup();
+};
+
+//ALERT: Energy channel forces pressure for solving
+//the Laplace p = 0 at initial condition
+template<typename BlockType, template<typename X> class allocator=std::allocator>
+class BlockLabCloudLaplace: public BlockLab<BlockType,allocator>
+{
+	typedef typename BlockType::ElementType ElementTypeBlock;
+    
+protected:
+	bool is_xperiodic() {return false;}
+	bool is_yperiodic() {return false;}
+	bool is_zperiodic() {return false;}
+    
+public:
+	BlockLabCloudLaplace(): BlockLab<BlockType,allocator>(){}
+	
+	void _apply_bc(const BlockInfo& info, const Real t=0)
+	{
+        BoundaryCondition<BlockType,ElementTypeBlock,allocator> bc(this->m_stencilStart, this->m_stencilEnd, this->m_cacheBlock);
+        
+        ElementTypeBlock b;
+        b.clear();
+        b.rho = 1000;
+        b.u = b.v = b.w = 0;
+        b.G = 1./(6.59-1);
+        b.P = 4.049e3*b.G*6.59;
+        b.energy = 100.0;
+                
+        if (info.index[0]==0)           bc.template applyBC_dirichlet<0,0>(b);
+        if (info.index[0]==this->NX-1)  bc.template applyBC_dirichlet<0,1>(b);
+        if (info.index[1]==0)			bc.template applyBC_dirichlet<1,0>(b);
+        if (info.index[1]==this->NY-1)	bc.template applyBC_dirichlet<1,1>(b);
+        if (info.index[2]==0)			bc.template applyBC_dirichlet<2,0>(b);
+        if (info.index[2]==this->NZ-1)	bc.template applyBC_dirichlet<2,1>(b);
+    }
 };

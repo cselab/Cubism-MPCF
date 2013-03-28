@@ -19,10 +19,49 @@
 #include "Test_Cloud.h"
 #include "Tests.h"
 
+namespace CloudData
+{
+    int n_shapes = 0;
+    int n_small = 0;
+    int small_count = 0;
+    Real min_rad = 0;
+    Real max_rad = 0;
+    Real seed_s[3], seed_e[3];
+}
+
+Test_Cloud::Test_Cloud(const int argc, const char ** argv): Test_ShockBubble(argc, argv)
+{
+    _setup_constants();
+}
+
+void Test_Cloud::_initialize_cloud()
+{
+    ifstream f_read("cloud_config.dat");
+    if(f_read)
+    {
+        if (VERBOSITY) cout << "cloud config file is there" << endl;
+        f_read >> CloudData::n_shapes >> CloudData::n_small;
+        f_read >> CloudData::min_rad >> CloudData::max_rad;
+        f_read >> CloudData::seed_s[0] >> CloudData::seed_s[1] >> CloudData::seed_s[2];
+        f_read >> CloudData::seed_e[0] >> CloudData::seed_e[1] >> CloudData::seed_e[2];
+        f_read.close();
+    }
+    else
+    {
+        if (VERBOSITY) cout << "cloud config file not there...aborting" << endl;
+        abort();
+    }
+    
+    if (VERBOSITY)
+        printf("cloud data: N %d Nsmall %d Rmin %f Rmax %f s=%f,%f,%f e=%f,%f,%f\n", CloudData::n_shapes, CloudData::n_small, CloudData::min_rad, CloudData::max_rad,
+               CloudData::seed_s[0], CloudData::seed_s[1], CloudData::seed_s[2],
+               CloudData::seed_e[0], CloudData::seed_e[1], CloudData::seed_e[2]);
+}
+
 void Test_Cloud::_ic(FluidGrid& grid)
 {
-    cout << "Not supposed to call _ic in Cloud\n" ;
-    cout << "Should call _my_ic instead\n" ;
+    if (VERBOSITY) cout << "Not supposed to call _ic in Cloud\n" ;
+    if (VERBOSITY) cout << "Should call _my_ic instead\n" ;
     abort();
 }
 
@@ -56,6 +95,9 @@ FluidElement operator + (FluidElement gpa, FluidElement gpb)
     return out;
 }
 
+//ALERT: this method puts pressure into energy since we
+//will solve a laplace p = 0 without going back and forth
+//between energy and pressure
 template<typename T>
 T get_ic(const Real p[3], const vector< shape * > v_shapes)
 {
@@ -81,7 +123,7 @@ T get_ic(const Real p[3], const vector< shape * > v_shapes)
     const double mix_pinf  = (mix_gamma-1)/mix_gamma * (F1/G1*(1-bubble) + F2/G2*bubble);
     out.G  = 1./(mix_gamma-1);
     out.P = mix_gamma*mix_pinf/(mix_gamma-1);
-    out.energy   = pressure*out.G + out.P;
+    out.energy   = pressure;
     
     return out;    
 }
@@ -113,9 +155,42 @@ T integral(const Real p[3], float h, const vector< shape * > v_shapes) // h shou
 	return (1./6) * yzintegrals[0]+(2./3) * yzintegrals[1]+(1./6)* yzintegrals[2];
 }
 
+void Test_Cloud::_set_energy(FluidGrid& grid)
+{    
+	vector<BlockInfo> vInfo = grid.getBlocksInfo();
+    
+    const double h = vInfo.front().h_gridpoint;
+    
+#pragma omp parallel
+	{
+#ifdef _USE_NUMA_
+		const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
+		const int mynode = omp_get_thread_num() / cores_per_node;
+		numa_run_on_node(mynode);
+#endif
+        
+#pragma omp for
+		for(int i=0; i<(int)vInfo.size(); i++)
+		{
+            BlockInfo info = vInfo[i];
+            FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+            
+            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+                for(int iy=0; iy<FluidBlock::sizeY; iy++)
+                    for(int ix=0; ix<FluidBlock::sizeX; ix++)
+                    {
+                        Real p[3], post_shock[3];
+                        info.pos(p, ix, iy, iz);
+                        
+                        b(ix,iy,iz).energy = b(ix,iy,iz).energy*b(ix,iy,iz).G+b(ix,iy,iz).P;
+                    }
+        }
+	}
+}
+
 void Test_Cloud::_my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes)
 {
-	if (VERBOSITY > 0)
+	if (VERBOSITY)
 		cout << "Cloud Initial condition..." ;
     
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
@@ -148,13 +223,13 @@ void Test_Cloud::_my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes)
         }
 	}
 	
-	if (VERBOSITY > 0)
+	if (VERBOSITY)
 		cout << "done." << endl;
 }
 
 void Test_Cloud::_my_ic(FluidGrid& grid, const vector< shape * > v_shapes)
 {
-	if (VERBOSITY > 0)
+	if (VERBOSITY)
 		cout << "Cloud Initial condition..." ;
     
 	vector<BlockInfo> vInfo = grid.getBlocksInfo();
@@ -203,7 +278,7 @@ void Test_Cloud::_my_ic(FluidGrid& grid, const vector< shape * > v_shapes)
         }
 	}
 	
-	if (VERBOSITY > 0)
+	if (VERBOSITY)
 		cout << "done." << endl;
 }
 
@@ -214,7 +289,8 @@ void Test_Cloud::setup()
   printf("////////////////////////////////////////////////////////////\n");
     
   _setup_constants();
-    
+    printf("cloud verb is %d\n", VERBOSITY);
+  
   parser.mute();
     
   if (parser("-morton").asBool(0))
