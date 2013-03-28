@@ -29,7 +29,6 @@ protected:
 	FlowStep_LSRK3MPI<G> * mystepper;
 	
 	SerializerIO_WaveletCompression_MPI_Simple<G, StreamerGridPointIterative> mywaveletdumper;
-	//SerializerVP_WaveletCompression_MPI<G, StreamerPressure> myvpdumper;
 	
 public:
 	
@@ -48,14 +47,14 @@ public:
     void dump(G& grid, const int step_id, const string filename)
     {	
         if (isroot) cout << "Dumping " << "..." ;
-
+		
         const string path = parser("-fpath").asString(".");
 		DumpHDF5_MPI<G, StreamerGamma_HDF5>(grid, step_id, filename+"-g", path);
         DumpHDF5_MPI<G, StreamerPressure_HDF5>(grid, step_id, filename+"-p", path);
         
         if (isroot) cout << "done." << endl;
     }
-
+	
     void restart(G& grid)
     {
 		const string path = parser("-fpath").asString(".");
@@ -64,16 +63,17 @@ public:
             const string restart_status = path+"/restart.status";
             ifstream status(restart_status.c_str());
             assert(status.good());
-           
+			
             status >> t;
             status.ignore(1, ' ');
             status >> step_id;
             
             assert(t>=0);
             assert(step_id >= 0);
-       }
+		}
         
-        if (isroot) printf("DESERIALIZATION: time is %f and step id is %d\n", t, step_id);
+        if (isroot) 
+			printf("DESERIALIZATION: time is %f and step id is %d\n", t, step_id);
         
         ReadHDF5_MPI<G, StreamerDummy_HDF5>(grid, "data_restart", path.c_str());
         DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, 0, "data_restart_restarted", path.c_str());
@@ -113,13 +113,7 @@ public:
 			std::stringstream streamer;
 			streamer<<path;
 			streamer<<"/";
-			streamer<<"dataserialized";
-			/* we don't need this anymore as we dont create one file per rank
-			 streamer.setf(ios::dec | ios::right);
-			 streamer.width(5);
-			 streamer.fill('0');
-			 streamer<<MPI::COMM_WORLD.Get_rank();
-			 streamer<<"_";*/
+			streamer<<"datawavelet";
 			streamer.setf(ios::dec | ios::right);
 			streamer.width(5);
 			streamer.fill('0');
@@ -128,31 +122,22 @@ public:
 			mywaveletdumper.verbose();
 			mywaveletdumper.set_threshold(1e-3);
 			
-			//if (false)//skipping the write for now
-				mywaveletdumper.Write(grid, streamer.str()); 
-			
-			//this line is now obsolete: this->_vp_dump(grid, streamer.str());
-			/*if (isroot)
+			mywaveletdumper.Write(grid, streamer.str());
+	
+//used for debug
+#if 0			
 			{
-				printf("\n\nREADING BEGINS===================\n");
-				//just checking
-				mywaveletdumper.Read(streamer.str());
-				/*streamer<<"_";
-				streamer.setf(ios::dec | ios::right);
-				streamer.width(5);
-				streamer.fill('0');
-				streamer<<MPI::COMM_WORLD.Get_rank();* /
-				//streamer<<".vp";
-				//myvpdumper.Write(grid, streamer.str());
-				printf("\n\nREADING ENDS===================\n");
-
-			}*/
-			
-			MPI::COMM_WORLD.Barrier();
-			
+				//mywaveletdumper.force_close();
+				if (isroot)
+				{
+					printf("\n\nREADING BEGINS===================\n");
+					//just checking
+					mywaveletdumper.Read(streamer.str());
+					printf("\n\nREADING ENDS===================\n");
+				}
+			}
+#endif
 			if (isroot) cout << "done" << endl;
-			
-			//exit(0);
 		}
     }
     
@@ -167,7 +152,7 @@ public:
 		
 		_setup_constants();
 		setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
-
+		
 		if (!isroot)
 			VERBOSITY = 0;
 		
@@ -181,7 +166,7 @@ public:
 		//(*mystepper)(0);
 		
 		if(bRESTART)
-		  restart(*grid);
+			restart(*grid);
 		else
 		{
 			_ic(*grid);
@@ -191,9 +176,9 @@ public:
 	
 	void run()
 	{
-	  if(isroot) 
-	    printf("HELLO RUN\n");
-
+		if(isroot) 
+			printf("HELLO RUN\n");
+		
 		int i=0;
 		while(i < NSTEPS)
 		{

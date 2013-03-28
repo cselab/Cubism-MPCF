@@ -63,8 +63,7 @@ namespace LSRK3data
 	Real smoothlength = -1;
 	Real pc1 = 0;
     Real pc2 = 0;
-	Real nu1 = 0, nu2 = 0;
-    
+   
 	int verbosity;
 	int  NCORES;
 	float PEAKPERF_CORE, PEAKBAND;

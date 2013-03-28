@@ -7,6 +7,8 @@
  *
  */
 
+#error This class (SerializerIO_WaveletCompression_MPI) is not ready. Please don't include it.
+
 #pragma once
 
 
@@ -149,6 +151,7 @@ class SerializerIO_WaveletCompression_MPI: public SerializerIO_WaveletCompressio
 
 	SerializerIO_WaveletCompression_MPI(): callscounter(0), mympistreamer(), chainedbuffer(NULL)
 	{
+		//printf("This class is not ready");
 		chainedbuffer = new MyChainedBuffer(mympistreamer);
 	}
 

@@ -20,7 +20,7 @@ typedef double Real;
 using namespace std;
 
 #include "WaveletCompressor.h"
-#include "WaveletsOnInterval.h"
+#include "FullWaveletTransform.h"
 
 static const bool lifting_scheme = false;
 
