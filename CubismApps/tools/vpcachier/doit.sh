@@ -1,1 +1,1 @@
-mpirun -n 8 ./vpcachier -xpesize 2 -ypesize 2 -zpesize 2
+mpirun -n 8  ./vpcachier 
