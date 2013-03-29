@@ -18,6 +18,10 @@
 
 int main(int argc, const char **  argv)
 {
+	const bool halffloat = true;
+	const double mywavelet_threshold = 1e-3;
+	const string outputpath = "ciao-ciccio-bello.vpcache";
+	
 	MPI::Init_thread(MPI_THREAD_SERIALIZED);
 	
 	//create my cartesian communicator
@@ -42,8 +46,8 @@ int main(int argc, const char **  argv)
 		printf("PE are organized as:  %d %d %d\n", xpe, ype, zpe);
 	
 	//open the file
-	//std::string path = "../../MPCFcluster/makefiles/datawavelet00000.StreamerGridPointIterative.channel0";
-	std::string path = "datawavelet00000.StreamerGridPointIterative.channel0";
+	std::string path = "../../MPCFcluster/makefiles/datawavelet00000.StreamerGridPointIterative.channel0";
+	//std::string path = "datawavelet00000.StreamerGridPointIterative.channel5";
 	
 	Reader_WaveletCompressionMPI myreader(mycomm, path);
 	
@@ -96,101 +100,108 @@ int main(int argc, const char **  argv)
 			printf("WARNING: watchout because some of the ranks have zero work.\n");
 	}
 	
-	for(int gz = myzstart ;  gz < myzend; ++gz)
-		for(int gy = myystart ;  gy < myyend; ++gy)
-			for(int gx = myxstart ;  gx < myxend; ++gx)
-			{
-				WaveletTexture3D * texture = new WaveletTexture3D;
+	//ok we are ready to start
+	{
+		WaveletTexture3D_MPICollection texture_collections
+		(mycomm, outputpath, xtextures, ytextures, ztextures, mywavelet_threshold, halffloat);
+		
+		for(int gz = myzstart ;  gz < myzend; ++gz)
+			for(int gy = myystart ;  gy < myyend; ++gy)
+				for(int gx = myxstart ;  gx < myxend; ++gx)
+				{
+					WaveletTexture3D * texture = new WaveletTexture3D;
+					
+					const int xdatastart = gx * puredata1d;
+					const int ydatastart = gy * puredata1d;
+					const int zdatastart = gz * puredata1d;
+					
+					const int xdataend = (gx + 1) * puredata1d + 2 * ghosts1side;
+					const int ydataend = (gy + 1) * puredata1d + 2 * ghosts1side;
+					const int zdataend = (gz + 1) * puredata1d + 2 * ghosts1side;
+					
+					texture->geometry.setup<0>(xdatastart, xdataend, ghosts1side, gridspacing);
+					texture->geometry.setup<1>(ydatastart, ydataend, ghosts1side, gridspacing);
+					texture->geometry.setup<2>(zdatastart, zdataend, ghosts1side, gridspacing);
+					
+					assert(xdataend - xdatastart == _VOXELS_);
+					assert(ydataend - ydatastart == _VOXELS_);
+					assert(zdataend - zdatastart == _VOXELS_);
+					
+					const int xblockstart = xdatastart / _BLOCKSIZE_;
+					const int yblockstart = ydatastart / _BLOCKSIZE_;
+					const int zblockstart = zdatastart / _BLOCKSIZE_;
+					
+					const int xblockend = (xdataend - 1) / _BLOCKSIZE_ + 1;
+					const int yblockend = (ydataend - 1) / _BLOCKSIZE_ + 1;
+					const int zblockend = (zdataend - 1) / _BLOCKSIZE_ + 1;
+					
+					for(int bz = zblockstart; bz < zblockend; ++bz)
+						for(int by = yblockstart; by < yblockend; ++by)
+							for(int bx = xblockstart; bx < xblockend; ++bx)
+							{
+								Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
 								
-				const int xdatastart = gx * puredata1d;
-				const int ydatastart = gy * puredata1d;
-				const int zdatastart = gz * puredata1d;
-				
-				const int xdataend = (gx + 1) * puredata1d + 2 * ghosts1side;
-				const int ydataend = (gy + 1) * puredata1d + 2 * ghosts1side;
-				const int zdataend = (gz + 1) * puredata1d + 2 * ghosts1side;
-				
-				texture->geometry.setup<0>(xdatastart, xdataend, ghosts1side, gridspacing);
-				texture->geometry.setup<1>(ydatastart, ydataend, ghosts1side, gridspacing);
-				texture->geometry.setup<2>(zdatastart, zdataend, ghosts1side, gridspacing);
-				
-				assert(xdataend - xdatastart == _VOXELS_);
-				assert(ydataend - ydatastart == _VOXELS_);
-				assert(zdataend - zdatastart == _VOXELS_);
-				
-				const int xblockstart = xdatastart / _BLOCKSIZE_;
-				const int yblockstart = ydatastart / _BLOCKSIZE_;
-				const int zblockstart = zdatastart / _BLOCKSIZE_;
-				
-				const int xblockend = (xdataend - 1) / _BLOCKSIZE_ + 1;
-				const int yblockend = (ydataend - 1) / _BLOCKSIZE_ + 1;
-				const int zblockend = (zdataend - 1) / _BLOCKSIZE_ + 1;
-				
-				for(int bz = zblockstart; bz < zblockend; ++bz)
-					for(int by = yblockstart; by < yblockend; ++by)
-						for(int bx = xblockstart; bx < xblockend; ++bx)
-						{
-							Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
-							
-							assert(bx >= 0 && bx < xblocks);
-							assert(by >= 0 && by < yblocks);
-							assert(bz >= 0 && bz < zblocks);
-							
-							myreader.load_block(bx, by, bz, data);
-							
-							const int xdststart = std::max(xdatastart, bx * _BLOCKSIZE_) - xdatastart;
-							const int ydststart = std::max(ydatastart, by * _BLOCKSIZE_) - ydatastart;
-							const int zdststart = std::max(zdatastart, bz * _BLOCKSIZE_) - zdatastart;
-
-							const int xdstend = std::min(xdataend, (bx + 1) * _BLOCKSIZE_) - xdatastart;
-							const int ydstend = std::min(ydataend, (by + 1) * _BLOCKSIZE_) - ydatastart;
-							const int zdstend = std::min(zdataend, (bz + 1) * _BLOCKSIZE_) - zdatastart;
-							
-							const int xsrcoffset = xdatastart - bx * _BLOCKSIZE_;
-							const int ysrcoffset = ydatastart - by * _BLOCKSIZE_;
-							const int zsrcoffset = zdatastart - bz * _BLOCKSIZE_;
-							
-							for(int dz = zdststart; dz < zdstend; ++dz)
-								for(int dy = ydststart; dy < ydstend; ++dy)
-									for(int dx = xdststart; dx < xdstend; ++dx)
-									{
-										assert(dx >= 0 && dx < _VOXELS_);
-										assert(dy >= 0 && dy < _VOXELS_);
-										assert(dz >= 0 && dz < _VOXELS_);
-										
-										assert(dx + xsrcoffset >= 0 && dx + xsrcoffset < _BLOCKSIZE_);
-										assert(dy + ysrcoffset >= 0 && dy + ysrcoffset < _BLOCKSIZE_);
-										assert(dz + zsrcoffset >= 0 && dz + zsrcoffset < _BLOCKSIZE_);
-										
-										texture->data[dz][dy][dx] = data[dz + zsrcoffset][dy + ysrcoffset][dx + xsrcoffset];
-										//texture->data[dz][dy][dx] = 1;
-									}
-						}
-				
-				/*for(int dz = 0; dz < _VOXELS_; ++dz)
-					for(int dy = 0; dy < _VOXELS_; ++dy)
-						for(int dx = 0; dx < _VOXELS_; ++dx)
-							assert(texture->data[dz][dy][dx] == 1);*/
-				
-				assert(xblockstart >= 0 && xblockstart < xblocks);
-				assert(yblockstart >= 0 && yblockstart < yblocks);
-				assert(zblockstart >= 0 && zblockstart < zblocks);
-				
-				assert(xblockend > 0 && xblockend <= xblocks);
-				assert(yblockend > 0 && yblockend <= yblocks);
-				assert(zblockend > 0 && zblockend <= zblocks);
-				
-				vector<unsigned char> datacompressed = texture->compress();
-				
-				delete texture;
-			}
-	
-	printf("good up to here\n");
+								assert(bx >= 0 && bx < xblocks);
+								assert(by >= 0 && by < yblocks);
+								assert(bz >= 0 && bz < zblocks);
+								
+								myreader.load_block(bx, by, bz, data);
+								
+								const int xdststart = std::max(xdatastart, bx * _BLOCKSIZE_) - xdatastart;
+								const int ydststart = std::max(ydatastart, by * _BLOCKSIZE_) - ydatastart;
+								const int zdststart = std::max(zdatastart, bz * _BLOCKSIZE_) - zdatastart;
+								
+								const int xdstend = std::min(xdataend, (bx + 1) * _BLOCKSIZE_) - xdatastart;
+								const int ydstend = std::min(ydataend, (by + 1) * _BLOCKSIZE_) - ydatastart;
+								const int zdstend = std::min(zdataend, (bz + 1) * _BLOCKSIZE_) - zdatastart;
+								
+								const int xsrcoffset = xdatastart - bx * _BLOCKSIZE_;
+								const int ysrcoffset = ydatastart - by * _BLOCKSIZE_;
+								const int zsrcoffset = zdatastart - bz * _BLOCKSIZE_;
+								
+								for(int dz = zdststart; dz < zdstend; ++dz)
+									for(int dy = ydststart; dy < ydstend; ++dy)
+										for(int dx = xdststart; dx < xdstend; ++dx)
+										{
+											assert(dx >= 0 && dx < _VOXELS_);
+											assert(dy >= 0 && dy < _VOXELS_);
+											assert(dz >= 0 && dz < _VOXELS_);
+											
+											assert(dx + xsrcoffset >= 0 && dx + xsrcoffset < _BLOCKSIZE_);
+											assert(dy + ysrcoffset >= 0 && dy + ysrcoffset < _BLOCKSIZE_);
+											assert(dz + zsrcoffset >= 0 && dz + zsrcoffset < _BLOCKSIZE_);
+											
+											texture->data[dz][dy][dx] = data[dz + zsrcoffset][dy + ysrcoffset][dx + xsrcoffset];
+											//texture->data[dz][dy][dx] = 1;
+										}
+							}
+					
+					/*for(int dz = 0; dz < _VOXELS_; ++dz)
+					 for(int dy = 0; dy < _VOXELS_; ++dy)
+					 for(int dx = 0; dx < _VOXELS_; ++dx)
+					 assert(texture->data[dz][dy][dx] == 1);*/
+					
+					assert(xblockstart >= 0 && xblockstart < xblocks);
+					assert(yblockstart >= 0 && yblockstart < yblocks);
+					assert(zblockstart >= 0 && zblockstart < zblocks);
+					
+					assert(xblockend > 0 && xblockend <= xblocks);
+					assert(yblockend > 0 && yblockend <= yblocks);
+					assert(zblockend > 0 && zblockend <= zblocks);
+					
+					//vector<unsigned char> datacompressed = texture->compress(mywavelet_threshold, halffloat);
+					texture_collections.write(gx, gy, gz, *texture);
+					
+					delete texture;
+				}
+		
+		printf("good up to here\n");
+	}
 	
 	MPI::Finalize();
 	
 	if (myrank == 0)
-		std::cout << "Also tchuess zame.\n";
+		std::cout << "Also tchuess zaeme gal.\n";
 	
 	return 0;
 }

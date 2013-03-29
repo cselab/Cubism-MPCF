@@ -315,7 +315,7 @@ public:
 			int nbytes = *(int *)&waveletbuf[readbytes];
 			readbytes += sizeof(int);
 			assert(readbytes <= decompressedbytes);
-			
+			//printf("decompressing %d bytes...\n", nbytes);
 			WaveletCompressor compressor;
 			
 			memcpy(compressor.data(), &waveletbuf[readbytes], nbytes);

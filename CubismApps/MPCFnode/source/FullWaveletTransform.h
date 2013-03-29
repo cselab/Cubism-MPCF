@@ -65,15 +65,16 @@ namespace WaveletsOnInterval
 			this->template sweep3D<BS, false>(data);
 		}
 		
-		pair<vector<Real>, bitset<BS * BS * BS> > threshold(const FwtAp eps)
+		template<typename DataType>
+		pair<vector<DataType>, bitset<BS * BS * BS> > threshold(const FwtAp eps)
 		{
 			static const int BSH = BS / 2;
 			
-			pair<vector<Real>, bitset<BS * BS * BS> > retval;
+			pair<vector<DataType>, bitset<BS * BS * BS> > retval;
 			
 			//code 0
 			{
-				pair<vector<Real>, bitset<BSH * BSH * BSH> > childretval = child.threshold(eps);
+				pair<vector<DataType>, bitset<BSH * BSH * BSH> > childretval = child.template threshold<DataType>(eps);
 				
 				retval.first = childretval.first;
 				
@@ -104,7 +105,7 @@ namespace WaveletsOnInterval
 							
 							const int dst = xsrc + BS * (ysrc + BS * zsrc);
 							
-							const Real mydata = (Real)data[zsrc][ysrc][xsrc];
+							const DataType mydata = (DataType)data[zsrc][ysrc][xsrc];
 							
 							const bool accepted = fabs(mydata) > eps; 
 							
@@ -120,7 +121,8 @@ namespace WaveletsOnInterval
 			return retval;
 		}
 		
-		void load(vector<Real>& datastream, bitset<BS * BS * BS> mask)
+		template<typename DataType>
+		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask)
 		{			
 			static const int BSH = BS / 2;
 			
@@ -145,7 +147,7 @@ namespace WaveletsOnInterval
 							
 							const bool eat = mask[srcidx];
 							
-							const Real mydata = eat ? datastream.back() : 0;
+							const DataType mydata = eat ? datastream.back() : 0;
 							
 							data[myz][myy][myx] = mydata;
 							
@@ -184,25 +186,27 @@ namespace WaveletsOnInterval
 		
 		void iwt() { }
 		
-		pair<vector<Real>, bitset<BS * BS * BS> > threshold(const FwtAp eps) 
+		template<typename DataType>
+		pair<vector<DataType>, bitset<BS * BS * BS> > threshold(const FwtAp eps) 
 		{
 			enum { N = BS * BS * BS };
 			
 			const FwtAp * const e = &data[0][0][0];
 			
-			vector<Real> v(N);
+			vector<DataType> v(N);
 			
 			for(int i = 0; i < N; ++i)
 				v[i] = e[i];
 			
-			pair<vector<Real>, bitset<BS * BS * BS> > retval;
+			pair<vector<DataType>, bitset<BS * BS * BS> > retval;
 			retval.first = v;
 			retval.second.set();
 			
 			return retval; 
 		}
 		
-		void load(vector<Real>& datastream, bitset<BS * BS * BS> mask)
+		template<typename DataType>
+		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask)
 		{
 			assert(datastream.size() == BS * BS * BS);
 			
