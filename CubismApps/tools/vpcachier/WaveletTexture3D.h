@@ -172,9 +172,6 @@ public:
 		
 		//write lut
 		CompressedTexData entry = { myoffset, nbytes, texture.geometry };
-		{
-			memset(&entry, 0xffffffff, sizeof(entry));
-		}
 		const size_t mylutoffset = sizeof(entry) * (ix + xtextures * (iy + ytextures * iz));
 		myfile.Write_at(lutfile_start + mylutoffset, &entry, sizeof(entry), MPI::CHAR);
 
