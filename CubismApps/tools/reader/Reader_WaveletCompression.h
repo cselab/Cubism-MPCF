@@ -292,7 +292,7 @@ public:
 		
 		assert(start >= miniheader_bytes);
 		assert(start < global_header_displacement);
-		assert(start + compressedchunk.extent < global_header_displacement);
+		assert(start + compressedchunk.extent <= global_header_displacement);
 		
 		vector<unsigned char> compressedbuf(compressedchunk.extent);
 		fseek(f, compressedchunk.start, SEEK_SET);
