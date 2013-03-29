@@ -340,7 +340,7 @@ protected:
 			}
 		}
 		
-		const MPI::Comm& mycomm = inputGrid.getCartComm();
+		const MPI::Intracomm& mycomm = inputGrid.getCartComm();
 		const size_t mygid = mycomm.Get_rank();
 		
 		//write into the file

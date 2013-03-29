@@ -43,14 +43,13 @@ class Reader_WaveletCompression
 {
 protected:
 	string path;
-	int miniheader_bytes;
-	size_t global_header_displacement;
 	
+	size_t global_header_displacement;
+	int miniheader_bytes;	
 	int NBLOCKS;
 	int totalbpd[3], bpd[3];
-	
 	bool halffloat;
-
+	
 	vector<CompressedBlock> idx2chunk;
 	
 	int _id(int ix, int iy, int iz) const
@@ -64,12 +63,10 @@ protected:
 	
 public:
 	
-	Reader_WaveletCompression(): NBLOCKS(-1), global_header_displacement(-1) {	}
+	Reader_WaveletCompression(const string path): NBLOCKS(-1), global_header_displacement(-1), path(path) {	}
 	
-	virtual void load_file(const string path)
-	{
-		this->path = path;
-		
+	virtual void load_file()
+	{		
 		for(int i = 0; i < 3; ++i)
 			totalbpd[i] = -1;
 		
@@ -282,6 +279,7 @@ public:
 	
 	void load_block(int ix, int iy, int iz, Real MYBLOCK[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_])
 	{
+		//printf("trying to load <%s>\n", path.c_str());
 		FILE * f = fopen(path.c_str(), "rb");
 		
 		assert(f);
@@ -292,7 +290,7 @@ public:
 		
 		assert(start >= miniheader_bytes);
 		assert(start < global_header_displacement);
-		assert(start + compressedchunk.extent < global_header_displacement);
+		assert(start + compressedchunk.extent <= global_header_displacement);
 		
 		vector<unsigned char> compressedbuf(compressedchunk.extent);
 		fseek(f, compressedchunk.start, SEEK_SET);
@@ -302,7 +300,7 @@ public:
 		
 		vector<unsigned char> waveletbuf(4 << 20);
 		const size_t decompressedbytes = zdecompress(&compressedbuf.front(), compressedbuf.size(), &waveletbuf.front(), waveletbuf.size());
-
+		
 		int readbytes = 0;
 		for(int i = 0; i<compressedchunk.subid; ++i)
 		{
@@ -317,7 +315,7 @@ public:
 			int nbytes = *(int *)&waveletbuf[readbytes];
 			readbytes += sizeof(int);
 			assert(readbytes <= decompressedbytes);
-						
+			
 			WaveletCompressor compressor;
 			
 			memcpy(compressor.data(), &waveletbuf[readbytes], nbytes);
@@ -335,22 +333,32 @@ class Reader_WaveletCompressionMPI: public Reader_WaveletCompression
 	const MPI::Comm& comm;
 	
 public: 
-
-	Reader_WaveletCompressionMPI(const MPI::Comm& comm): 
-		Reader_WaveletCompression(), comm(comm)
+	
+	Reader_WaveletCompressionMPI(const MPI::Comm& comm, const string path): 
+	Reader_WaveletCompression(path), comm(comm)
 	{
 		
 	}
 	
-	virtual void load_file(const string path)
+	virtual void load_file()
 	{
 		const int myrank = comm.Get_rank();
 		
 		if (myrank == 0)
-			Reader_WaveletCompression::load_file(path);
+			Reader_WaveletCompression::load_file();
+		
+		//propagate primitive type data members
+		{			
+			comm.Bcast(&global_header_displacement, sizeof(global_header_displacement), MPI_CHAR, 0);
+			comm.Bcast(&miniheader_bytes, sizeof(miniheader_bytes), MPI_CHAR, 0);
+			comm.Bcast(&NBLOCKS, sizeof(NBLOCKS), MPI_CHAR, 0);
+			comm.Bcast(totalbpd, sizeof(totalbpd), MPI_CHAR, 0);
+			comm.Bcast(bpd, sizeof(bpd), MPI_CHAR, 0);
+			comm.Bcast(&halffloat, sizeof(halffloat), MPI_CHAR, 0);
+		}
 		
 		size_t nentries = idx2chunk.size();
-				
+		
 		comm.Bcast(&nentries, sizeof(nentries), MPI_CHAR, 0);
 		
 		if (myrank)		
@@ -358,7 +366,7 @@ public:
 		
 		const size_t nbytes = nentries * sizeof(CompressedBlock);
 		char * const entries = (char *)&idx2chunk.front();
-
+		
 		comm.Bcast(entries, nbytes, MPI_CHAR, 0);
 	}
 };

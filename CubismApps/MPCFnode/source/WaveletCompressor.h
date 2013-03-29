@@ -13,12 +13,13 @@
 
 #include <zlib.h>
 
-class WaveletCompressor
+template<int DATASIZE1D>
+class WaveletCompressorGeneric
 {
 protected:
 	enum 
 	{ 
-		BS3 = _BLOCKSIZE_ * _BLOCKSIZE_ * _BLOCKSIZE_,
+		BS3 = DATASIZE1D * DATASIZE1D * DATASIZE1D,
 		BITSETSIZE = (BS3 + 7) / 8,
 		BUFMAXSIZE = BITSETSIZE + sizeof(Real) * BS3
 	};
@@ -35,14 +36,15 @@ public:
 		return bufcompression;
 	}
 	
-	virtual	size_t compress(const Real threshold, const bool float16, const Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_]);
+	virtual	size_t compress(const Real threshold, const bool float16, const Real data[DATASIZE1D][DATASIZE1D][DATASIZE1D]);
 	
-	virtual void decompress(const bool float16, size_t bytes, Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_]);
+	virtual void decompress(const bool float16, size_t bytes, Real data[DATASIZE1D][DATASIZE1D][DATASIZE1D]);
 };
 
-class WaveletCompressor_zlib: protected WaveletCompressor
+template<int DATASIZE1D>
+class WaveletCompressorGeneric_zlib: protected WaveletCompressorGeneric<DATASIZE1D>
 {
-	__attribute__((__aligned__(16))) unsigned char bufzlib[BUFMAXSIZE];
+	__attribute__((__aligned__(16))) unsigned char bufzlib[WaveletCompressorGeneric<DATASIZE1D>::BUFMAXSIZE];
 
 public:
 
@@ -51,16 +53,16 @@ public:
 		return bufzlib;
 	}
 
-	size_t compress(const Real threshold, const bool float16, const Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_])
+	size_t compress(const Real threshold, const bool float16, const Real data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
 	{
 		int compressedbytes = 0;
 		
-		const size_t ninputbytes = WaveletCompressor::compress(threshold, float16, data);
+		const size_t ninputbytes = WaveletCompressorGeneric<DATASIZE1D>::compress(threshold, float16, data);
 
 		z_stream datastream = {0};
 		datastream.total_in = datastream.avail_in = ninputbytes;
-		datastream.total_out = datastream.avail_out = BUFMAXSIZE;
-		datastream.next_in = (unsigned char*) WaveletCompressor::data();
+		datastream.total_out = datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D>::BUFMAXSIZE;
+		datastream.next_in = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D>::data();
 		datastream.next_out = bufzlib;
 
 		if (Z_OK == deflateInit(&datastream, Z_DEFAULT_COMPRESSION) && Z_STREAM_END == deflate(&datastream, Z_FINISH))
@@ -77,15 +79,15 @@ public:
 		return compressedbytes;
 	}
 
-	void decompress(const bool float16, size_t ninputbytes, Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_])
+	void decompress(const bool float16, size_t ninputbytes, Real data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
 	{
 		int decompressedbytes = 0;
 
 		z_stream datastream = {0};
 		datastream.total_in = datastream.avail_in = ninputbytes;
-		datastream.total_out = datastream.avail_out = BUFMAXSIZE;
+		datastream.total_out = datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D>::BUFMAXSIZE;
 		datastream.next_in = bufzlib;
-		datastream.next_out = (unsigned char*) WaveletCompressor::data();
+		datastream.next_out = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D>::data();
 
 		const int retval = inflateInit(&datastream);
 
@@ -99,7 +101,9 @@ public:
 
 		inflateEnd(&datastream);
 		
-		WaveletCompressor::decompress(float16, decompressedbytes, data);
+		WaveletCompressorGeneric<DATASIZE1D>::decompress(float16, decompressedbytes, data);
 	}
 };
 
+typedef WaveletCompressorGeneric<_BLOCKSIZE_> WaveletCompressor;
+typedef WaveletCompressorGeneric_zlib<_BLOCKSIZE_> WaveletCompressor_zlib;

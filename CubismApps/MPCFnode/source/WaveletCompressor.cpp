@@ -116,9 +116,10 @@ float _cvtfromf16(const unsigned short f16)
 	return *(float *)& retval;
 }
 
-size_t WaveletCompressor::compress(const Real threshold, const bool float16, const Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_])
+template<int DATASIZE1D>
+size_t WaveletCompressorGeneric<DATASIZE1D>::compress(const Real threshold, const bool float16, const Real data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
 {	
-	WaveletsOnInterval::FullTransform<_BLOCKSIZE_, lifting_scheme> full;
+	WaveletsOnInterval::FullTransform<DATASIZE1D, lifting_scheme> full;
 		
 	const Real * const src = &data[0][0][0];
 	WaveletsOnInterval::FwtAp * const dst = &full.data[0][0][0];
@@ -150,7 +151,8 @@ size_t WaveletCompressor::compress(const Real threshold, const bool float16, con
 	return bytes_copied;
 }
 
-void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_])
+template<int DATASIZE1D>
+void WaveletCompressorGeneric<DATASIZE1D>::decompress(const bool float16, size_t bytes, Real data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
 {
 	assert((bytes - sizeof(bitset<BS3>)) % sizeof(Real) == 0);
 	
@@ -175,7 +177,7 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 			datastream[i] =  _cvtfromf16(elements[i]);
 	}
 	
-	WaveletsOnInterval::FullTransform<_BLOCKSIZE_, lifting_scheme> full;
+	WaveletsOnInterval::FullTransform<DATASIZE1D, lifting_scheme> full;
 	full.load(datastream, mask);
 	full.iwt();
 
@@ -187,3 +189,6 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 		assert(!std::isnan(dst[i]));
 	}
 }
+
+template class WaveletCompressorGeneric<_BLOCKSIZE_>;
+template class WaveletCompressorGeneric_zlib<_BLOCKSIZE_>;
