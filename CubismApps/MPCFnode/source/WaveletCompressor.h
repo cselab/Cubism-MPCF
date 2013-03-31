@@ -112,5 +112,7 @@ public:
 	}
 };
 
+#ifdef _BLOCKSIZE_
 typedef WaveletCompressorGeneric<_BLOCKSIZE_, Real> WaveletCompressor;
 typedef WaveletCompressorGeneric_zlib<_BLOCKSIZE_, Real> WaveletCompressor_zlib;
+#endif

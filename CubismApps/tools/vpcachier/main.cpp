@@ -18,6 +18,24 @@
 
 int main(int argc, const char **  argv)
 {
+	//just a mini-test for reading
+	if(false)
+	{
+		WaveletTexture3D_Collection texture_collection("distributed.vpcache");
+		
+		printf("weeeeeeeepppa eeeeeeps!\n");
+		WaveletTexture3D * texture = new WaveletTexture3D;
+
+		for(int iz = 0; iz < texture_collection.get_ztextures(); ++iz)
+			for(int iy = 0; iy < texture_collection.get_ytextures(); ++iy)
+				for(int ix = 0; ix < texture_collection.get_xtextures(); ++ix)
+					texture_collection.read(ix, iy, iz, *texture);
+
+		delete texture;
+		
+		exit(0);
+	}
+	
 	const bool halffloat = true;
 	const double mywavelet_threshold = 1e-3;
 	const string outputpath = "ciao-ciccio-bello.vpcache";
@@ -46,7 +64,7 @@ int main(int argc, const char **  argv)
 		printf("PE are organized as:  %d %d %d\n", xpe, ype, zpe);
 	
 	//open the file
-	std::string path = "../../MPCFcluster/makefiles/datawavelet00000.StreamerGridPointIterative.channel0";
+	std::string path = "datawavelet00000.StreamerGridPointIterative.channel0";// "../../MPCFcluster/makefiles/"//datawavelet00000.StreamerGridPointIterative.channel0";
 	//std::string path = "datawavelet00000.StreamerGridPointIterative.channel5";
 	
 	Reader_WaveletCompressionMPI myreader(mycomm, path);
@@ -58,8 +76,8 @@ int main(int argc, const char **  argv)
 	const int yblocks = myreader.yblocks();
 	const int zblocks = myreader.zblocks();
 	
-	const double gridspacing = 1. / max(max(xblocks, yblocks), zblocks);
-	
+	const double gridspacing = 1. / max(max(xblocks, yblocks), zblocks) / _BLOCKSIZE_;
+		
 	MYASSERT(_BLOCKSIZE_ <= _VOXELS_, "_BLOCKSIZE_ = " << _BLOCKSIZE_ << " is bigger than _VOXELS_ =" << _VOXELS_ << "\n");
 	
 	const int ghosts1side = 2;
@@ -99,11 +117,13 @@ int main(int argc, const char **  argv)
 		if (isroot && leastwork == 0)
 			printf("WARNING: watchout because some of the ranks have zero work.\n");
 	}
-	
+		
 	//ok we are ready to start
 	{
-		WaveletTexture3D_MPICollection texture_collections
-		(mycomm, outputpath, xtextures, ytextures, ztextures, mywavelet_threshold, halffloat);
+		WaveletTexture3D_CollectionMPI texture_collection
+		(mycomm, "distributed.vpcache", xtextures, ytextures, ztextures, mywavelet_threshold, halffloat);
+		
+		//WaveletTexture3D_Collection texture_collection("serial.vpcache", xtextures, ytextures, ztextures, mywavelet_threshold, halffloat);
 		
 		for(int gz = myzstart ;  gz < myzend; ++gz)
 			for(int gy = myystart ;  gy < myyend; ++gy)
@@ -190,7 +210,7 @@ int main(int argc, const char **  argv)
 					assert(zblockend > 0 && zblockend <= zblocks);
 					
 					//vector<unsigned char> datacompressed = texture->compress(mywavelet_threshold, halffloat);
-					texture_collections.write(gx, gy, gz, *texture);
+					texture_collection.write(gx, gy, gz, *texture);
 					
 					delete texture;
 				}
