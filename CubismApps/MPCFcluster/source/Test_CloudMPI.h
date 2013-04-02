@@ -168,56 +168,48 @@ public:
 			step_id = t_ssmpi->get_stepid();
 		}
 		else
-        {
-            _initialize_cloud();
+		  {
+		    _initialize_cloud();
             
-            bRestartedSeed = parser("-seed").asBool(0);
+		    bRestartedSeed = parser("-seed").asBool(0);
             
-            const int n_shapes = CloudData::n_shapes;
+		    const int n_shapes = CloudData::n_shapes;
             
-            Real bcast_buffer[4*n_shapes];
-            vector< shape * > v_shapes;
+		    vector< shape * > v_shapes;
             
-            if (isroot)
-            {
-                Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
-                my_seed.make_shapes(bRestartedSeed);
+		    //everyone does the following
+		    //so at the end every one has its own shapes vector
+		    {
+		      Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
                 
-                v_shapes = my_seed.get_vshapes();
+		      MPI::Cartcomm cartcomm = grid->getCartComm();
                 
-                for(int i=0; i< n_shapes; i++)
-                {
-                    Real c[3*n_shapes];
-                    bcast_buffer[0+i*4] = v_shapes[i]->get_rad();
-                    v_shapes[i]->get_center(c);
-                    bcast_buffer[1+i*4] = c[0];
-                    bcast_buffer[2+i*4] = c[1];
-                    bcast_buffer[3+i*4] = c[2];
-                }
-            }
+		      int myrank, mycoords[3];
+		      myrank = cartcomm.Get_rank();
+		      cartcomm.Get_coords(myrank, 3, mycoords);
+                
+		      const double h = 1./(double)max(grid->getBlocksPerDimension(0)*_BLOCKSIZEX_, max(grid->getBlocksPerDimension(1)*_BLOCKSIZEY_, grid->getBlocksPerDimension(2)*_BLOCKSIZEZ_));
+                
+		      const Real mystart[3] = {mycoords[0]*BPDX*_BLOCKSIZEX_*h, mycoords[1]*BPDY*_BLOCKSIZEX_*h, mycoords[2]*BPDZ*_BLOCKSIZEX_*h};
+		      const Real myend[3] = {mystart[0]+BPDX*_BLOCKSIZEX_*h, mystart[1]+BPDY*_BLOCKSIZEY_*h, mystart[2]+BPDZ*_BLOCKSIZEZ_*h};
+
+		      cout << "my starts are " << mystart[0] << " " << mystart[1]  << " " << mystart[2]  << endl;
+		      cout << "my ends are " << myend[0] << " " << myend[1]  << " " << myend[2]  << endl;
+                
+		      my_seed.make_shapes(mystart, myend, bRestartedSeed);
+                
+		      v_shapes = my_seed.get_vshapes();                
+		    }
+
+	    printf("my v_shapes size is %d\n", v_shapes.size());
             
-            MPI::Cartcomm cartcomm = grid->getCartComm();
-            cartcomm.Bcast(bcast_buffer, 4*n_shapes, MPI_REAL, 0);
-            
-            if (!isroot)
-            {
-                for(int i=0; i< n_shapes; i++)
-                {
-                    Real c[3], rad;
-                    rad  = bcast_buffer[0+i*4];
-                    c[0] = bcast_buffer[1+i*4];
-                    c[1] = bcast_buffer[2+i*4];
-                    c[2] = bcast_buffer[3+i*4];
-                    
-                    shape * cur_shape = new shape(c, rad);
-                    v_shapes.push_back(cur_shape);
-                }
-            }
-            
-            if (isroot) printf("Setting ic now...");
+            int myrank;
+	    MPI::Cartcomm cartcomm = grid->getCartComm();
+            myrank = cartcomm.Get_rank();
+            cout << myrank << " Setting ic now..." << endl;
             //_my_ic(*grid, v_shapes);
             _my_ic_quad(*grid, v_shapes);
-            if (isroot) printf("done\n");
+            cout << myrank << "done"<< endl;
             
             v_shapes.clear();
             /*

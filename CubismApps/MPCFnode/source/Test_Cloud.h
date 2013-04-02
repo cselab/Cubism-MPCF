@@ -8,6 +8,8 @@
  */
 #pragma once
 
+#include "omp.h"
+
 #include "Test_ShockBubble.h"
 #include "Types.h"
 #include <fstream>
@@ -256,6 +258,119 @@ public:
             f_save.close();
         }
     }
+
+    void make_shapes(const Real mystart[3], const Real myend[3], const bool bRestartedSeed=false)
+    {
+      bool bFull = false;
+        
+      unsigned int restarted_seed;
+        
+      //read seed if needed
+      if (bRestartedSeed)
+        {
+	  //For the moment we just read the cloud.dat
+	  //and ignore seed and cloud_config.dat
+	  {
+	    ifstream f_read_cloud("cloud.dat");
+	    for(int i=0; i<CloudData::n_shapes; ++i)
+	      {
+		int idx;
+		Real c[3], rad;
+		f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
+		cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+                    
+		shape * cur_shape = new shape(c,rad);
+                    
+		Real s[3],e[3];
+		cur_shape->get_bbox(s,e);
+                    
+                    const Real overlap_start[3] =
+		      {
+                        max(mystart[0]-CloudData::max_rad, s[0]),
+                        max(mystart[1]-CloudData::max_rad, s[1]),
+                        max(mystart[2]-CloudData::max_rad, s[2])
+		      };
+                    
+                    const Real overlap_end[3] =
+		      {
+                        min(myend[0]+CloudData::max_rad, e[0]),
+                        min(myend[1]+CloudData::max_rad, e[1]),
+                        min(myend[2]+CloudData::max_rad, e[2])
+		      };
+                    
+                    const bool bOverlap = overlap_end[0] > overlap_start[0] && overlap_end[1] > overlap_start[1] && overlap_end[2] > overlap_start[2];
+                    
+                    if (bOverlap)
+		      v_shapes.push_back(cur_shape);
+                    else
+		      delete cur_shape;
+	      }
+                
+	    f_read_cloud.close();
+                
+	    cout << "number of shapes are " << v_shapes.size() << endl;
+	  }
+            
+	  return;
+            
+	  ifstream f_read("seed.dat");
+	  if(f_read)
+            {
+	      cout << "seed file is there" << endl;
+	      f_read >> restarted_seed;
+	      f_read.close();
+            }
+	  else
+            {
+	      cout << "seed file not there...aborting" << endl;
+	      abort();
+            }
+        }
+        
+      const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
+        
+      //save seed anyway
+      {
+	ofstream f_save("seed.dat");
+	f_save<<seed;
+	f_save.close();
+      }
+        
+      srand48(seed);
+        
+      while(!bFull)
+        {
+	  shape * cur_shape = new shape();
+            
+	  if (reject_check(cur_shape))
+            {
+	      delete cur_shape;
+	      continue;
+            }
+            
+	  v_shapes.push_back(cur_shape);
+            
+	  printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
+            
+	  bFull = v_shapes.size()==n_shapes;
+        }
+        
+      //We are even more paranoic so we save the bubble centers and radii
+      //If the first method does not work on different platforms,
+      //a method must be implemented to read the following data.
+      {
+	ofstream f_save("cloud.dat");
+	for(int i=0; i< v_shapes.size(); i++)
+	  {
+	    Real c[3], rad;
+	    rad = v_shapes[i]->get_rad();
+	    v_shapes[i]->get_center(c);
+	    f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+	  }
+            
+	f_save.close();
+      }
+    }
     
     bool reject_check(shape * cur_shape) const
     {
@@ -281,12 +396,9 @@ public:
 inline double eval(const vector<shape*> v_shapes, const Real pos[3])
 {
     Real d = HUGE_VAL;
-    
+
     for( int i=0; i<v_shapes.size(); ++i)
-    {
-        shape * cur_shape = v_shapes[i];
-        d = min(d, cur_shape->eval(pos));
-    }
+      d = min(d, v_shapes[i]->eval(pos));
     
     const double alpha = M_PI*min(1., max(0., (d+0.5*Simulation_Environment::EPSILON)/Simulation_Environment::EPSILON));
     return 0.5+0.5*cos(alpha);
