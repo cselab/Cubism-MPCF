@@ -76,7 +76,7 @@ struct WaveletTexture3D
 	
 	void decompress(const bool halffloat, const size_t nbytes)
 	{
-		printf("decompressing args: %d %d\n", halffloat, nbytes);
+		//printf("decompressing args: %d %d\n", halffloat, nbytes);
 		wavcomp.decompress(halffloat, nbytes, data);
 	}
 };
@@ -175,7 +175,7 @@ public:
 					 " and i have " << WaveletsOnInterval::ChosenWavelets_GetName() << "\n");
 			
 			fscanf(myfile, "Threshold: %e\n", &wavelet_threshold);
-			printf("Threshold: %e\n", wavelet_threshold);
+			printf("Threshold: <%e>\n", wavelet_threshold);
 			
 			fscanf(myfile, "Encoder: %s\n", tmp);
 			printf("Encoder: <%s>\n", tmp);
@@ -278,18 +278,13 @@ public:
 		fwrite(ptr, sizeof(unsigned char), nbytes, myfile);
 	}
 	
-	virtual void read(const int ix, const int iy, const int iz, WaveletTexture3D& texture)
+	virtual void read(const int index, WaveletTexture3D& texture)
 	{
-		const int myentry = ix + xtextures * (iy + ytextures * iz);
-
 		//check that we are not totally nuts
-		assert(ix >= 0 && ix < xtextures);
-		assert(iy >= 0 && iy < ytextures);
-		assert(iz >= 0 && iz < ztextures);		
-		assert(myentry >= 0 && myentry < metadata.size());
-
-		const size_t nbytes = metadata[myentry].nbytes;
-		fseek(myfile, metadata[myentry].start, SEEK_SET);
+		assert(index >= 0 && index < metadata.size());
+		
+		const size_t nbytes = metadata[index].nbytes;
+		fseek(myfile, metadata[index].start, SEEK_SET);
 		fread(texture.compression_buffer(), sizeof(unsigned char), nbytes, myfile);
 		
 		//decompress the texture
@@ -299,12 +294,23 @@ public:
 		{
 			const size_t uncompressedbytes = sizeof(float) * _VOXELS_ * _VOXELS_ * _VOXELS_;
 			
-			printf("Texture %d %d %d. Compression ratio: %.2f (threshold:%.2e)\n", 
-				   ix, iy, iz, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
+			printf("Texture-id %d. Compression ratio: %.2f (threshold:%.2e)\n", index, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
 		}
 	}
-};
+	
+	virtual void read(const int ix, const int iy, const int iz, WaveletTexture3D& texture)
+	{
+		//check that we are not totally nuts
+		assert(ix >= 0 && ix < xtextures);
+		assert(iy >= 0 && iy < ytextures);
+		assert(iz >= 0 && iz < ztextures);		
+		
+		const int myentry = ix + xtextures * (iy + ytextures * iz);
+		assert(myentry >= 0 && myentry < metadata.size());
 
+		read(myentry, texture);
+	}
+};
 
 class WaveletTexture3D_CollectionMPI: public WaveletTexture3D_Collection
 {	

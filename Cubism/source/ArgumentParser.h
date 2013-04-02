@@ -94,6 +94,11 @@ public:
 		return mapArguments[arg];
 	}
 	
+	bool check(const string arg) const
+	{
+		return mapArguments.find(arg) != mapArguments.end();
+	}
+	
 	ArgumentParser(const int argc, const char ** argv) : mapArguments(), iArgC(argc), vArgV(argv), bStrictMode(false), bVerbose(true)
 	{
 		for (int i=1; i<argc; i++)

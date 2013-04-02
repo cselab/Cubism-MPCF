@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <mpi.h>
+#include <numeric>
 
 #include <ArgumentParser.h>
 
@@ -17,29 +18,7 @@
 #include "WaveletTexture3D.h"
 
 int main(int argc, const char **  argv)
-{
-	//just a mini-test for reading
-	if(false)
-	{
-		WaveletTexture3D_Collection texture_collection("distributed.vpcache");
-		
-		printf("weeeeeeeepppa eeeeeeps!\n");
-		WaveletTexture3D * texture = new WaveletTexture3D;
-
-		for(int iz = 0; iz < texture_collection.get_ztextures(); ++iz)
-			for(int iy = 0; iy < texture_collection.get_ytextures(); ++iy)
-				for(int ix = 0; ix < texture_collection.get_xtextures(); ++ix)
-					texture_collection.read(ix, iy, iz, *texture);
-
-		delete texture;
-		
-		exit(0);
-	}
-	
-	const bool halffloat = true;
-	const double mywavelet_threshold = 1e-3;
-	const string outputpath = "ciao-ciccio-bello.vpcache";
-	
+{	
 	MPI::Init_thread(MPI_THREAD_SERIALIZED);
 	
 	//create my cartesian communicator
@@ -63,67 +42,99 @@ int main(int argc, const char **  argv)
 	if (isroot)
 		printf("PE are organized as:  %d %d %d\n", xpe, ype, zpe);
 	
-	//open the file
-	std::string path = "datawavelet00000.StreamerGridPointIterative.channel0";// "../../MPCFcluster/makefiles/"//datawavelet00000.StreamerGridPointIterative.channel0";
-	//std::string path = "datawavelet00000.StreamerGridPointIterative.channel5";
+	ArgumentParser argparser(argc, argv);
 	
-	Reader_WaveletCompressionMPI myreader(mycomm, path);
+	const string pathtovpfile = argparser("-vp").asString("ciccio-bello.vpcache");
+	const string pathtosimdata = argparser("-simdata").asString("data.channel0");	
+	const double minval = argparser("-min").asDouble(0);
+	const double maxval = argparser("-max").asDouble(1);
+	const double wavelet_threshold  = argparser("-eps").asDouble(0);
+	const bool reading = argparser.check("-read");
+	const bool halffloat = argparser.check("-f16");
 	
-	myreader.load_file();
+	if (isroot)
+		argparser.loud();
+	else
+		argparser.mute();
 	
-	//figure out the amount of work per rank
-	const int xblocks = myreader.xblocks();
-	const int yblocks = myreader.yblocks();
-	const int zblocks = myreader.zblocks();
-	
-	const double gridspacing = 1. / max(max(xblocks, yblocks), zblocks) / _BLOCKSIZE_;
-		
-	MYASSERT(_BLOCKSIZE_ <= _VOXELS_, "_BLOCKSIZE_ = " << _BLOCKSIZE_ << " is bigger than _VOXELS_ =" << _VOXELS_ << "\n");
-	
-	const int ghosts1side = 2;
-	const int puredata1d = _VOXELS_ - 2 * ghosts1side;
-	
-	const int xtextures = (xblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
-	const int ytextures = (yblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
-	const int ztextures = (zblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
-	
-	MYASSERT(xtextures > 0 && ytextures > 0 && ztextures > 0, "NUMBER OF VP BLOCKS IS ZERO!");
-	
-	const int xrankwork = std::max(1, xtextures / xpe);
-	const int yrankwork = std::max(1, ytextures / ype);
-	const int zrankwork = std::max(1, ztextures / zpe);
-	
-	int peindex[3] = {-1, -1, -1};
-	mycartcomm.Get_coords(myrank, 3, peindex);
-	
-	assert(peindex[0] >= 0 && peindex[1] >= 0 && peindex[2] >= 0);
-	
-	const int myxstart = xrankwork * peindex[0];
-	const int myystart = yrankwork * peindex[1];
-	const int myzstart = zrankwork * peindex[2];
-	
-	const int myxend = std::min(xtextures, xrankwork * (peindex[0] + 1));
-	const int myyend = std::min(ytextures, yrankwork * (peindex[1] + 1));
-	const int myzend = std::min(ztextures, zrankwork * (peindex[2] + 1));
-	const int mytotalwork = (myxend - myxstart) * (myyend - myystart) * (myzend - myzstart);
-	
-	//spit a warning in case we starve
+	//just a mini-test for reading
+	if (reading)
 	{
-		int leastwork = -1;
-		mycomm.Reduce(&mytotalwork, &leastwork, 1, MPI_INT, MPI_SUM, 0);
+		if (isroot)
+		{
+			WaveletTexture3D_Collection texture_collection(pathtovpfile);
+			
+			WaveletTexture3D * texture = new WaveletTexture3D;
+			
+			for(int iz = 0; iz < texture_collection.get_ztextures(); ++iz)
+				for(int iy = 0; iy < texture_collection.get_ytextures(); ++iy)
+					for(int ix = 0; ix < texture_collection.get_xtextures(); ++ix)
+						texture_collection.read(ix, iy, iz, *texture);
+			
+			delete texture;
+			
+			printf("Bella li, tutto in regola. Sa vedum!\n");
+		}
 		
-		assert(leastwork >= 0 || !isroot);
-		
-		if (isroot && leastwork == 0)
-			printf("WARNING: watchout because some of the ranks have zero work.\n");
 	}
-		
-	//ok we are ready to start
+	else //ok we are ready to start
 	{
-		WaveletTexture3D_CollectionMPI texture_collection
-		(mycomm, "distributed.vpcache", xtextures, ytextures, ztextures, mywavelet_threshold, halffloat);
+		//input is the simulation data
+		Reader_WaveletCompressionMPI myreader(mycomm, pathtosimdata);
+		myreader.load_file();
 		
-		//WaveletTexture3D_Collection texture_collection("serial.vpcache", xtextures, ytextures, ztextures, mywavelet_threshold, halffloat);
+		//figure out the amount of work per rank
+		const int xblocks = myreader.xblocks();
+		const int yblocks = myreader.yblocks();
+		const int zblocks = myreader.zblocks();
+		
+		const double gridspacing = 1. / max(max(xblocks, yblocks), zblocks) / _BLOCKSIZE_;
+		
+		MYASSERT(_BLOCKSIZE_ <= _VOXELS_, "_BLOCKSIZE_ = " << _BLOCKSIZE_ << " is bigger than _VOXELS_ =" << _VOXELS_ << "\n");
+		
+		const int ghosts1side = 2;
+		const int puredata1d = _VOXELS_ - 2 * ghosts1side;
+		
+		const int xtextures = (xblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
+		const int ytextures = (yblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
+		const int ztextures = (zblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
+		
+		MYASSERT(xtextures > 0 && ytextures > 0 && ztextures > 0, "NUMBER OF VP BLOCKS IS ZERO!");
+		
+		const int xrankwork = std::max(1, xtextures / xpe);
+		const int yrankwork = std::max(1, ytextures / ype);
+		const int zrankwork = std::max(1, ztextures / zpe);
+		
+		int peindex[3] = {-1, -1, -1};
+		mycartcomm.Get_coords(myrank, 3, peindex);
+		
+		assert(peindex[0] >= 0 && peindex[1] >= 0 && peindex[2] >= 0);
+		
+		const int myxstart = xrankwork * peindex[0];
+		const int myystart = yrankwork * peindex[1];
+		const int myzstart = zrankwork * peindex[2];
+		
+		const int myxend = std::min(xtextures, xrankwork * (peindex[0] + 1));
+		const int myyend = std::min(ytextures, yrankwork * (peindex[1] + 1));
+		const int myzend = std::min(ztextures, zrankwork * (peindex[2] + 1));
+		const int mytotalwork = (myxend - myxstart) * (myyend - myystart) * (myzend - myzstart);
+		
+		//spit a warning in case we starve
+		{
+			int leastwork = -1;
+			mycomm.Reduce(&mytotalwork, &leastwork, 1, MPI_INT, MPI_SUM, 0);
+			
+			assert(leastwork >= 0 || !isroot);
+			
+			if (isroot && leastwork == 0)
+				printf("WARNING: watchout because some of the ranks have zero work.\n");
+		}
+		
+		//ok, lets collect some stats
+		vector<Real> vmaxval, vminval, vavg;
+	
+		WaveletTexture3D_CollectionMPI texture_collection(mycomm, pathtovpfile, xtextures, ytextures, ztextures, wavelet_threshold, halffloat);
+		//WaveletTexture3D_Collection texture_collection("serial.vpcache", xtextures, ytextures, ztextures, wavelet_threshold, halffloat);
 		
 		for(int gz = myzstart ;  gz < myzend; ++gz)
 			for(int gy = myystart ;  gy < myyend; ++gy)
@@ -201,6 +212,31 @@ int main(int argc, const char **  argv)
 					 for(int dx = 0; dx < _VOXELS_; ++dx)
 					 assert(texture->data[dz][dy][dx] == 1);*/
 					
+					//normalize the data
+					{
+						const Real a1 = 1 / (maxval - minval);
+						const Real a0 = -minval * a1;
+						
+						Real mysum = 0, mymax = -HUGE_VAL, mymin = HUGE_VAL;
+						
+						for(int dz = 0; dz < _VOXELS_; ++dz)
+							for(int dy = 0; dy < _VOXELS_; ++dy)
+								for(int dx = 0; dx < _VOXELS_; ++dx)
+								{
+									const float val = texture->data[dz][dy][dx];
+									texture->data[dz][dy][dx] = std::min(1.f, std::max(0.f, a0 + a1 * val));
+									assert(texture->data[dz][dy][dx] >= 0 && texture->data[dz][dy][dx] <= 1);
+
+									mysum += val;
+									mymin = min(mymin, (Real)val);
+									mymax = max(mymax, (Real)val);									
+								}
+						
+						vmaxval.push_back(mymax);
+						vminval.push_back(mymin);
+						vavg.push_back(mysum / (_VOXELS_ * _VOXELS_ * _VOXELS_));
+					}
+					
 					assert(xblockstart >= 0 && xblockstart < xblocks);
 					assert(yblockstart >= 0 && yblockstart < yblocks);
 					assert(zblockstart >= 0 && zblockstart < zblocks);
@@ -209,19 +245,32 @@ int main(int argc, const char **  argv)
 					assert(yblockend > 0 && yblockend <= yblocks);
 					assert(zblockend > 0 && zblockend <= zblocks);
 					
-					//vector<unsigned char> datacompressed = texture->compress(mywavelet_threshold, halffloat);
 					texture_collection.write(gx, gy, gz, *texture);
 					
 					delete texture;
 				}
 		
-		printf("good up to here\n");
+		//spit some statistics
+		{
+			float minval = *std::min_element(vminval.begin(), vminval.end());
+			float avgval = std::accumulate(vavg.begin(), vavg.end(), 0) / vavg.size();
+			float maxval = *std::max_element(vmaxval.begin(), vmaxval.end());
+						
+			mycomm.Reduce(isroot ? MPI::IN_PLACE : &minval, &minval, 1, MPI_FLOAT, MPI::MIN, 0);
+			mycomm.Reduce(isroot ? MPI::IN_PLACE : &avgval, &avgval, 1, MPI_FLOAT, MPI::SUM, 0);
+			mycomm.Reduce(isroot ? MPI::IN_PLACE : &maxval, &maxval, 1, MPI_FLOAT, MPI::MAX, 0);
+			
+			avgval /= mycomm.Get_size();
+			
+			if (isroot)
+				printf("Ok we are done here. The min, avg, max values found are : %.2f %.2f %.2f\n",  minval, avgval, maxval);
+		}
+		
+		if (isroot)
+			std::cout << "Also tchuess zaeme gal.\n";
 	}
 	
 	MPI::Finalize();
-	
-	if (myrank == 0)
-		std::cout << "Also tchuess zaeme gal.\n";
 	
 	return 0;
 }
