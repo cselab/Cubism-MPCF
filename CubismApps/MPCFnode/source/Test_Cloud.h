@@ -47,7 +47,7 @@ public:
     }
     
     shape(const Real _center[3], const Real _radius): radius(_radius)
-    {        
+    {
         for(int i=0; i<3; ++i)
         {
             center[i] = _center[i];
@@ -84,7 +84,7 @@ public:
     {
         return radius;
     }
-
+    
     Real eval(const Real pos[3]) const
     {
         return sqrt(pow(pos[0]-center[0],2)+pow(pos[1]-center[1],2)+pow(pos[2]-center[2],2))-radius;
@@ -97,14 +97,14 @@ public:
         const Real rad_av_rough = 0.5*(CloudData::min_rad+CloudData::max_rad);
         const Real rad_cut = 1.2*rad_av_rough;
         //if (CloudData::small_count==CloudData::n_small && this_shape->get_rad()<rad_cut)
-         //   return true;
+        //   return true;
         
         Real s[3], e[3];
         this->get_bbox(s,e);
         
         //this rule checks that the buble is inside the bounding box
         const bool bOut = s[0]<start[0] || s[1]<start[1] || s[2]<start[2] ||
-            e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
+        e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
         
         //this rule is to keep larger bubbles outside
         //larger w.r.t. rad_avg_rough
@@ -258,118 +258,118 @@ public:
             f_save.close();
         }
     }
-
+    
     void make_shapes(const Real mystart[3], const Real myend[3], const bool bRestartedSeed=false)
     {
-      bool bFull = false;
+        bool bFull = false;
         
-      unsigned int restarted_seed;
+        unsigned int restarted_seed;
         
-      //read seed if needed
-      if (bRestartedSeed)
+        //read seed if needed
+        if (bRestartedSeed)
         {
-	  //For the moment we just read the cloud.dat
-	  //and ignore seed and cloud_config.dat
-	  {
-	    ifstream f_read_cloud("cloud.dat");
-	    for(int i=0; i<CloudData::n_shapes; ++i)
-	      {
-		int idx;
-		Real c[3], rad;
-		f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
-		cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+            //For the moment we just read the cloud.dat
+            //and ignore seed and cloud_config.dat
+            {
+                ifstream f_read_cloud("cloud.dat");
+                for(int i=0; i<CloudData::n_shapes; ++i)
+                {
+                    int idx;
+                    Real c[3], rad;
+                    f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
+                    cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
                     
-		shape * cur_shape = new shape(c,rad);
+                    shape * cur_shape = new shape(c,rad);
                     
-		Real s[3],e[3];
-		cur_shape->get_bbox(s,e);
+                    Real s[3],e[3];
+                    cur_shape->get_bbox(s,e);
                     
                     const Real overlap_start[3] =
-		      {
+                    {
                         max(mystart[0]-CloudData::max_rad, s[0]),
                         max(mystart[1]-CloudData::max_rad, s[1]),
                         max(mystart[2]-CloudData::max_rad, s[2])
-		      };
+                    };
                     
                     const Real overlap_end[3] =
-		      {
+                    {
                         min(myend[0]+CloudData::max_rad, e[0]),
                         min(myend[1]+CloudData::max_rad, e[1]),
                         min(myend[2]+CloudData::max_rad, e[2])
-		      };
+                    };
                     
                     const bool bOverlap = overlap_end[0] > overlap_start[0] && overlap_end[1] > overlap_start[1] && overlap_end[2] > overlap_start[2];
                     
                     if (bOverlap)
-		      v_shapes.push_back(cur_shape);
+                        v_shapes.push_back(cur_shape);
                     else
-		      delete cur_shape;
-	      }
+                        delete cur_shape;
+                }
                 
-	    f_read_cloud.close();
+                f_read_cloud.close();
                 
-	    cout << "number of shapes are " << v_shapes.size() << endl;
-	  }
-            
-	  return;
-            
-	  ifstream f_read("seed.dat");
-	  if(f_read)
-            {
-	      cout << "seed file is there" << endl;
-	      f_read >> restarted_seed;
-	      f_read.close();
+                cout << "number of shapes are " << v_shapes.size() << endl;
             }
-	  else
+            
+            return;
+            
+            ifstream f_read("seed.dat");
+            if(f_read)
             {
-	      cout << "seed file not there...aborting" << endl;
-	      abort();
+                cout << "seed file is there" << endl;
+                f_read >> restarted_seed;
+                f_read.close();
+            }
+            else
+            {
+                cout << "seed file not there...aborting" << endl;
+                abort();
             }
         }
         
-      const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
+        const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
         
-      //save seed anyway
-      {
-	ofstream f_save("seed.dat");
-	f_save<<seed;
-	f_save.close();
-      }
-        
-      srand48(seed);
-        
-      while(!bFull)
+        //save seed anyway
         {
-	  shape * cur_shape = new shape();
-            
-	  if (reject_check(cur_shape))
-            {
-	      delete cur_shape;
-	      continue;
-            }
-            
-	  v_shapes.push_back(cur_shape);
-            
-	  printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
-            
-	  bFull = v_shapes.size()==n_shapes;
+            ofstream f_save("seed.dat");
+            f_save<<seed;
+            f_save.close();
         }
         
-      //We are even more paranoic so we save the bubble centers and radii
-      //If the first method does not work on different platforms,
-      //a method must be implemented to read the following data.
-      {
-	ofstream f_save("cloud.dat");
-	for(int i=0; i< v_shapes.size(); i++)
-	  {
-	    Real c[3], rad;
-	    rad = v_shapes[i]->get_rad();
-	    v_shapes[i]->get_center(c);
-	    f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
-	  }
+        srand48(seed);
+        
+        while(!bFull)
+        {
+            shape * cur_shape = new shape();
             
-	f_save.close();
-      }
+            if (reject_check(cur_shape))
+            {
+                delete cur_shape;
+                continue;
+            }
+            
+            v_shapes.push_back(cur_shape);
+            
+            printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
+            
+            bFull = v_shapes.size()==n_shapes;
+        }
+        
+        //We are even more paranoic so we save the bubble centers and radii
+        //If the first method does not work on different platforms,
+        //a method must be implemented to read the following data.
+        {
+            ofstream f_save("cloud.dat");
+            for(int i=0; i< v_shapes.size(); i++)
+            {
+                Real c[3], rad;
+                rad = v_shapes[i]->get_rad();
+                v_shapes[i]->get_center(c);
+                f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+            }
+            
+            f_save.close();
+        }
     }
     
     bool reject_check(shape * cur_shape) const
@@ -396,9 +396,9 @@ public:
 inline double eval(const vector<shape*> v_shapes, const Real pos[3])
 {
     Real d = HUGE_VAL;
-
+    
     for( int i=0; i<v_shapes.size(); ++i)
-      d = min(d, v_shapes[i]->eval(pos));
+        d = min(d, v_shapes[i]->eval(pos));
     
     const double alpha = M_PI*min(1., max(0., (d+0.5*Simulation_Environment::EPSILON)/Simulation_Environment::EPSILON));
     return 0.5+0.5*cos(alpha);
@@ -419,7 +419,7 @@ class Test_Cloud: public Test_ShockBubble
     
 public:
     Test_Cloud(const int argc, const char ** argv);
-
+    
     void setup();
 };
 
@@ -449,7 +449,7 @@ public:
         b.G = 1./(6.59-1);
         b.P = 4.049e3*b.G*6.59;
         b.energy = 100.0;
-                
+        
         if (info.index[0]==0)           bc.template applyBC_dirichlet<0,0>(b);
         if (info.index[0]==this->NX-1)  bc.template applyBC_dirichlet<0,1>(b);
         if (info.index[1]==0)			bc.template applyBC_dirichlet<1,0>(b);

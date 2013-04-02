@@ -20,9 +20,6 @@ typedef double Real;
 using namespace std;
 
 #include "WaveletCompressor.h"
-#include "FullWaveletTransform.h"
-
-static const bool lifting_scheme = false;
 
 template<int N>
 void serialize_bitset(bitset<N> mybits, unsigned char * const buf, const int nbytes)
@@ -116,16 +113,15 @@ float _cvtfromf16(const unsigned short f16)
 	return *(float *)& retval;
 }
 
-size_t WaveletCompressor::compress(const Real threshold, const bool float16, const Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_])
-{	
-	WaveletsOnInterval::FullTransform<_BLOCKSIZE_, lifting_scheme> full;
-		
-	const Real * const src = &data[0][0][0];
+template<int DATASIZE1D, typename DataType>
+size_t WaveletCompressorGeneric<DATASIZE1D, DataType>::compress(const float threshold, const bool float16, const DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
+{			
+	const DataType * const src = &data[0][0][0];
 	WaveletsOnInterval::FwtAp * const dst = &full.data[0][0][0];
 	for(int i = 0; i < BS3; ++i) dst[i] = src[i];
 	
 	full.fwt();
-	pair<vector<Real> , bitset<BS3> > survivors = full.threshold(threshold);
+	pair<vector<DataType> , bitset<BS3> > survivors = full.template threshold<DataType>(threshold);
 
 	size_t bytes_copied = 0;
 	
@@ -135,8 +131,8 @@ size_t WaveletCompressor::compress(const Real threshold, const bool float16, con
 	const int nelements = survivors.first.size();
 	if (!float16)
 	{
-		memcpy(bufcompression + bytes_copied, &survivors.first.front(), sizeof(Real) * nelements);
-		bytes_copied += sizeof(Real) * nelements;
+		memcpy(bufcompression + bytes_copied, &survivors.first.front(), sizeof(DataType) * nelements);
+		bytes_copied += sizeof(DataType) * nelements;
 	}
 	else
 		for(int i = 0; i < nelements; ++i, bytes_copied += 2)
@@ -150,22 +146,23 @@ size_t WaveletCompressor::compress(const Real threshold, const bool float16, con
 	return bytes_copied;
 }
 
-void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_])
+template<int DATASIZE1D, typename DataType>
+void WaveletCompressorGeneric<DATASIZE1D, DataType>::decompress(const bool float16, size_t bytes, DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
 {
-	assert((bytes - sizeof(bitset<BS3>)) % sizeof(Real) == 0);
+	assert((bytes - sizeof(bitset<BS3>)) % sizeof(DataType) == 0);
 	
 	bitset<BS3> mask;
 	const int expected = deserialize_bitset<BS3>(mask, bufcompression, BITSETSIZE);
 
 	size_t bytes_read = BITSETSIZE;
 	
-	const int nelements = (bytes - bytes_read) / (float16 ? sizeof(unsigned short) : sizeof(Real));
+	const int nelements = (bytes - bytes_read) / (float16 ? sizeof(unsigned short) : sizeof(DataType));
 	assert(expected == nelements);
 
-	vector<Real> datastream(nelements);
+	vector<DataType> datastream(nelements);
 	
 	if (!float16)
-		memcpy((void *)&datastream.front(), bufcompression + bytes_read, sizeof(Real) * nelements);	
+		memcpy((void *)&datastream.front(), bufcompression + bytes_read, sizeof(DataType) * nelements);	
 	else
 	{
 		unsigned short elements[nelements];
@@ -175,11 +172,10 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 			datastream[i] =  _cvtfromf16(elements[i]);
 	}
 	
-	WaveletsOnInterval::FullTransform<_BLOCKSIZE_, lifting_scheme> full;
 	full.load(datastream, mask);
 	full.iwt();
 
-	Real * const dst = &data[0][0][0];
+	DataType * const dst = &data[0][0][0];
 	const WaveletsOnInterval::FwtAp * const src = &full.data[0][0][0];
 	for(int i = 0; i < BS3; ++i)
 	{ 
@@ -187,3 +183,13 @@ void WaveletCompressor::decompress(const bool float16, size_t bytes, Real data[_
 		assert(!std::isnan(dst[i]));
 	}
 }
+
+#ifdef _BLOCKSIZE_
+template class WaveletCompressorGeneric<_BLOCKSIZE_, Real>;
+template class WaveletCompressorGeneric_zlib<_BLOCKSIZE_, Real>;
+#endif
+
+#ifdef _VOXELS_ //mammamia whattahack
+template class WaveletCompressorGeneric<_VOXELS_, float>;
+template class WaveletCompressorGeneric_zlib<_VOXELS_, float>;
+#endif

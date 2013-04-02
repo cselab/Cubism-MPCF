@@ -155,7 +155,7 @@ public:
 			printf("////////////////////////////////////////////////////////////\n");
 		}
         
-		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ);
+		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDX, BPDZ);
         
 		assert(grid != NULL);
         
@@ -168,43 +168,40 @@ public:
 			step_id = t_ssmpi->get_stepid();
 		}
 		else
-		  {
-		    _initialize_cloud();
+        {
+            _initialize_cloud();
             
-		    bRestartedSeed = parser("-seed").asBool(0);
+            bRestartedSeed = parser("-seed").asBool(0);
             
-		    const int n_shapes = CloudData::n_shapes;
+            const int n_shapes = CloudData::n_shapes;
             
-		    vector< shape * > v_shapes;
+            vector< shape * > v_shapes;
             
-		    //everyone does the following
-		    //so at the end every one has its own shapes vector
-		    {
-		      Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
+            //everyone does the following
+            //so at the end every one has its own shapes vector
+            {
+                Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
                 
-		      MPI::Cartcomm cartcomm = grid->getCartComm();
+                MPI::Cartcomm cartcomm = grid->getCartComm();
                 
-		      int myrank, mycoords[3];
-		      myrank = cartcomm.Get_rank();
-		      cartcomm.Get_coords(myrank, 3, mycoords);
+                int myrank, mycoords[3];
+                myrank = cartcomm.Get_rank();
+                cartcomm.Get_coords(myrank, 3, mycoords);
                 
-		      const double h = 1./(double)max(grid->getBlocksPerDimension(0)*_BLOCKSIZEX_, max(grid->getBlocksPerDimension(1)*_BLOCKSIZEY_, grid->getBlocksPerDimension(2)*_BLOCKSIZEZ_));
+                const double h = 1./(double)max(grid->getBlocksPerDimension(0)*_BLOCKSIZEX_, max(grid->getBlocksPerDimension(1)*_BLOCKSIZEY_, grid->getBlocksPerDimension(2)*_BLOCKSIZEZ_));
                 
-		      const Real mystart[3] = {mycoords[0]*BPDX*_BLOCKSIZEX_*h, mycoords[1]*BPDY*_BLOCKSIZEX_*h, mycoords[2]*BPDZ*_BLOCKSIZEX_*h};
-		      const Real myend[3] = {mystart[0]+BPDX*_BLOCKSIZEX_*h, mystart[1]+BPDY*_BLOCKSIZEY_*h, mystart[2]+BPDZ*_BLOCKSIZEZ_*h};
+                const Real mystart[3] = {mycoords[0]*BPDX*_BLOCKSIZEX_*h, mycoords[1]*BPDY*_BLOCKSIZEY_*h, mycoords[2]*BPDZ*_BLOCKSIZEZ_*h};
+                const Real myend[3] = {mystart[0]+BPDX*_BLOCKSIZEX_*h, mystart[1]+BPDY*_BLOCKSIZEY_*h, mystart[2]+BPDZ*_BLOCKSIZEZ_*h};
 
-		      cout << "my starts are " << mystart[0] << " " << mystart[1]  << " " << mystart[2]  << endl;
-		      cout << "my ends are " << myend[0] << " " << myend[1]  << " " << myend[2]  << endl;
+                my_seed.make_shapes(mystart, myend, bRestartedSeed);
                 
-		      my_seed.make_shapes(mystart, myend, bRestartedSeed);
-                
-		      v_shapes = my_seed.get_vshapes();                
-		    }
-
-	    printf("my v_shapes size is %d\n", v_shapes.size());
+                v_shapes = my_seed.get_vshapes();                
+            }
+            
+            printf("my v_shapes size is %d\n", v_shapes.size());
             
             int myrank;
-	    MPI::Cartcomm cartcomm = grid->getCartComm();
+            MPI::Cartcomm cartcomm = grid->getCartComm();
             myrank = cartcomm.Get_rank();
             cout << myrank << " Setting ic now..." << endl;
             //_my_ic(*grid, v_shapes);
