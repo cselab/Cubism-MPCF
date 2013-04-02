@@ -120,7 +120,7 @@ public:
 			streamer<<step_id;
 			
 			mywaveletdumper.verbose();
-			mywaveletdumper.set_threshold(1e-3);
+			mywaveletdumper.set_threshold(1e-4);
 			
 			mywaveletdumper.Write(grid, streamer.str());
 	
