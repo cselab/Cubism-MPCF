@@ -50,12 +50,13 @@ int main(int argc, const char **argv)
 	const int mpi_rank = mycomm.Get_rank();
 	const int mpi_size = mycomm.Get_size();
 
-#if 0
-	Reader_WaveletCompressionMPI myreader(mycomm);
+#if 1
+	Reader_WaveletCompressionMPI myreader(mycomm, inputfile);
 #else
 	Reader_WaveletCompression myreader;
 #endif
-	myreader.load_file(inputfile);
+//	myreader.load_file(inputfile);
+	myreader.load_file();
 
 	stringstream ss;
 	ss << inputfile << "_np"  << mpi_size ;

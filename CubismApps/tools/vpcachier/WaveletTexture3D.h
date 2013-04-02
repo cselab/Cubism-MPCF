@@ -43,13 +43,15 @@ struct WaveletTexture3D
 		template<int dim>
 		void setup(const int gstart, const int gend, const int ghost1side, const double gridspacing)
 		{			
-			pos[dim] = gstart * gridspacing;
-			size[dim] = (gend - gstart) * gridspacing;
+			assert(gend - gstart == _VOXELS_);
+			
+			pos[dim] = (gstart + ghost1side) * gridspacing;
+			size[dim] = (gend - gstart - 2 * ghost1side) * gridspacing;
 			
 			const double voxelsize = 1. / _VOXELS_;
 
 			texcoordstart[dim] = ghost1side * voxelsize;
-			texcoordend[dim] = (gend - gstart - ghost1side) * voxelsize; 
+			texcoordend[dim] = (_VOXELS_ - ghost1side) * voxelsize; 
 		}		
 		
 		void print()
@@ -210,6 +212,7 @@ public:
 	int get_xtextures() const { return xtextures; }
 	int get_ytextures() const { return ytextures; }
 	int get_ztextures() const { return ztextures; }
+	int get_ntextures() const { return ntextures; }
 	
 	WaveletTexture3D_Collection(const string path, const int xtextures, const int ytextures, const int ztextures,
 								const float wavelet_threshold, const bool halffloat, bool openfile = true): 
@@ -257,7 +260,7 @@ public:
 		{
 			const size_t uncompressedbytes = sizeof(Real) * _VOXELS_ * _VOXELS_ * _VOXELS_;
 			
-			printf("Texture %d %d %d. Compression ratio: %.2f (threshold:%.2e)\n", 
+			printf("Texture: %d %d %d, CR: %.1fX\n", 
 				   ix, iy, iz, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
 		}
 		
@@ -278,27 +281,33 @@ public:
 		fwrite(ptr, sizeof(unsigned char), nbytes, myfile);
 	}
 	
-	virtual void read(const int index, WaveletTexture3D& texture)
+	virtual void read(const int index, WaveletTexture3D& texture, bool onlygeometry = false) const
 	{
 		//check that we are not totally nuts
 		assert(index >= 0 && index < metadata.size());
+	
+		//recover the geometry
+		texture.geometry = metadata[index].geometry;
 		
-		const size_t nbytes = metadata[index].nbytes;
+		if (onlygeometry) return;
+		
+		const size_t nbytes = metadata[index].nbytes;		
 		fseek(myfile, metadata[index].start, SEEK_SET);
 		fread(texture.compression_buffer(), sizeof(unsigned char), nbytes, myfile);
 		
 		//decompress the texture
 		texture.decompress(halffloat, nbytes);
 		
+		
 		//spit some output
 		{
 			const size_t uncompressedbytes = sizeof(float) * _VOXELS_ * _VOXELS_ * _VOXELS_;
 			
-			printf("Texture-id %d. Compression ratio: %.2f (threshold:%.2e)\n", index, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
+			printf("Texture-id %d. CR: %.1fX\n", index, uncompressedbytes * 1. / nbytes);	
 		}
 	}
 	
-	virtual void read(const int ix, const int iy, const int iz, WaveletTexture3D& texture)
+	virtual void read(const int ix, const int iy, const int iz, WaveletTexture3D& texture, bool onlygeometry = false) const
 	{
 		//check that we are not totally nuts
 		assert(ix >= 0 && ix < xtextures);
@@ -308,7 +317,7 @@ public:
 		const int myentry = ix + xtextures * (iy + ytextures * iz);
 		assert(myentry >= 0 && myentry < metadata.size());
 
-		read(myentry, texture);
+		read(myentry, texture, onlygeometry);
 	}
 };
 
@@ -346,8 +355,8 @@ public:
 			*file_offset = bufferfile_start; 
 			assert(*file_offset != 0);
 			
-			if (mygid == 0)
-				printf("at the beginning my offset was %zd\n", *file_offset);
+			//if (mygid == 0)
+			//	printf("at the beginning my offset was %zd\n", *file_offset);
 			
 			rmawindow = MPI::Win::Create(file_offset, sizeof(size_t), sizeof(size_t), MPI::INFO_NULL, mycomm);
 		}
@@ -381,8 +390,7 @@ public:
 		{
 			const size_t uncompressedbytes = sizeof(float) * _VOXELS_ * _VOXELS_ * _VOXELS_;
 			
-			printf("Texture %d %d %d. Compression ratio: %.2f (threshold:%.2e)\n", 
-				   ix, iy, iz, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
+			printf("Texture: %d %d %d, CR: %.1fX\n", ix, iy, iz, uncompressedbytes * 1. / nbytes);	
 		}
 
 		//obtain file offset
@@ -394,7 +402,6 @@ public:
 			rmawindow.Unlock(0);
 		}
 		assert(myoffset != 0);
-		printf("myoffset is %zd\n", myoffset);
 
 		//write lut
 		CompressedTexData entry = { texture.geometry, myoffset, nbytes };
