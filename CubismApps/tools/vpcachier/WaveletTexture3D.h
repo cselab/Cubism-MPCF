@@ -43,13 +43,15 @@ struct WaveletTexture3D
 		template<int dim>
 		void setup(const int gstart, const int gend, const int ghost1side, const double gridspacing)
 		{			
-			pos[dim] = gstart * gridspacing;
-			size[dim] = (gend - gstart) * gridspacing;
+			assert(gend - gstart == _VOXELS_);
+			
+			pos[dim] = (gstart + ghost1side) * gridspacing;
+			size[dim] = (gend - gstart - 2 * ghost1side) * gridspacing;
 			
 			const double voxelsize = 1. / _VOXELS_;
 
 			texcoordstart[dim] = ghost1side * voxelsize;
-			texcoordend[dim] = (gend - gstart - ghost1side) * voxelsize; 
+			texcoordend[dim] = (_VOXELS_ - ghost1side) * voxelsize; 
 		}		
 		
 		void print()
@@ -210,6 +212,7 @@ public:
 	int get_xtextures() const { return xtextures; }
 	int get_ytextures() const { return ytextures; }
 	int get_ztextures() const { return ztextures; }
+	int get_ntextures() const { return ntextures; }
 	
 	WaveletTexture3D_Collection(const string path, const int xtextures, const int ytextures, const int ztextures,
 								const float wavelet_threshold, const bool halffloat, bool openfile = true): 
@@ -278,17 +281,23 @@ public:
 		fwrite(ptr, sizeof(unsigned char), nbytes, myfile);
 	}
 	
-	virtual void read(const int index, WaveletTexture3D& texture)
+	virtual void read(const int index, WaveletTexture3D& texture, bool onlygeometry = false) const
 	{
 		//check that we are not totally nuts
 		assert(index >= 0 && index < metadata.size());
+	
+		//recover the geometry
+		texture.geometry = metadata[index].geometry;
 		
-		const size_t nbytes = metadata[index].nbytes;
+		if (onlygeometry) return;
+		
+		const size_t nbytes = metadata[index].nbytes;		
 		fseek(myfile, metadata[index].start, SEEK_SET);
 		fread(texture.compression_buffer(), sizeof(unsigned char), nbytes, myfile);
 		
 		//decompress the texture
 		texture.decompress(halffloat, nbytes);
+		
 		
 		//spit some output
 		{
@@ -298,7 +307,7 @@ public:
 		}
 	}
 	
-	virtual void read(const int ix, const int iy, const int iz, WaveletTexture3D& texture)
+	virtual void read(const int ix, const int iy, const int iz, WaveletTexture3D& texture, bool onlygeometry = false) const
 	{
 		//check that we are not totally nuts
 		assert(ix >= 0 && ix < xtextures);
@@ -308,7 +317,7 @@ public:
 		const int myentry = ix + xtextures * (iy + ytextures * iz);
 		assert(myentry >= 0 && myentry < metadata.size());
 
-		read(myentry, texture);
+		read(myentry, texture, onlygeometry);
 	}
 };
 
