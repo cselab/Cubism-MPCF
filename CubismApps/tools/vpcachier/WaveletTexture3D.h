@@ -290,7 +290,6 @@ public:
 
 		const size_t nbytes = metadata[myentry].nbytes;
 		fseek(myfile, metadata[myentry].start, SEEK_SET);
-		printf("reading... %d %d, halffloat: %d\n", nbytes, metadata[myentry].start, halffloat);
 		fread(texture.compression_buffer(), sizeof(unsigned char), nbytes, myfile);
 		
 		//decompress the texture
