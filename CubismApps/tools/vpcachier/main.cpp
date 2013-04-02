@@ -44,6 +44,11 @@ int main(int argc, const char **  argv)
 	
 	ArgumentParser argparser(argc, argv);
 	
+	if (isroot)
+		argparser.loud();
+	else
+		argparser.mute();
+	
 	const string pathtovpfile = argparser("-vp").asString("ciccio-bello.vpcache");
 	const string pathtosimdata = argparser("-simdata").asString("data.channel0");	
 	const double minval = argparser("-min").asDouble(0);
@@ -51,12 +56,7 @@ int main(int argc, const char **  argv)
 	const double wavelet_threshold  = argparser("-eps").asDouble(0);
 	const bool reading = argparser.check("-read");
 	const bool halffloat = argparser.check("-f16");
-	
-	if (isroot)
-		argparser.loud();
-	else
-		argparser.mute();
-	
+		
 	//just a mini-test for reading
 	if (reading)
 	{
@@ -98,6 +98,14 @@ int main(int argc, const char **  argv)
 		const int xtextures = (xblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
 		const int ytextures = (yblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
 		const int ztextures = (zblocks * _BLOCKSIZE_ - 2 * ghosts1side) / puredata1d;
+		
+		if (isroot)
+		{
+			double uncompressed_footprint = 4. * xtextures * ytextures * ztextures * powf(_VOXELS_, 3) / 1024. / 1024.;
+			
+			printf("I am going to create: %d %d %d textures. Uncompressed memory footprint will be %.2f MB.\n", 
+				   xtextures, ytextures, ztextures, uncompressed_footprint);
+		}
 		
 		MYASSERT(xtextures > 0 && ytextures > 0 && ztextures > 0, "NUMBER OF VP BLOCKS IS ZERO!");
 		

@@ -260,7 +260,7 @@ public:
 		{
 			const size_t uncompressedbytes = sizeof(Real) * _VOXELS_ * _VOXELS_ * _VOXELS_;
 			
-			printf("Texture %d %d %d. Compression ratio: %.2f (threshold:%.2e)\n", 
+			printf("Texture: %d %d %d, CR: %.1fX\n", 
 				   ix, iy, iz, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
 		}
 		
@@ -303,7 +303,7 @@ public:
 		{
 			const size_t uncompressedbytes = sizeof(float) * _VOXELS_ * _VOXELS_ * _VOXELS_;
 			
-			printf("Texture-id %d. Compression ratio: %.2f (threshold:%.2e)\n", index, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
+			printf("Texture-id %d. CR: %.1fX\n", index, uncompressedbytes * 1. / nbytes);	
 		}
 	}
 	
@@ -355,8 +355,8 @@ public:
 			*file_offset = bufferfile_start; 
 			assert(*file_offset != 0);
 			
-			if (mygid == 0)
-				printf("at the beginning my offset was %zd\n", *file_offset);
+			//if (mygid == 0)
+			//	printf("at the beginning my offset was %zd\n", *file_offset);
 			
 			rmawindow = MPI::Win::Create(file_offset, sizeof(size_t), sizeof(size_t), MPI::INFO_NULL, mycomm);
 		}
@@ -390,8 +390,7 @@ public:
 		{
 			const size_t uncompressedbytes = sizeof(float) * _VOXELS_ * _VOXELS_ * _VOXELS_;
 			
-			printf("Texture %d %d %d. Compression ratio: %.2f (threshold:%.2e)\n", 
-				   ix, iy, iz, uncompressedbytes * 1. / nbytes, wavelet_threshold);	
+			printf("Texture: %d %d %d, CR: %.1fX\n", ix, iy, iz, uncompressedbytes * 1. / nbytes);	
 		}
 
 		//obtain file offset
@@ -403,7 +402,6 @@ public:
 			rmawindow.Unlock(0);
 		}
 		assert(myoffset != 0);
-		printf("myoffset is %zd\n", myoffset);
 
 		//write lut
 		CompressedTexData entry = { texture.geometry, myoffset, nbytes };
