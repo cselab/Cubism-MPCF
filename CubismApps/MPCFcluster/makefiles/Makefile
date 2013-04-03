@@ -117,7 +117,7 @@ mpcf-cluster: $(OBJECTS)
 	$(CC)  $(OPTFLAGS) $(CPPFLAGS) $(extra) -c $^ -o $@
 	
 ../../MPCFnode/makefiles/WaveletCompressor.o: WaveletCompressor.cpp
-	$(CC)  $(OPTFLAGS) $(CPPFLAGS) $(extra) --std=c++11 -c $^ -o $@
+	$(CC)  $(OPTFLAGS) $(CPPFLAGS) $(extra) --std=c++0x -c $^ -o $@
 
 clean:
 	rm -f *.o mpcf-cluster
