@@ -200,6 +200,71 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 		       LSRK3MPIdata::notify<Kflow, Kupdate>(avg1, avg2, vInfo.size(), 3);
 		}
 		
+
+		template<typename MyLab, typename KType> 
+		void compute_asynch(SynchronizerMPI& synch, KType& rhs, TGrid& grid, Real current_time)
+		{
+		    Timer timer; 
+		    timer.start();             
+
+		    static MyLab * labs = NULL;
+
+		    if (labs == NULL)
+		    {
+		        int NTH = omp_get_max_threads();
+			printf("allocating %d labs\n", NTH); fflush(0);
+
+		        labs = new MyLab[NTH];
+
+		        for(int i = 0; i < NTH; ++i)
+		           labs[i].prepare(grid, synch);
+		    }
+
+		    int loop_counter = 0;
+
+#pragma omp parallel
+		   { 
+#pragma omp master
+		   {
+		       while (!synch.done())
+		       {
+        		   Timer timer2;
+		           timer2.start();
+
+		           vector<BlockInfo> avail = synch.avail(LSRK3MPIdata::GSYNCH);
+		           LSRK3MPIdata::t_synch_fs += timer2.stop();                           
+
+		           timer2.start();
+
+		           #pragma omp task shared(labs, rhs, grid) firstprivate(avail, current_time)
+		           {
+		               const int N = avail.size();
+		               for(int i = 0; i < N; i++) 
+		               {
+                		   #pragma omp task shared(rhs, grid, avail, labs) firstprivate(i, current_time)
+		                   {
+					KType myrhs = rhs;
+                		        const int tid = omp_get_thread_num();
+                        		labs[tid].load(avail[i], current_time);
+		                        myrhs(labs[tid], avail[i], *(FluidBlock*)avail[i].ptrBlock);
+		                   }
+		               }
+		               #pragma omp taskwait
+		           }
+
+		           LSRK3MPIdata::t_bp_fs += timer2.stop();
+		           LSRK3MPIdata::counter++;
+		           LSRK3MPIdata::nsynch++;
+		           loop_counter++;
+
+		      } /* while */
+		      #pragma omp taskwait
+
+		   } /* single */
+		   } /* parallel */
+		}
+
+
 		pair<double, double> step(TGrid& grid, vector<BlockInfo>& vInfo, Real a, Real b, Real dtinvh, const Real current_time)
 		{
 			Timer timer;	
@@ -218,6 +283,36 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 #ifdef _USE_HPM_
 	    if (LSRK3data::step_id>0) HPM_Start("RHS");
 #endif
+
+#if 1
+			for (int ipass = 0; ipass < 2; ipass++)
+			{			
+				Timer timer2;
+				  
+				timer2.start();
+				vector<BlockInfo> avail;
+
+				if (ipass == 0)  
+					avail = synch.avail_inner();
+				else
+					avail = synch.avail_halo(); 
+
+				LSRK3MPIdata::t_synch_fs += timer2.stop();                           
+				
+				const bool record = LSRK3data::step_id%10==0;
+
+				timer2.start();
+				_process< LabMPI >(avail, rhs, (TGrid&)grid, current_time, record);
+				LSRK3MPIdata::t_bp_fs += timer2.stop();
+				
+				LSRK3MPIdata::counter++;
+				LSRK3MPIdata::nsynch++;
+			}
+#else
+			bool ctoverlap = true;
+			if (ctoverlap)
+				compute_asynch<LabMPI>(synch, rhs, grid, current_time);
+			else
 			while (!synch.done())
 			{			
 				Timer timer2;
@@ -236,6 +331,8 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 				LSRK3MPIdata::counter++;
 				LSRK3MPIdata::nsynch++;
 			}
+#endif
+
 #ifdef _USE_HPM_
 			if (LSRK3data::step_id>0) HPM_Stop("RHS");
 #endif

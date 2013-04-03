@@ -12,7 +12,7 @@ using namespace std;
 
 #define MAX_REPORTFREQ	512
 
-struct MPI_ParIO_Group
+struct MPI_ParIO
 {
 	MPI_Group orig_group;	// from MPI_COMM_WORLD
 	int rank, size;			

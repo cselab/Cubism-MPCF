@@ -30,6 +30,7 @@ Simulation * sim = NULL;
 int main (int argc, const char ** argv) 
 {
 	MPI::Init();
+//	MPI::Init_thread(MPI_THREAD_MULTIPLE);
 	
 	const bool isroot = MPI::COMM_WORLD.Get_rank() == 0;
 
@@ -90,7 +91,6 @@ int main (int argc, const char ** argv)
 	
 	if (isroot)
 		printf("we spent: %2.2f \n", wallclock);
-
-	MPI_Finalize();	
+	
 	return 0;
 }
