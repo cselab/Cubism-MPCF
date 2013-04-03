@@ -217,12 +217,6 @@ struct MPI_ParIO
 	{
 		async_counter++;
 
-/*
-		if (lastcall) {
-			printf("chunked_async: lastcall = %d\n", lastcall); fflush(0);
-		}
-*/
-
 		int step = (gstep - reportfreq)/reportfreq;	// normalized step
 		
 		numid = 0;	// reset the vector ;-)

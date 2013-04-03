@@ -107,6 +107,8 @@ public:
 	virtual void run() = 0;
 	virtual void paint() { }
 	virtual void setup() { }
+	virtual void dispose() { }
+	virtual ~Simulation() { }
 };
 
 struct FluidElement
@@ -164,15 +166,37 @@ struct StreamerGridPoint //dummy
 	void operate(const FluidElement& input, Real output[7]) const
 	{
 		output[0] = input.rho;
-		assert(output[0] > 0);
+		//assert(output[0] > 0);
 		output[1] = input.u/input.rho;
 		output[2] = input.v/input.rho;
 		output[3] = input.w/input.rho;
         output[4] = (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
-        assert(input.energy > 0);
+       // assert(input.energy > 0);
 		output[5] = input.G;		
-  		output[6] = input.P;		
+  		output[6] = input.P;//input.P;		
 	}
+};
+
+struct StreamerGridPointIterative //dummy
+{
+    static const int channels = 7;
+
+	Real operate(const int channel, const FluidElement& input) const
+	{
+		switch (channel)
+		{
+			case 0: return input.rho;
+			case 1: return input.u/input.rho;
+			case 2: return input.v/input.rho;
+			case 3: return input.w/input.rho;
+			case 4: return (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
+			case 5: return input.G;		
+			case 6: return input.P;
+			default: abort(); return 0;
+		}	
+	}
+	
+	const char * name() { return "StreamerGridPointIterative" ; }
 };
 
 struct StreamerDensity
