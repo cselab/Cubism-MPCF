@@ -10,8 +10,6 @@
 #include <limits>
 #include <omp.h>
 
-#include <omp.h>
-
 //#include <BlockProcessingMPI.h>
 #include <BlockLabMPI.h>
 #include <Histogram.h>
