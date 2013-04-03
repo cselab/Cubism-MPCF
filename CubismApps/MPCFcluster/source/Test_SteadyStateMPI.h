@@ -168,9 +168,9 @@ public:
 			t += dt;
 			i++;
 		}
-		
+
+		delete stepper;
 		if (isroot)
 		  printf("Finishing RUN\n");
-	MPI::Finalize();
 	}
 };

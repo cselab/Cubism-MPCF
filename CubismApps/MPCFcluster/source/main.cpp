@@ -90,6 +90,7 @@ int main (int argc, const char ** argv)
 	
 	if (isroot)
 		printf("we spent: %2.2f \n", wallclock);
-	
+
+	MPI_Finalize();	
 	return 0;
 }
