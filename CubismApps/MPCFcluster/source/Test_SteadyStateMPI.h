@@ -189,6 +189,7 @@ public:
 		}
 
 		delete stepper;
+		
 		if (isroot)
 			printf("Finishing RUN\n");
 

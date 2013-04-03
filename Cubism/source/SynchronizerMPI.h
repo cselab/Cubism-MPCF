@@ -889,6 +889,123 @@ public:
 		cube.make_dependencies(isroot);
 	}
 	
+	vector<BlockInfo> avail_inner()
+	{        
+		vector<BlockInfo> retval;
+        	
+		const int xorigin = mypeindex[0]*mybpd[0];
+		const int yorigin =	mypeindex[1]*mybpd[1];
+		const int zorigin =	mypeindex[2]*mybpd[2];
+		
+		vector<Region> regions = cube.avail();
+		
+		for(vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+		{	
+            map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
+
+            if(r2v!=region2infos.end())
+            {
+                retval.insert(retval.end(), r2v->second.begin(), r2v->second.end());
+                blockinfo_counter -=  r2v->second.size();
+            }
+            else
+            {
+                vector<BlockInfo> entry;
+                
+                const int sx = it->s[0];
+                const int sy = it->s[1];
+                const int sz = it->s[2];
+                const int ex = it->e[0];
+                const int ey = it->e[1];
+                const int ez = it->e[2];
+                
+                for(int iz=sz; iz<ez; ++iz)
+                    for(int iy=sy; iy<ey; ++iy)
+                        for(int ix=sx; ix<ex; ++ix, blockinfo_counter--)
+                        {
+                            assert(c2i.find(I3(ix + xorigin, iy + yorigin, iz + zorigin)) != c2i.end());
+                            entry.push_back(globalinfos[ c2i[I3(ix + xorigin, iy + yorigin, iz + zorigin)] ]);
+                        }
+                
+                retval.insert(retval.end(), entry.begin(), entry.end());
+                
+                region2infos[*it] = entry;
+            }
+		}
+        
+		assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
+		assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
+		assert(blockinfo_counter != 0 || recv.pending.size() == 0);
+		
+		return retval;
+	}
+	
+	vector<BlockInfo> avail_halo()
+	{        
+		vector<BlockInfo> retval;
+        	
+		const int NPENDING = recv.pending.size();
+		       
+		vector<MPI::Request> pending(NPENDING);
+		
+		copy(recv.pending.begin(), recv.pending.end(), pending.begin());
+		
+		vector<MPI::Request> old = pending;
+		
+		MPI::Request::Waitall(NPENDING, &pending.front());
+		for(int i=0; i<NPENDING; ++i)
+		{
+			cube.received(old[i]);
+			recv.pending.erase(old[i]);
+		}
+		
+		const int xorigin = mypeindex[0]*mybpd[0];
+		const int yorigin =	mypeindex[1]*mybpd[1];
+		const int zorigin =	mypeindex[2]*mybpd[2];
+		
+		vector<Region> regions = cube.avail();
+		
+		for(vector<Region>::const_iterator it=regions.begin(); it!=regions.end(); ++it)
+		{	
+            map<Region, vector<BlockInfo> >::const_iterator r2v = region2infos.find(*it);
+
+            if(r2v!=region2infos.end())
+            {
+                retval.insert(retval.end(), r2v->second.begin(), r2v->second.end());
+                blockinfo_counter -=  r2v->second.size();
+            }
+            else
+            {
+                vector<BlockInfo> entry;
+                
+                const int sx = it->s[0];
+                const int sy = it->s[1];
+                const int sz = it->s[2];
+                const int ex = it->e[0];
+                const int ey = it->e[1];
+                const int ez = it->e[2];
+                
+                for(int iz=sz; iz<ez; ++iz)
+                    for(int iy=sy; iy<ey; ++iy)
+                        for(int ix=sx; ix<ex; ++ix, blockinfo_counter--)
+                        {
+                            assert(c2i.find(I3(ix + xorigin, iy + yorigin, iz + zorigin)) != c2i.end());
+                            entry.push_back(globalinfos[ c2i[I3(ix + xorigin, iy + yorigin, iz + zorigin)] ]);
+                        }
+                
+                retval.insert(retval.end(), entry.begin(), entry.end());
+                
+                region2infos[*it] = entry;
+            }
+		}
+        
+		assert(cube.pendingcount() != 0 || blockinfo_counter == cube.pendingcount());
+		assert(blockinfo_counter != 0 || blockinfo_counter == cube.pendingcount());
+		assert(blockinfo_counter != 0 || recv.pending.size() == 0);
+		
+		return retval;
+	}
+	
 	vector<BlockInfo> avail()
 	{        
 		vector<BlockInfo> retval;
