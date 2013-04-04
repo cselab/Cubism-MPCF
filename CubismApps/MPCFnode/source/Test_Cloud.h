@@ -29,9 +29,9 @@ class shape
 public:
     shape()
     {
-        const Real x_c = (Real)drand48();
-        const Real y_c = (Real)drand48();
-        const Real z_c = (Real)drand48();
+        const Real x_c = (Real)drand48()*(CloudData::seed_e[0]-CloudData::seed_s[0])+CloudData::seed_s[0];
+        const Real y_c = (Real)drand48()*(CloudData::seed_e[1]-CloudData::seed_s[1])+CloudData::seed_s[1];
+        const Real z_c = (Real)drand48()*(CloudData::seed_e[2]-CloudData::seed_s[2])+CloudData::seed_s[2];
         const Real _center[3] = {x_c, y_c, z_c};
         
         const Real _radius = (Real)drand48()*(CloudData::max_rad-CloudData::min_rad)+CloudData::min_rad;
@@ -310,7 +310,7 @@ public:
                 
                 f_read_cloud.close();
                 
-                if(isroot) cout << "number of shapes are " << v_shapes.size() << endl;
+                cout << "number of shapes are " << v_shapes.size() << endl;
             }
             
             return;
