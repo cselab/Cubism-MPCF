@@ -155,7 +155,9 @@ public:
 			printf("////////////////////////////////////////////////////////////\n");
 		}
         
-		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDX, BPDZ);
+	grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, XPESIZE*BPDX/32);
+
+	printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
         
 		assert(grid != NULL);
         
