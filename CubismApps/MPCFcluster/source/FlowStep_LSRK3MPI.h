@@ -58,13 +58,13 @@ namespace LSRK3MPIdata
     void notify(double avg_time_rhs, double avg_time_update, const size_t NBLOCKS, const size_t NTIMES)
     {
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
-		  {
+		{
 		    hist_update.Consolidate(LSRK3data::step_id);// peh
 			hist_stepid.Consolidate(LSRK3data::step_id); // peh
 			hist_rhs.Consolidate(LSRK3data::step_id); // peh
 			hist_nsync.Consolidate(LSRK3data::step_id);//peh
 		}
-
+		
 		hist_update.Notify((float)avg_time_update);// peh
 		hist_rhs.Notify((float)avg_time_rhs); //peh
 		hist_stepid.Notify((float)LSRK3data::step_id);// peh
@@ -75,7 +75,7 @@ namespace LSRK3MPIdata
 		//histogram.notify("STEPID", (float)LSRK3data::step_id);
 		//histogram.notify("NSYNCH", (float)nsynch/NTIMES);
 		nsynch = 0;
-
+		
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
 		{
 			double global_t_synch_fs = 0, global_t_bp_fs = 0;
@@ -190,7 +190,7 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 		
 		pair<double, double> step(TGrid& grid, vector<BlockInfo>& vInfo, Real a, Real b, Real dtinvh, const Real current_time)
 		{
-
+			
 			Timer timer;	
             LSRK3data::FlowStep<Kflow, Lab> rhs(a, dtinvh);   
 			
@@ -209,31 +209,31 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 #endif
 			
 			const bool buse2pass = true;
-
+			
 			if(buse2pass)
-			for (int ipass = 0; ipass < 2; ipass++)
-			{			
-				Timer timer2;
-				
-				timer2.start();
-				vector<BlockInfo> avail;
-				
-				if (ipass == 0)  
-					avail = synch.avail_inner();
-				else
-					avail = synch.avail_halo(); 
-				
-				LSRK3MPIdata::t_synch_fs += timer2.stop();                           
-				
-				const bool record = LSRK3data::step_id%10==0;
-				
-				timer2.start();
-				_process< LabMPI >(avail, rhs, (TGrid&)grid, current_time, record);
-				LSRK3MPIdata::t_bp_fs += timer2.stop();
-				
-				LSRK3MPIdata::counter++;
-				LSRK3MPIdata::nsynch++;
-			}						
+				for (int ipass = 0; ipass < 2; ipass++)
+				{			
+					Timer timer2;
+					
+					timer2.start();
+					vector<BlockInfo> avail;
+					
+					if (ipass == 0)  
+						avail = synch.avail_inner();
+					else
+						avail = synch.avail_halo(); 
+					
+					LSRK3MPIdata::t_synch_fs += timer2.stop();                           
+					
+					const bool record = LSRK3data::step_id%10==0;
+					
+					timer2.start();
+					_process< LabMPI >(avail, rhs, (TGrid&)grid, current_time, record);
+					LSRK3MPIdata::t_bp_fs += timer2.stop();
+					
+					LSRK3MPIdata::counter++;
+					LSRK3MPIdata::nsynch++;
+				}						
 			else
 				while (!synch.done())
 				{			
@@ -257,7 +257,7 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 #ifdef _USE_HPM_
 			if (LSRK3data::step_id>0) HPM_Stop("RHS");
 #endif
-
+			
             const double totalRHS = timer.stop();
 #ifdef _USE_HPM_
 			if (LSRK3data::step_id>0)             HPM_Start("Update");
@@ -279,7 +279,7 @@ class FlowStep_LSRK3MPI : public FlowStep_LSRK3
 	};
 	
 public:
-
+	
 	~FlowStep_LSRK3MPI()
 	{
 		LSRK3MPIdata::hist_update.Finalize();
@@ -289,26 +289,26 @@ public:
 	}
 	
 	FlowStep_LSRK3MPI(TGrid & grid, const Real CFL, const Real gamma1, const Real gamma2, ArgumentParser& parser, const int verbosity, Profiler* profiler=NULL, const Real pc1=0, const Real pc2=0):
-
+	
     FlowStep_LSRK3(grid, CFL, gamma1, gamma2, parser, verbosity, profiler, pc1, pc2), grid(grid)
     {
-      if (verbosity) cout << "GSYNCH " << parser("-gsync").asInt(omp_get_max_threads()) << endl;
-
-	static const int pehflag = 0; 
-	LSRK3MPIdata::hist_group.Init(8, parser("-report").asInt(1), pehflag); // peh
-
-      LSRK3MPIdata::hist_update.Init("hist_UPDATE.bin", &LSRK3MPIdata::hist_group); // peh
-      LSRK3MPIdata::hist_rhs.Init("hist_FLOWSTEP.bin", &LSRK3MPIdata::hist_group); //peh
-      LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", &LSRK3MPIdata::hist_group); // peh
-      LSRK3MPIdata::hist_nsync.Init("hist_NSYNCH.bin", &LSRK3MPIdata::hist_group); // peh
+		if (verbosity) cout << "GSYNCH " << parser("-gsync").asInt(omp_get_max_threads()) << endl;
+		
+		static const int pehflag = 0; 
+		LSRK3MPIdata::hist_group.Init(8, parser("-report").asInt(1), pehflag); // peh
+		
+		LSRK3MPIdata::hist_update.Init("hist_UPDATE.bin", &LSRK3MPIdata::hist_group); // peh
+		LSRK3MPIdata::hist_rhs.Init("hist_FLOWSTEP.bin", &LSRK3MPIdata::hist_group); //peh
+		LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", &LSRK3MPIdata::hist_group); // peh
+		LSRK3MPIdata::hist_nsync.Init("hist_NSYNCH.bin", &LSRK3MPIdata::hist_group); // peh
     }
 	
 	Real operator()(const Real max_dt)
 	{
-	  set_constants();
+		set_constants();
         
-	  //here we just check stuff and compute the next dt
-	  if (verbosity && LSRK3data::step_id==0)
+		//here we just check stuff and compute the next dt
+		if (verbosity && LSRK3data::step_id==0)
             cout << "Grid spacing and smoothing length are: " << h << ", " << smoothlength << endl; 
         
 		LSRK3MPIdata::GSYNCH = parser("-gsync").asInt(omp_get_max_threads());
@@ -329,55 +329,55 @@ public:
 		 histogram_sos.consolidate();
 		 */
 		double dt = min(max_dt, CFL*h/maxSOS);
-
+		
         if (MPI::COMM_WORLD.Get_rank()==0)
-      {
-          cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";
-          cout << "dt is "<< dt << "\n";
-      }
-          
+		{
+			cout << "sos max is " << maxSOS << ", " << "advection dt is "<< dt << "\n";
+			cout << "dt is "<< dt << "\n";
+		}
+		
 		if (verbosity)
 		{
 			cout << "Dispatcher is " << LSRK3data::dispatcher << endl;
 			cout << "Profiling information for sos is " << t_sos << endl;
 		}
         
-	  if (maxSOS>1e6)
+		if (maxSOS>1e6)
 	    {
-	      cout << "Speed of sound is too high. Is it realistic?" << endl;
-	      MPI::COMM_WORLD.Abort(1);
+			cout << "Speed of sound is too high. Is it realistic?" << endl;
+			MPI::COMM_WORLD.Abort(1);
 	    }
         
-	  if (dt<std::numeric_limits<double>::epsilon() * 1e1)
+		if (dt<std::numeric_limits<double>::epsilon() * 1e1)
 	    {
-	      cout << "Last time step encountered." << endl;
+			cout << "Last time step encountered." << endl;
             
-	      return 0;
+			return 0;
 	    }
-	  
-	  //now we perform an entire RK step
-	  if (parser("-kernels").asString("cpp")=="cpp")
-	    LSRKstepMPI<Convection_CPP, Update_CPP>(grid, dt/h, current_time);
+		
+		//now we perform an entire RK step
+		if (parser("-kernels").asString("cpp")=="cpp")
+			LSRKstepMPI<Convection_CPP, Update_CPP>(grid, dt/h, current_time);
 #ifdef _SSE_
-	  else if (parser("-kernels").asString("cpp")=="sse")
-	    LSRKstepMPI<Convection_SSE, Update_SSE>(grid, dt/h, current_time);
+		else if (parser("-kernels").asString("cpp")=="sse")
+			LSRKstepMPI<Convection_SSE, Update_SSE>(grid, dt/h, current_time);
 #endif
 #ifdef _AVX_
-	  else if (parser("-kernels").asString("cpp")=="avx")
-	    LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
+		else if (parser("-kernels").asString("cpp")=="avx")
+			LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
 #endif
 #ifdef _QPX_
-	  else if (parser("-kernels").asString("cpp")=="qpx")
-	    LSRKstepMPI<Convection_QPX, Update_QPX>(grid, dt/h, current_time);
+		else if (parser("-kernels").asString("cpp")=="qpx")
+			LSRKstepMPI<Convection_QPX, Update_QPX>(grid, dt/h, current_time);
 #endif
-	  else
+		else
 	    {
-	      cout << "combination not supported yet" << endl;
-	      MPI::COMM_WORLD.Abort(1);
+			cout << "combination not supported yet" << endl;
+			MPI::COMM_WORLD.Abort(1);
 	    }
-	  
-	  LSRK3data::step_id++; current_time+=dt;
-	  
-	  return dt;
+		
+		LSRK3data::step_id++; current_time+=dt;
+		
+		return dt;
 	}
-            };
+};

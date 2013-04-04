@@ -82,7 +82,8 @@ template<typename Test , typename Kernel> void testing(Test test, Kernel kernel,
 	if(!info.profiling)
 	{
 		test.accuracy(kernel, info.accuracythreshold, false);
-		test.performance(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);	
+		printf("done!"); exit(0);
+		//test.performance(kernel, info.peakperf*1e9, info.peakbandwidth*1e9, info.nofblocks, info.noftimes, false);	
 	}
 	else {
 		if (info.name == "Convection_CPP_omp")
