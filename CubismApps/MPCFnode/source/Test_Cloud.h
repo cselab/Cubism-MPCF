@@ -29,9 +29,9 @@ class shape
 public:
     shape()
     {
-        const Real x_c = (Real)drand48();
-        const Real y_c = (Real)drand48();
-        const Real z_c = (Real)drand48();
+        const Real x_c = (Real)drand48()*(CloudData::seed_e[0]-CloudData::seed_s[0])+CloudData::seed_s[0];
+        const Real y_c = (Real)drand48()*(CloudData::seed_e[1]-CloudData::seed_s[1])+CloudData::seed_s[1];
+        const Real z_c = (Real)drand48()*(CloudData::seed_e[2]-CloudData::seed_s[2])+CloudData::seed_s[2];
         const Real _center[3] = {x_c, y_c, z_c};
         
         const Real _radius = (Real)drand48()*(CloudData::max_rad-CloudData::min_rad)+CloudData::min_rad;
@@ -259,7 +259,7 @@ public:
         }
     }
     
-    void make_shapes(const Real mystart[3], const Real myend[3], const bool bRestartedSeed=false)
+    void make_shapes(const Real mystart[3], const Real myend[3], const bool bRestartedSeed=false, const bool isroot=false)
     {
         bool bFull = false;
         
@@ -268,6 +268,7 @@ public:
         //read seed if needed
         if (bRestartedSeed)
         {
+            v_shapes.clear();
             //For the moment we just read the cloud.dat
             //and ignore seed and cloud_config.dat
             {
@@ -277,7 +278,8 @@ public:
                     int idx;
                     Real c[3], rad;
                     f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
-                    cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+                    if(isroot)
+                        cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
                     
                     shape * cur_shape = new shape(c,rad);
                     
@@ -316,60 +318,64 @@ public:
             ifstream f_read("seed.dat");
             if(f_read)
             {
-                cout << "seed file is there" << endl;
+                if(isroot) cout << "seed file is there" << endl;
                 f_read >> restarted_seed;
                 f_read.close();
             }
             else
             {
-                cout << "seed file not there...aborting" << endl;
+                if(isroot) cout << "seed file not there...aborting" << endl;
                 abort();
             }
         }
         
-        const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
-        
         //save seed anyway
+        if(isroot)
         {
+            const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
+            
             ofstream f_save("seed.dat");
             f_save<<seed;
             f_save.close();
-        }
-        
-        srand48(seed);
-        
-        while(!bFull)
-        {
-            shape * cur_shape = new shape();
             
-            if (reject_check(cur_shape))
+            srand48(seed);
+            
+            while(!bFull)
             {
-                delete cur_shape;
-                continue;
+                shape * cur_shape = new shape();
+                
+                if (reject_check(cur_shape))
+                {
+                    delete cur_shape;
+                    continue;
+                }
+                
+                v_shapes.push_back(cur_shape);
+                
+                printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
+                
+                bFull = v_shapes.size()==n_shapes;
             }
             
-            v_shapes.push_back(cur_shape);
-            
-            printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
-            
-            bFull = v_shapes.size()==n_shapes;
-        }
-        
-        //We are even more paranoic so we save the bubble centers and radii
-        //If the first method does not work on different platforms,
-        //a method must be implemented to read the following data.
-        {
-            ofstream f_save("cloud.dat");
-            for(int i=0; i< v_shapes.size(); i++)
+            //We are even more paranoic so we save the bubble centers and radii
+            //If the first method does not work on different platforms,
+            //a method must be implemented to read the following data.
             {
-                Real c[3], rad;
-                rad = v_shapes[i]->get_rad();
-                v_shapes[i]->get_center(c);
-                f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+                ofstream f_save("cloud.dat");
+                for(int i=0; i< v_shapes.size(); i++)
+                {
+                    Real c[3], rad;
+                    rad = v_shapes[i]->get_rad();
+                    v_shapes[i]->get_center(c);
+                    f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+                }
+                
+                f_save.close();
             }
-            
-            f_save.close();
         }
+
+        //ok let them all find their own subset
+        this->make_shapes(mystart, myend, true, isroot);
     }
     
     bool reject_check(shape * cur_shape) const
