@@ -193,7 +193,7 @@ public:
                 const Real mystart[3] = {mycoords[0]*BPDX*_BLOCKSIZEX_*h, mycoords[1]*BPDY*_BLOCKSIZEY_*h, mycoords[2]*BPDZ*_BLOCKSIZEZ_*h};
                 const Real myend[3] = {mystart[0]+BPDX*_BLOCKSIZEX_*h, mystart[1]+BPDY*_BLOCKSIZEY_*h, mystart[2]+BPDZ*_BLOCKSIZEZ_*h};
 
-                my_seed.make_shapes(mystart, myend, bRestartedSeed);
+                my_seed.make_shapes(mystart, myend, bRestartedSeed, isroot);
                 
                 v_shapes = my_seed.get_vshapes();                
             }
@@ -203,10 +203,12 @@ public:
             int myrank;
             MPI::Cartcomm cartcomm = grid->getCartComm();
             myrank = cartcomm.Get_rank();
-            cout << myrank << " Setting ic now..." << endl;
+            if (isroot)
+                cout << myrank << " Setting ic now..." << endl;
             //_my_ic(*grid, v_shapes);
             _my_ic_quad(*grid, v_shapes);
-            cout << myrank << "done"<< endl;
+            if (isroot)
+                cout << myrank << "done"<< endl;
             
             v_shapes.clear();
             /*
