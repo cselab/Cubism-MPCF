@@ -26,20 +26,21 @@ protected:
 	
 	friend class SynchronizerMPI;
 	
-	map<StencilInfo, SynchronizerMPI *> SynchronizerMPIs;
-	
-	MPI::Cartcomm cartcomm;
 	int myrank, mypeindex[3], pesize[3];
 	bool periodic[3];
 	int mybpd[3], myblockstotalsize, blocksize[3];
 	
 	vector<BlockInfo> cached_blockinfo;
-		
+	
+	map<StencilInfo, SynchronizerMPI *> SynchronizerMPIs;
+	
+	MPI::Cartcomm cartcomm;
+
 public:
 	
 	GridMPI(const int npeX, const int npeY, const int npeZ,
 			const int nX, const int nY=1, const int nZ=1, 
-			const bool bPeriodicX=true, const bool bPeriodicY=true, const bool bPeriodicZ=true): TGrid(nX,nY,nZ), timestamp(0) 
+			const double maxextent = 1): TGrid(nX, nY, nZ, maxextent), timestamp(0) 
 	{
 		blocksize[0] = Block::sizeX;
 		blocksize[1] = Block::sizeY;
@@ -50,9 +51,9 @@ public:
 		mybpd[2] = nZ;
 		myblockstotalsize = nX*nY*nZ;
 		
-		periodic[0] = bPeriodicX;
-		periodic[1] = bPeriodicY;
-		periodic[2] = bPeriodicZ;		
+		periodic[0] = true;
+		periodic[1] = true;
+		periodic[2] = true;		
 		
 		pesize[0] = npeX;
 		pesize[1] = npeY;
@@ -65,16 +66,18 @@ public:
 		myrank = cartcomm.Get_rank();
 		
 		cartcomm.Get_coords(myrank, 3, mypeindex);
-						
+		
 		vector<BlockInfo> vInfo = TGrid::getBlocksInfo();
         
 		for(int i=0; i<vInfo.size(); ++i)
 		{
 			BlockInfo info = vInfo[i];
-                       
-			info.h_gridpoint = 1./(double)max(getBlocksPerDimension(0)*blocksize[0], max(getBlocksPerDimension(1)*blocksize[1], getBlocksPerDimension(2)*blocksize[2]));
 			
-            info.h = info.h_gridpoint*blocksize[0];// only for blocksize[0]=blocksize[1]=blocksize[2]
+			info.h_gridpoint = maxextent / (double)max (getBlocksPerDimension(0)*blocksize[0], 
+														max(getBlocksPerDimension(1)*blocksize[1], 
+															getBlocksPerDimension(2)*blocksize[2]));
+			
+            info.h = info.h_gridpoint * blocksize[0];// only for blocksize[0]=blocksize[1]=blocksize[2]
             
             for(int j=0; j<3; ++j)
 			{
@@ -98,7 +101,7 @@ public:
 	{
 		return cached_blockinfo;
 	}
-
+	
 	vector<BlockInfo> getResidentBlocksInfo() const
 	{
 		return TGrid::getBlocksInfo();
@@ -122,7 +125,7 @@ public:
 		const bool xinside = (ix>= originX && ix<nX);
 		const bool yinside = (iy>= originY && iy<nY);
 		const bool zinside = (iz>= originZ && iz<nZ);
-
+		
 		assert(TGrid::avail(ix-originX, iy-originY, iz-originZ));
 		return xinside && yinside && zinside;
 	}
@@ -133,7 +136,7 @@ public:
 		const int originX = mypeindex[0]*mybpd[0];		
 		const int originY = mypeindex[1]*mybpd[1];
 		const int originZ = mypeindex[2]*mybpd[2];
-
+		
 		const int nX = pesize[0]*mybpd[0];
 		const int nY = pesize[1]*mybpd[1];
 		const int nZ = pesize[2]*mybpd[2];
@@ -148,7 +151,7 @@ public:
 		
 		return TGrid::operator()(ix-originX, iy-originY, iz-originZ);
 	}
-
+	
 	template<typename Processing>
 	SynchronizerMPI& sync(Processing& p)
 	{
@@ -156,7 +159,7 @@ public:
 		assert(stencil.isvalid());
 		
 		SynchronizerMPI * queryresult = NULL;
-
+		
 		typename map<StencilInfo, SynchronizerMPI*>::iterator itSynchronizerMPI = SynchronizerMPIs.find(stencil);
 		
 		if (itSynchronizerMPI == SynchronizerMPIs.end())
@@ -166,7 +169,7 @@ public:
 			SynchronizerMPIs[stencil] = queryresult;
 		}
 		else  queryresult = itSynchronizerMPI->second;
-
+		
 		queryresult->sync(sizeof(typename Block::element_type)/sizeof(Real), sizeof(Real)>4 ? MPI_DOUBLE : MPI_FLOAT, timestamp);
 		
 		timestamp++;
@@ -178,7 +181,7 @@ public:
 	const SynchronizerMPI& get_SynchronizerMPI(Processing& p) const 
 	{
 		assert((SynchronizerMPIs.find(p.stencil) != SynchronizerMPIs.end()));
-
+		
 		return *SynchronizerMPIs.find(p.stencil)->second;
 	}
 	
@@ -204,9 +207,9 @@ public:
     {
         return timestamp;
     }
-
+	
     MPI::Cartcomm getCartComm() const
-      {
-	return cartcomm;
-      }
+	{
+		return cartcomm;
+	}
 };

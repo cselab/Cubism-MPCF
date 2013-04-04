@@ -27,6 +27,7 @@ class Grid
 	
 protected:
 	
+	const double maxextent;
 	const unsigned int N, NX, NY, NZ;
 	
 	void _dealloc()
@@ -77,7 +78,8 @@ public:
 	
 	typedef Block BlockType;
 	
-	Grid(const unsigned int NX, const unsigned int NY=1, const unsigned int NZ=1) : m_blocks(NULL), NX(NX), NY(NY), NZ(NZ), N(NX*NY*NZ) { _alloc(); }
+	Grid(const unsigned int NX, const unsigned int NY = 1, const unsigned int NZ = 1, const double maxextent = 1) : 
+	m_blocks(NULL), NX(NX), NY(NY), NZ(NZ), N(NX*NY*NZ), maxextent(maxextent) { _alloc(); }
 	
 	virtual ~Grid() { _dealloc(); }
 	
@@ -118,7 +120,7 @@ public:
 		std::vector<BlockInfo> r;
 		r.reserve(N);
 		
-		const double h = (1./max(NX,max(NY,NZ)));
+		const double h = (maxextent / max(NX, max(NY, NZ)));
 
 		for(unsigned int iz=0; iz<NZ; iz++)
 			for(unsigned int iy=0; iy<NY; iy++)
@@ -134,7 +136,6 @@ public:
 		return r;
 	}	
 };
-
 
 template <typename Block, template<typename X> class allocator>
 std::ostream& operator<< (std::ostream& out, const Grid<Block, allocator>& grid)
