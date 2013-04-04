@@ -30,6 +30,7 @@ Simulation * sim = NULL;
 int main (int argc, const char ** argv) 
 {
 	MPI::Init();
+//	MPI::Init_thread(MPI_THREAD_MULTIPLE);
 	
 	const bool isroot = MPI::COMM_WORLD.Get_rank() == 0;
 

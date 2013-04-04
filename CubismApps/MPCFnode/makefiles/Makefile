@@ -5,7 +5,7 @@ include ../../Makefile.config
 VPATH := ../source/ ../../MPCFcore/source/ ../../../Cubism/source/
 .DEFAULT_GOAL := mpcf-node
 
-OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockBubble.o  Types.o Test_SIC.o WaveletCompressor.o Test_Cloud.o
+OBJECTS = main.o FlowStep_LSRK3.o Test_SteadyState.o Test_ShockBubble.o  Types.o Test_SIC.o Test_Cloud.o WaveletCompressor.o
 OBJECTS += ../../MPCFcore/makefiles/Convection_CPP.o ../../MPCFcore/makefiles/Update.o ../../MPCFcore/makefiles/MaxSpeedOfSound.o 
 
 ifeq "$(qpx)" "1"

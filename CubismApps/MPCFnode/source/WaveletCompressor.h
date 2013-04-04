@@ -32,7 +32,8 @@ protected:
 	WaveletsOnInterval::FullTransform<DATASIZE1D, lifting_scheme> full;
 
 private:
-	__attribute__((__aligned__(16))) unsigned char bufcompression[BUFMAXSIZE];
+	
+	unsigned char bufcompression[BUFMAXSIZE];
 	
 	size_t bufsize;
 	
@@ -51,7 +52,7 @@ public:
 template<int DATASIZE1D, typename DataType>
 class WaveletCompressorGeneric_zlib: protected WaveletCompressorGeneric<DATASIZE1D, DataType>
 {
-	__attribute__((__aligned__(16))) unsigned char bufzlib[WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE];
+	unsigned char bufzlib[WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE];
 
 public:
 
@@ -67,8 +68,9 @@ public:
 		const size_t ninputbytes = WaveletCompressorGeneric<DATASIZE1D, DataType>::compress(threshold, float16, data);
 
 		z_stream datastream = { 0 };
-		datastream.total_in = datastream.avail_in = ninputbytes;
-		datastream.total_out = datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE;
+		datastream.total_in = datastream.total_out = 0;
+		datastream.avail_in = ninputbytes;
+		datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE;
 		datastream.next_in = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::data();
 		datastream.next_out = bufzlib;
 
@@ -91,8 +93,9 @@ public:
 		int decompressedbytes = 0;
 
 		z_stream datastream = { 0 };
-		datastream.total_in = datastream.avail_in = ninputbytes;
-		datastream.total_out = datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE;
+		datastream.total_in = datastream.total_out = 0;
+		datastream.avail_in = ninputbytes;
+		datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE;
 		datastream.next_in = bufzlib;
 		datastream.next_out = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::data();
 

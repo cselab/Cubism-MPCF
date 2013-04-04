@@ -63,7 +63,7 @@ int deserialize_bitset(bitset<N>& mybits, const unsigned char * const buf, const
 		const unsigned char c = buf[B];
 		
 		for(int b = 0; b < 8; ++b)
-			sum += mybits[i + b] = (c >> b) & 1;		
+			sum += (mybits[i + b] = (c >> b) & 1);		
 	}
 	
 	if (nicebits < N)
@@ -71,7 +71,7 @@ int deserialize_bitset(bitset<N>& mybits, const unsigned char * const buf, const
 		const unsigned char c = buf[nbytes - 1];
 		
 		for(int b = nicebits; b < N; ++b)
-			sum += mybits[b] = (c >> (b - nicebits)) & 1;
+			sum += (mybits[b] = (c >> (b - nicebits)) & 1);
 	}
 	
 	return sum;
