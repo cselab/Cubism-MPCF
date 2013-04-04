@@ -190,7 +190,7 @@ public:
                 myrank = cartcomm.Get_rank();
                 cartcomm.Get_coords(myrank, 3, mycoords);
                 
-                const double h = 1./(double)max(grid->getBlocksPerDimension(0)*_BLOCKSIZEX_, max(grid->getBlocksPerDimension(1)*_BLOCKSIZEY_, grid->getBlocksPerDimension(2)*_BLOCKSIZEZ_));
+                const double h = grid->getH();
                 
                 const Real mystart[3] = {mycoords[0]*BPDX*_BLOCKSIZEX_*h, mycoords[1]*BPDY*_BLOCKSIZEY_*h, mycoords[2]*BPDZ*_BLOCKSIZEZ_*h};
                 const Real myend[3] = {mystart[0]+BPDX*_BLOCKSIZEX_*h, mystart[1]+BPDY*_BLOCKSIZEY_*h, mystart[2]+BPDZ*_BLOCKSIZEZ_*h};
