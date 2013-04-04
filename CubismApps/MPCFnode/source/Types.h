@@ -464,6 +464,11 @@ struct StreamerPressure_HDF5
         
         static const char * getAttributeName() { return "Scalar"; }
     };
-//typedef Grid<FluidBlock, tbb::scalable_allocator> FluidGrid;
-typedef Grid<FluidBlock, std::allocator> FluidGrid;
-//typedef BlockProcessing_TBB<FluidBlock> BlockProcessing;
+
+typedef Grid<FluidBlock, std::allocator> FluidGridBase;
+
+#if 0
+typedef GridMorton<FluidGridBase> FluidGrid;
+#else
+typedef FluidGridBase FluidGrid;
+#endif
