@@ -212,4 +212,11 @@ public:
 	{
 		return cartcomm;
 	}
+    
+    double getH() const
+    {
+        vector<BlockInfo> vInfo = this->getBlocksInfo();
+        BlockInfo info = vInfo[0];
+        return info.h_gridpoint;
+    }
 };
