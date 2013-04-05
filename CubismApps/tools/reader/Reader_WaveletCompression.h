@@ -15,6 +15,8 @@
 #include <vector>
 #include <iostream>
 
+#include <mpi.h>
+
 using namespace std;
 
 #ifdef _FLOAT_PRECISION_
@@ -111,6 +113,34 @@ public:
 				MYASSERT(sizeof(Real) == sizeofreal, 
 						 "\nATTENZIONE:\nSizeof(Real) in the file is " << sizeofreal << " which is wrong\n");		
 				
+				int sizeofsize_t = -1;
+				fscanf(file, "sizeofsize_t:  %d\n", &sizeofsize_t);
+				printf("sizeofsize_t: <%d>\n", sizeofsize_t);
+
+				MYASSERT(sizeof(size_t) == sizeofsize_t, 
+						 "\nATTENZIONE:\nSizeof(size_t) in the file is " << sizeofsize_t << " which is wrong\n");		
+				
+				int sizeofblockmetadata = -1;
+				fscanf(file, "sizeofBlockMetadata:  %d\n", &sizeofblockmetadata);
+				printf("sizeofBlockMetadata: <%d>\n", sizeofblockmetadata);
+
+				MYASSERT(sizeof(BlockMetadata) == sizeofblockmetadata, 
+						 "\nATTENZIONE:\nSizeof(sizeofblockmetadata) in the file is " << sizeofblockmetadata << " which is wrong\n");
+				
+				int sizeofheaderlut = -1;
+				fscanf(file, "sizeofHeaderLUT:  %d\n", &sizeofheaderlut);
+				printf("sizeofHeaderLUT: <%d>\n", sizeofheaderlut);
+				
+				MYASSERT(sizeof(HeaderLUT) == sizeofheaderlut, 
+						 "\nATTENZIONE:\nSizeof(HeaderLUT) in the file is " << sizeofheaderlut << " which is wrong\n");
+				
+				int sizeofcompressedblock = -1;
+				fscanf(file, "sizeofCompressedBlock:  %d\n", &sizeofcompressedblock);
+				printf("sizeofCompressedBlock: <%d>\n", sizeofcompressedblock);
+				
+				MYASSERT(sizeof(CompressedBlock) == sizeofcompressedblock, 
+						 "\nATTENZIONE:\nSizeof(sizeofCompressedBlock) in the file is " << sizeofcompressedblock << " which is wrong\n");
+				
 				int bsize = -1;
 				fscanf(file, "Blocksize: %d\n", &bsize);
 				printf("Blocksize: <%d>\n", bsize);
@@ -121,6 +151,10 @@ public:
 				
 				fscanf(file, "Blocks: %d x %d x %d\n", totalbpd, totalbpd + 1, totalbpd + 2);
 				printf("Blocks: %d x %d x %d\n", totalbpd[0], totalbpd[1], totalbpd[2]);
+				
+				float myxextent = -1, myyextent = -1, myzextent = -1;
+				fscanf(file, "Extent: %f %f %f\n", &myxextent,  &myyextent, &myzextent);
+				printf("Extent: <%f> x <%f> x <%f>\n", myxextent,  myyextent, myzextent);
 				
 				fscanf(file, "SubdomainBlocks: %d x %d x %d\n", bpd, bpd + 1, bpd + 2);
 				printf("SubdomainBlocks: <%d x %d x %d>\n", bpd[0], bpd[1], bpd[2]);
@@ -134,6 +168,10 @@ public:
 				MYASSERT(buf == string(WaveletsOnInterval::ChosenWavelets_GetName()),
 						 "\nATTENZIONE:\nWavelets in the file is " << buf << 
 						 " and i have " << WaveletsOnInterval::ChosenWavelets_GetName() << "\n");
+				
+				float mythreshold = -1;
+				fscanf(file, "WaveletThreshold: %f\n", &mythreshold);
+				printf("WaveletThreshold: <%f>\n", mythreshold);
 				
 				fscanf(file, "Encoder: %s\n", buf);
 				printf("Encoder: <%s>\n", buf);
@@ -190,7 +228,7 @@ public:
 					
 					do 
 					{ 
-						printf("shouldnt be here! 0x%x\n", c); 
+						//printf("shouldnt be here! 0x%x\n", c); 
 						//abort();
 						c = fgetc(file);
 					}
