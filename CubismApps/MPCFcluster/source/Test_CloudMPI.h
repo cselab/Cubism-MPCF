@@ -154,8 +154,11 @@ public:
 			printf("///////////               TEST Cloud MPI         ///////////\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
-        
-		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDX, BPDZ);
+
+	const double extent = parser("-extent").asDouble(1.0);
+	grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, extent);
+
+	printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
         
 		assert(grid != NULL);
         
@@ -189,9 +192,13 @@ public:
                 cartcomm.Get_coords(myrank, 3, mycoords);
                 
                 const double h = grid->getH();
-                
+                printf("SPACING is %e, myycoords are %d %d %d\n", h, mycoords[0], mycoords[1], mycoords[2]);
+
                 const Real mystart[3] = {mycoords[0]*BPDX*_BLOCKSIZEX_*h, mycoords[1]*BPDY*_BLOCKSIZEY_*h, mycoords[2]*BPDZ*_BLOCKSIZEZ_*h};
                 const Real myend[3] = {mystart[0]+BPDX*_BLOCKSIZEX_*h, mystart[1]+BPDY*_BLOCKSIZEY_*h, mystart[2]+BPDZ*_BLOCKSIZEZ_*h};
+
+		printf("START %f %f %f\n", mystart[0], mystart[1], mystart[2]);
+		printf("END %f %f %f\n", myend[0], myend[1], myend[2]);
 
                 my_seed.make_shapes(mystart, myend, bRestartedSeed, isroot);
                 
@@ -204,11 +211,11 @@ public:
             MPI::Cartcomm cartcomm = grid->getCartComm();
             myrank = cartcomm.Get_rank();
             if (isroot)
-                cout << myrank << " Setting ic now..." << endl;
+                cout << "rank " << myrank << " Setting ic now..." << endl;
             //_my_ic(*grid, v_shapes);
             _my_ic_quad(*grid, v_shapes);
             if (isroot)
-                cout << myrank << "done"<< endl;
+                cout << "rank " << myrank << " ...done"<< endl;
             
             v_shapes.clear();
             /*

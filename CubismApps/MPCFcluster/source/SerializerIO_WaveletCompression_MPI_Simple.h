@@ -32,6 +32,24 @@ protected:
 		NCHANNELS = IterativeStreamer::channels,
 		NPTS = _BLOCKSIZE_ * _BLOCKSIZE_ * _BLOCKSIZE_
 	};
+
+	enum //some considerations about the per-thread working set                                                                                                  
+	{
+	  DESIREDMEM = (4 * 1024) * 1024,
+	  ENTRYSIZE = sizeof(WaveletCompressor) + sizeof(int),
+	  ENTRIES_CANDIDATE = DESIREDMEM / ENTRYSIZE,
+	  ENTRIES = ENTRIES_CANDIDATE ? ENTRIES_CANDIDATE : 1,
+	  BUFFERSIZE = ENTRIES * ENTRYSIZE, //sonnentanz                                                                                                       
+	  ALERT = (ENTRIES - 1) * ENTRYSIZE //got rain?                                                                                                        
+	};
+
+	struct CompressionBuffer
+	{
+	  BlockMetadata hotblocks[ENTRIES];
+	  unsigned char compressedbuffer[BUFFERSIZE];
+	};
+
+	
 	
 	string binaryocean_title, binarylut_title, header;
 	
@@ -45,7 +63,7 @@ protected:
 	bool halffloat, verbosity;
 	
 	vector< float > workload; //per-thread cpu time for imbalance insight
-	
+	vector<CompressionBuffer> workbuffer; //per-thread compression buffer
 	void _zcompress_and_flush(unsigned char inputbuffer[], int& bufsize, const int maxsize, BlockMetadata metablocks[], int& nblocks)
 	{
 		//0. setup
@@ -122,20 +140,11 @@ protected:
 	void _compress(const vector<BlockInfo>& vInfo, const int NBLOCKS, IterativeStreamer streamer, const int channelid)
 	{
 #pragma omp parallel  
-		{
-			enum //some considerations about the per-thread working set 
-			{ 
-				DESIREDMEM = (1 * 1024) * 1024,
-				ENTRYSIZE = sizeof(WaveletCompressor) + sizeof(int),
-				ENTRIES_CANDIDATE = DESIREDMEM / ENTRYSIZE,
-				ENTRIES = ENTRIES_CANDIDATE ? ENTRIES_CANDIDATE : 1,
-				BUFFERSIZE = ENTRIES * ENTRYSIZE, //sonnentanz
-				ALERT = (ENTRIES - 1) * ENTRYSIZE //got rain?
-			};
-			
-			BlockMetadata hotblocks[ENTRIES];
-			unsigned char compressedbuffer[BUFFERSIZE];
-			
+		{			
+		  const int tid = omp_get_thread_num();
+
+		  CompressionBuffer & mybuf = workbuffer[tid];
+
 			int mybytes = 0, myhotblocks = 0;
 			
 			Timer timer;
@@ -159,26 +168,26 @@ protected:
 					
 					//wavelet digestion
 					const int nbytes = (int)compressor.compress(this->threshold, this->halffloat, mysoabuffer);
-					memcpy(compressedbuffer + mybytes, &nbytes, sizeof(nbytes));
+					memcpy(mybuf.compressedbuffer + mybytes, &nbytes, sizeof(nbytes));
 					mybytes += sizeof(nbytes);
 					
-					memcpy(compressedbuffer + mybytes, compressor.data(), sizeof(unsigned char) * nbytes);
+					memcpy(mybuf.compressedbuffer + mybytes, compressor.data(), sizeof(unsigned char) * nbytes);
 					mybytes += nbytes;
 				}
 				
 				//building the meta data
 				{
 					BlockMetadata curr = { i, myhotblocks, vInfo[i].index[0], vInfo[i].index[1], vInfo[i].index[2]};
-					hotblocks[myhotblocks] = curr;
+					mybuf.hotblocks[myhotblocks] = curr;
 					myhotblocks++;
 				}
 				
 				if (mybytes >= ALERT || myhotblocks >= ENTRIES)
-					_zcompress_and_flush(compressedbuffer, mybytes, BUFFERSIZE, hotblocks, myhotblocks);
+					_zcompress_and_flush(mybuf.compressedbuffer, mybytes, BUFFERSIZE, mybuf.hotblocks, myhotblocks);
 			}
 			
 			if (mybytes > 0)
-				_zcompress_and_flush(compressedbuffer, mybytes, BUFFERSIZE, hotblocks, myhotblocks);
+				_zcompress_and_flush(mybuf.compressedbuffer, mybytes, BUFFERSIZE, mybuf. hotblocks, myhotblocks);
 			
 			workload[omp_get_thread_num()] += timer.stop();
 		}
@@ -282,6 +291,10 @@ protected:
 				const int ybpd = inputGrid.getResidentBlocksPerDimension(1);
 				const int zbpd = inputGrid.getResidentBlocksPerDimension(2);
 				
+				const double xExtent = inputGrid.getH()*xtotalbpd*_BLOCKSIZE_;
+				const double yExtent = inputGrid.getH()*ytotalbpd*_BLOCKSIZE_;
+				const double zExtent = inputGrid.getH()*ztotalbpd*_BLOCKSIZE_;
+
 				std::stringstream ss;
 				
 				ss << "\n==============START-ASCI-HEADER==============\n";
@@ -294,11 +307,17 @@ protected:
 				}
 				
 				ss << "sizeofReal: " << sizeof(Real) << "\n";
+				ss << "sizeofsize_t: " << sizeof(size_t) << "\n";
+				ss << "sizeofBlockMetadata: " << sizeof(BlockMetadata) << "\n";
+				ss << "sizeofHeaderLUT: " << sizeof(HeaderLUT) << "\n";
+				ss << "sizeofCompressedBlock: " << sizeof(CompressedBlock) << "\n";
 				ss << "Blocksize: " << _BLOCKSIZE_ << "\n";
 				ss << "Blocks: " << xtotalbpd << " x "  << ytotalbpd << " x " << ztotalbpd  << "\n";
+				ss << "Extent: " << xExtent << " " << yExtent << " " << zExtent << "\n"; 
 				ss << "SubdomainBlocks: " << xbpd << " x "  << ybpd << " x " << zbpd  << "\n";
 				ss << "HalfFloat: " << (this->halffloat ? "yes" : "no") << "\n";
 				ss << "Wavelets: " << WaveletsOnInterval::ChosenWavelets_GetName() << "\n";
+				ss << "WaveletThreshold: " << threshold << "\n"; 
 				ss << "Encoder: " << "zlib" << "\n";
 				ss << "==============START-BINARY-METABLOCKS==============\n";
 				
@@ -658,7 +677,7 @@ public:
 	void verbose() { verbosity = true; }
 	
 	SerializerIO_WaveletCompression_MPI_SimpleBlocking(): 
-	threshold(0), halffloat(false), verbosity(false), workload(omp_get_max_threads()), 
+	threshold(0), halffloat(false), verbosity(false), workload(omp_get_max_threads()), workbuffer(omp_get_max_threads()), 
 	written_bytes(0), pending_writes(0)
 	{
 	}
