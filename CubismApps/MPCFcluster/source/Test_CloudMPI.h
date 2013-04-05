@@ -155,7 +155,7 @@ public:
 			printf("////////////////////////////////////////////////////////////\n");
 		}
 
-	const double extent = (double)max(XPESIZE*BPDX, max(YPESIZE*BPDY, ZPESIZE*BPDZ))/32 ;
+	const double extent = parser("-extent").asDouble(1.0);
 	grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, extent);
 
 	printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
@@ -242,15 +242,17 @@ public:
 		{
 			if (isroot) printf("Step id %d,Time %f\n", step_id, t);
 
-            profiler.push_start("IO");
 			if (step_id%DUMPPERIOD==0)
 			{
 				std::stringstream streamer;
 				streamer<<"data-"<<step_id;
+                profiler.push_start("IO HDF");
                 t_ssmpi->dump(*grid, step_id, streamer.str());
+                profiler.pop_stop();
+                profiler.push_start("IO WAVELET");
 				t_ssmpi->vp(*grid, step_id, bVP);
+                profiler.pop_stop();
 			}
-            profiler.pop_stop();
             
             profiler.push_start("SAVE");
 			if (step_id%SAVEPERIOD==0)

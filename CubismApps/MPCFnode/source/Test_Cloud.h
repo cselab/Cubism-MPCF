@@ -270,16 +270,16 @@ public:
                     
                     const Real overlap_start[3] =
                     {
-                        max(mystart[0]-CloudData::max_rad, s[0]),
-                        max(mystart[1]-CloudData::max_rad, s[1]),
-                        max(mystart[2]-CloudData::max_rad, s[2])
+		      max(mystart[0]-(Real)2*CloudData::max_rad, s[0]),
+		      max(mystart[1]-(Real)2*CloudData::max_rad, s[1]),
+		      max(mystart[2]-(Real)2*CloudData::max_rad, s[2])
                     };
                     
                     const Real overlap_end[3] =
                     {
-                        min(myend[0]+CloudData::max_rad, e[0]),
-                        min(myend[1]+CloudData::max_rad, e[1]),
-                        min(myend[2]+CloudData::max_rad, e[2])
+		      min(myend[0]+(Real)2*CloudData::max_rad, e[0]),
+		      min(myend[1]+(Real)2*CloudData::max_rad, e[1]),
+		      min(myend[2]+(Real)2*CloudData::max_rad, e[2])
                     };
                     
                     const bool bOverlap = overlap_end[0] > overlap_start[0] && overlap_end[1] > overlap_start[1] && overlap_end[2] > overlap_start[2];
