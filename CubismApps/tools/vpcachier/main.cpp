@@ -75,7 +75,6 @@ int main(int argc, const char **  argv)
 			
 			printf("Bella li, tutto in regola. Sa vedum!\n");
 		}
-		
 	}
 	else //ok we are ready to start
 	{
