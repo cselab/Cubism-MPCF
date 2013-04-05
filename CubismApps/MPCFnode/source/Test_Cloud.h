@@ -31,7 +31,9 @@ public:
     {
         const Real x_c = (Real)drand48()*(CloudData::seed_e[0]-CloudData::seed_s[0])+CloudData::seed_s[0];
         const Real y_c = (Real)drand48()*(CloudData::seed_e[1]-CloudData::seed_s[1])+CloudData::seed_s[1];
-        const Real z_c = (Real)drand48()*(CloudData::seed_e[2]-CloudData::seed_s[2])+CloudData::seed_s[2];
+        
+        const Real thickness = CloudData::seed_e[2]-CloudData::seed_s[2];        
+        const Real z_c = (Real)drand48() * thickness + CloudData::seed_s[2];
         const Real _center[3] = {x_c, y_c, z_c};
         
         const Real _radius = (Real)drand48()*(CloudData::max_rad-CloudData::min_rad)+CloudData::min_rad;
@@ -41,8 +43,8 @@ public:
         for(int i=0; i<3; ++i)
         {
             center[i] = _center[i];
-            bbox_s[i] = _center[i]-_radius-2.0*Simulation_Environment::EPSILON;
-            bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
+            bbox_s[i] = _center[i]-_radius-1.5*Simulation_Environment::EPSILON;
+            bbox_e[i] = _center[i]+_radius+1.5*Simulation_Environment::EPSILON;
         }
     }
     
@@ -51,8 +53,8 @@ public:
         for(int i=0; i<3; ++i)
         {
             center[i] = _center[i];
-            bbox_s[i] = _center[i]-_radius-2.0*Simulation_Environment::EPSILON;
-            bbox_e[i] = _center[i]+_radius+2.0*Simulation_Environment::EPSILON;
+            bbox_s[i] = _center[i]-_radius-1.5*Simulation_Environment::EPSILON;
+            bbox_e[i] = _center[i]+_radius+1.5*Simulation_Environment::EPSILON;
         }
     }
     
@@ -99,7 +101,7 @@ public:
         //this rule checks that the buble is inside the bounding box
         const bool bOut = s[0]<start[0] || s[1]<start[1] || s[2]<start[2] ||
         e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
-        
+                
         if (bOut)
             return true;
         
@@ -270,16 +272,16 @@ public:
                     
                     const Real overlap_start[3] =
                     {
-		      max(mystart[0]-(Real)2*CloudData::max_rad, s[0]),
-		      max(mystart[1]-(Real)2*CloudData::max_rad, s[1]),
-		      max(mystart[2]-(Real)2*CloudData::max_rad, s[2])
+                        max(mystart[0]-(Real)2.5*CloudData::max_rad, s[0]),
+                        max(mystart[1]-(Real)2.5*CloudData::max_rad, s[1]),
+                        max(mystart[2]-(Real)2.5*CloudData::max_rad, s[2])
                     };
                     
                     const Real overlap_end[3] =
                     {
-		      min(myend[0]+(Real)2*CloudData::max_rad, e[0]),
-		      min(myend[1]+(Real)2*CloudData::max_rad, e[1]),
-		      min(myend[2]+(Real)2*CloudData::max_rad, e[2])
+                        min(myend[0]+(Real)2.5*CloudData::max_rad, e[0]),
+                        min(myend[1]+(Real)2.5*CloudData::max_rad, e[1]),
+                        min(myend[2]+(Real)2.5*CloudData::max_rad, e[2])
                     };
                     
                     const bool bOverlap = overlap_end[0] > overlap_start[0] && overlap_end[1] > overlap_start[1] && overlap_end[2] > overlap_start[2];
@@ -296,25 +298,12 @@ public:
             }
             
             return;
-            
-            ifstream f_read("seed.dat");
-            if(f_read)
-            {
-                if(isroot) cout << "seed file is there" << endl;
-                f_read >> restarted_seed;
-                f_read.close();
-            }
-            else
-            {
-                if(isroot) cout << "seed file not there...aborting" << endl;
-                abort();
-            }
         }
         
-        //save seed anyway
+        //save seed in case
         if(isroot)
         {
-            const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
+            const unsigned int seed = time(0);
             
             ofstream f_save("seed.dat");
             f_save<<seed;
@@ -355,9 +344,9 @@ public:
                 f_save.close();
             }
         }
-
+        
         //ok let them all find their own subset
-        this->make_shapes(mystart, myend, true, isroot);
+        this->make_shapes(mystart, myend, true);
     }
     
     bool reject_check(shape * cur_shape) const
