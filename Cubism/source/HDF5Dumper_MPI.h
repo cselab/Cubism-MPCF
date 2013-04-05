@@ -159,7 +159,7 @@ void DumpHDF5_MPI(TGrid &grid, const int iCounter, const string f_name, const st
 		fprintf(xmf, "        %e %e %e\n", 0.,0.,0.);
 		fprintf(xmf, "       </DataItem>\n");
 		fprintf(xmf, "       <DataItem Name=\"Spacing\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
-		fprintf(xmf, "        %e %e %e\n", 1./(Real)max(dims[0],max(dims[1],dims[2])),1./(Real)max(dims[0],max(dims[1],dims[2])),1./(Real)max(dims[0],max(dims[1],dims[2])));
+		fprintf(xmf, "        %e %e %e\n", grid.getH(), grid.getH(), grid.getH());
 		fprintf(xmf, "       </DataItem>\n");
 		fprintf(xmf, "     </Geometry>\n");
 		

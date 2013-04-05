@@ -93,12 +93,6 @@ public:
     //Every other derived shape should implement this method.
     bool rejection_check(shape * this_shape, const Real start[3], const Real end[3]) const
     {
-        //this rule is to stop making smaller bubbles after n_small smalle bubbles.
-        const Real rad_av_rough = 0.5*(CloudData::min_rad+CloudData::max_rad);
-        const Real rad_cut = 1.2*rad_av_rough;
-        //if (CloudData::small_count==CloudData::n_small && this_shape->get_rad()<rad_cut)
-        //   return true;
-        
         Real s[3], e[3];
         this->get_bbox(s,e);
         
@@ -106,16 +100,7 @@ public:
         const bool bOut = s[0]<start[0] || s[1]<start[1] || s[2]<start[2] ||
         e[0]>end[0] || e[1]>end[1] || e[2]>end[2];
         
-        //this rule is to keep larger bubbles outside
-        //larger w.r.t. rad_avg_rough
-        const Real c_box[3] = {end[0]+start[0], end[1]+start[1], end[2]+start[2]};
-        Real this_c[3];
-        this_shape->get_center(this_c);
-        const Real d_c_box = pow(this_c[0]-0.5*c_box[0],2)+pow(this_c[1]-0.5*c_box[1],2)+pow(this_c[2]-0.5*c_box[2],2);
-        const Real R_cutoff = pow( pow((end[0]-start[0])*(end[1]-start[1])*(end[2]-start[2]),(Real)3)*0.75/(8*M_PI),1./3);
-        const bool bLargeOuter = (d_c_box>=R_cutoff && this_shape->get_rad()>=rad_av_rough);
-        
-        if (bOut || bLargeOuter)
+        if (bOut)
             return true;
         
         if(this!=this_shape)
@@ -143,9 +128,6 @@ public:
             if (bOverlap)
                 return true;
         }
-        
-        if (this_shape->get_rad()<rad_cut)
-            CloudData::small_count++;
         
         return false;
     }

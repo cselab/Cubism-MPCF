@@ -28,7 +28,7 @@ protected:
 	
 	FlowStep_LSRK3MPI<G> * mystepper;
 	
-	SerializerIO_WaveletCompression_MPI_Simple<G, StreamerGridPointIterative> mywaveletdumper;
+	SerializerIO_WaveletCompression_MPI_SimpleBlocking<G, StreamerGridPointIterative> mywaveletdumper;
 	
 public:
 	
