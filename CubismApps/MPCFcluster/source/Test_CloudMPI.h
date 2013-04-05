@@ -155,7 +155,7 @@ public:
 			printf("////////////////////////////////////////////////////////////\n");
 		}
 
-	const double extent = (double)max(XPESIZE*BPDX, max(YPESIZE*BPDY, ZPESIZE*BPDZ))/32 ;
+	const double extent = parser("-extent").asDouble(1.0);
 	grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, extent);
 
 	printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
