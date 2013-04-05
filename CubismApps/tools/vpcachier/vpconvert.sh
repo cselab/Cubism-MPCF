@@ -1,6 +1,21 @@
 MYSRCDIR=/tmp/CUBISM-DATA
 MYDSTDIR=/tmp/CUBISM-DATA/VPCACHE
-QUALITYCHECK=1
+QUALITYCHECK=0
+
+#get the number of threads
+{
+	printf "inquiring number of cores..."
+	
+	if [ $(uname) == "Darwin" ]
+	then
+		THREADS=$(sysctl hw.ncpu | cut -d" " -f2) 
+	else
+		{ THREADS=$(egrep -c "core id" /proc/cpuinfo 2> /dev/null) ; }  || \
+		{ printf "not able to recover number of cores\n" ; THREADS=1; }
+	fi
+	
+	printf "setting it to %d.\n" $THREADS
+}
 
 function generatechannel()
 {
@@ -13,7 +28,7 @@ function generatechannel()
 	for F in ${MYSRCDIR}/*${MYCHANNEL} 
 	do
 		#ok, lets do it!
-		mpirun -n 8 ./vpcachier -simdata $F -vp ${MYDSTDIR}/$(basename $F).vpcache -min $MYMIN -max $MYMAX
+		mpirun -n $THREADS ./vpcachier -simdata $F -vp ${MYDSTDIR}/$(basename $F).vpcache -min $MYMIN -max $MYMAX
 		
 		echo -n verifying...
 		
