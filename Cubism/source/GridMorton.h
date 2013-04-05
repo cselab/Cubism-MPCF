@@ -46,12 +46,14 @@ protected:
 							
 			tobesorted[iflat] = make_pair(indexer.encode(ix, iy, iz), iflat);
 		}
-		
+				
 		std::sort(tobesorted.begin(), tobesorted.end());
-		
+
+		m2f.resize(N);
 		for(int imorton = 0; imorton < N; ++imorton)
 			m2f[imorton] = tobesorted[imorton].second;
-		
+	
+		f2m.resize(N);
 		for(int imorton = 0; imorton < N; ++imorton)
 			f2m[tobesorted[imorton].second] = imorton;
 	}
@@ -78,7 +80,7 @@ protected:
 			const int idx[3] = {ix, iy, iz};
 			const double origin[3] = { ix * h, iy * h, iz * h };
 
-			r.push_back(BlockInfo(imorton, idx, origin, h, h / TBlock::sizeX, this->_linaccess(imorton)));
+			r[imorton] = BlockInfo(imorton, idx, origin, h, h / TBlock::sizeX, this->_linaccess(imorton));
 		}
 
 		return r;
@@ -93,20 +95,23 @@ protected:
 	GridMorton(unsigned int nX, unsigned int nY=1, unsigned int nZ=1, const double maxextent = 1):
 		TGrid(nX, nY, nZ, maxextent)
 	{
+		//std::cout << "____________________________________ YOU ARE USING MORTON GRIDS _______________________________" << std::endl;
+
 		_generate_morton_mapping();
 	
-		cached_infos = _getBlocksInfo();
+		//std::cout << "____________________________________ _generate_morton_mapping _______________________________" << std::endl;
 
-		std::cout << "____________________________________ YOU ARE USING MORTON GRIDS _______________________________" << std::endl;
+		cached_infos = _getBlocksInfo();
 	}
 
-	TBlock& operator()(unsigned int ix, unsigned int iy = 0, unsigned int iz = 0) const
+	TBlock& operator()( int ix,  int iy = 0,  int iz = 0) const
 	{
 		const int N = this->N;
 		const int NX = this->NX;
 		const int NY = this->NY;
 		const int NZ = this->NZ;
 
+		printf("asking for %d %d %d (N: %d %d %d)\n", ix, iy, iz, NX, NY, NZ);
 		assert(ix>= -1 && ix <= NX);
 		assert(iy>= -1 && iy <= NY);
 		assert(iz>= -1 && iz <= NZ);

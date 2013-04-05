@@ -84,7 +84,7 @@ public:
                 
 				t_ssmpi->dump(*grid, step_id, streamer.str());
 				t_ssmpi->vp(*grid, step_id, bVP);
-				return ; 
+				//return ; 
 			}
             
 			if (step_id % SAVEPERIOD == 0)
