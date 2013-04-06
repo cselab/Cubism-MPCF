@@ -162,7 +162,7 @@ void Test_SteadyState::_vp_dump(FluidGrid& grid, string filename)
 		
 		//for consistency checking, uncomment the following line
 		wavelet_serializer.Read(grid, filename);
-		//exit(0);
+		exit(0);
     }
 }
 

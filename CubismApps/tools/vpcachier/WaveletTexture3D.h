@@ -61,26 +61,20 @@ struct WaveletTexture3D
 		}
 		
 	} geometry;
-		
-	float data[_VOXELS_][_VOXELS_][_VOXELS_];
 	
 	TextureCompressor wavcomp;
 
-	//not anymore: void clear() { memset(data, 0, sizeof(data)); }
+	WaveletsOnInterval::FwtAp (& data())[_VOXELS_][_VOXELS_][_VOXELS_] { return wavcomp.uncompressed_data(); }
 	
 	void compress(const float threshold, const bool halffloat, const unsigned char *& compresseddata, size_t& nbytes)
 	{
-		nbytes = wavcomp.compress(threshold, halffloat, data);
-		compresseddata = (unsigned char *) wavcomp.data();
+		nbytes = wavcomp.compress(threshold, halffloat);
+		compresseddata = (unsigned char *) wavcomp.compressed_data();
 	}	
 	
-	void * compression_buffer() { return wavcomp.data(); }
+	void * compression_buffer() { return wavcomp.compressed_data(); }
 	
-	void decompress(const bool halffloat, const size_t nbytes)
-	{
-		//printf("decompressing args: %d %d\n", halffloat, nbytes);
-		wavcomp.decompress(halffloat, nbytes, data);
-	}
+	void decompress(const bool halffloat, const size_t nbytes) { wavcomp.decompress(halffloat, nbytes); }
 };
 
 class WaveletTexture3D_Collection

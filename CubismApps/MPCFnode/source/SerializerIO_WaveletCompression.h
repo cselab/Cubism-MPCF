@@ -199,18 +199,17 @@ public:
 				
 				for(int channel = 0; channel < NCHANNELS; ++channel)
 				{
-					Real mysoabuf[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
+					CompressorType compressor;
+					Real (&mysoabuf)[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_] = compressor.uncompressed_data();
 					
 					for(int iz=0; iz<FluidBlock::sizeZ; iz++)
 						for(int iy=0; iy<FluidBlock::sizeY; iy++)
 							for(int ix=0; ix<FluidBlock::sizeX; ix++)
 								mysoabuf[iz][iy][ix] = myaosbuffer[iz][iy][ix][channel];
 					
-					CompressorType compressor;
-					
-					const int nbytes = (int)compressor.compress(threshold, halffloat, mysoabuf);
+					const int nbytes = (int)compressor.compress(threshold, halffloat);
 					myfile.write((const char *)&nbytes, sizeof(nbytes));
-					myfile.write((const char *)compressor.data(), sizeof(char) * nbytes);
+					myfile.write((const char *)compressor.compressed_data(), sizeof(char) * nbytes);
 					written_bytes += nbytes + sizeof(nbytes);
 				}	
 			}
@@ -221,7 +220,7 @@ public:
 		template<typename CompressorType>
 		size_t _write_threaded(ofstream& myfile, vector<BlockInfo>& vInfo, const int NBLOCKS, Streamer streamer)
 		{
-#define _CHAINBUFFER_
+//#define _CHAINBUFFER_
 #ifndef _CHAINBUFFER_
 			size_t written_bytes = 0;
 #else
@@ -230,7 +229,6 @@ public:
 			chainedbuffer->set_ofstream(myfile); 
 #endif
 			const int MYNTHREADS = omp_get_max_threads( );
-			//const int NTHREADS = omp_get_max_threads();
 			float t[MYNTHREADS];
 			
 #pragma omp parallel  
@@ -270,20 +268,19 @@ public:
 					
 					for(int channel = 0; channel < NCHANNELS; ++channel)
 					{
-						Real mysoabuf[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
+						CompressorType compressor;
+						Real (&mysoabuf)[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_] = compressor.uncompressed_data();
 						
 						for(int iz=0; iz<FluidBlock::sizeZ; iz++)
 							for(int iy=0; iy<FluidBlock::sizeY; iy++)
 								for(int ix=0; ix<FluidBlock::sizeX; ix++)
 									mysoabuf[iz][iy][ix] = myaosbuffer[iz][iy][ix][channel];
-						
-						CompressorType compressor;
-						
-						const int nbytes = (int)compressor.compress(threshold, halffloat, mysoabuf);
+												
+						const int nbytes = (int)compressor.compress(threshold, halffloat);
 						memcpy(buffer + mybytes, &nbytes, sizeof(nbytes));
 						mybytes += sizeof(nbytes);
 						
-						memcpy(buffer + mybytes, compressor.data(), sizeof(char) * nbytes);
+						memcpy(buffer + mybytes, compressor.compressed_data(), sizeof(char) * nbytes);
 						mybytes += nbytes;
 					}
 					
@@ -466,25 +463,29 @@ public:
 					myfile.read((char *)info, sizeof(info));
 					
 					const int i = info[0];
-					//printf("%d %d %d %d\n", info[0], info[1], info[2], info[3]);		
+					printf("%d %d %d %d\n", info[0], info[1], info[2], info[3]);		
 					assert(vInfo[i].index[0] == info[1]);
 					assert(vInfo[i].index[1] == info[2]);
 					assert(vInfo[i].index[2] == info[3]);
 					
 					Real myaosbuffer[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_][NCHANNELS];
 					
+					
 					for(int channel = 0; channel < NCHANNELS; ++channel)
 					{
-						Real mysoabuf[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
+						//Real mysoabuf[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
 						
+						//CompressorType compressor;
 						CompressorType compressor;
+						Real (&mysoabuf)[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_] = compressor.uncompressed_data();
+						
 						
 						int nbytes;
 						myfile.read((char *)&nbytes, sizeof(nbytes));
-						myfile.read((char *)compressor.data(), sizeof(char) * nbytes);
+						myfile.read((char *)compressor.compressed_data(), sizeof(char) * nbytes);
 						read_bytes += nbytes + sizeof(nbytes);
 						
-						compressor.decompress(halffloat, nbytes, mysoabuf);
+						compressor.decompress(halffloat, nbytes);
 						
 						/* i used this code for debugging
 						 if (i == 27 && channel == 6)

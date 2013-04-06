@@ -12,5 +12,5 @@ main.o: main.cpp
 WaveletCompressor.o: ../../MPCFnode/source/WaveletCompressor.cpp
 	$(CC) $(MYFLAGS) -c ../../MPCFnode/source/WaveletCompressor.cpp -o WaveletCompressor.o
 	
-clean: *.o
+clean:
 	rm vpcachier *.o

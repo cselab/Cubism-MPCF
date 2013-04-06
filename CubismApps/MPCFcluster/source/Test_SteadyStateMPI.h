@@ -28,7 +28,7 @@ protected:
 	
 	FlowStep_LSRK3MPI<G> * mystepper;
 	
-	SerializerIO_WaveletCompression_MPI_SimpleBlocking<G, StreamerGridPointIterative> mywaveletdumper;
+	SerializerIO_WaveletCompression_MPI_Simple<G, StreamerGridPointIterative> mywaveletdumper;
 	
 public:
 	
@@ -106,7 +106,7 @@ public:
     {
 		if (bVP)
 		{
-			if (isroot) cout << "dumping MPI VP ..." ;
+			if (isroot) cout << "dumping MPI VP ...\n" ;
 			
 			const string path = parser("-fpath").asString(".");
 			
@@ -122,7 +122,10 @@ public:
 			mywaveletdumper.verbose();
 			mywaveletdumper.set_threshold(1e-4);
 			
-			mywaveletdumper.Write(grid, streamer.str());
+			mywaveletdumper.Write<0>(grid, streamer.str());
+			mywaveletdumper.Write<4>(grid, streamer.str());
+			mywaveletdumper.Write<5>(grid, streamer.str());
+			//mywaveletdumper.Write<6>(grid, streamer.str());
 	
 //used for debug
 #if 0			

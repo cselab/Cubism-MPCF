@@ -148,7 +148,8 @@ int main(int argc, const char **  argv)
 				for(int gx = myxstart ;  gx < myxend; ++gx)
 				{
 					WaveletTexture3D * texture = new WaveletTexture3D;
-					
+					WaveletsOnInterval::FwtAp * const ptrtexdata = & texture->data()[0][0][0];
+
 					const int xdatastart = gx * puredata1d;
 					const int ydatastart = gy * puredata1d;
 					const int zdatastart = gz * puredata1d;
@@ -209,7 +210,8 @@ int main(int argc, const char **  argv)
 											assert(dy + ysrcoffset >= 0 && dy + ysrcoffset < _BLOCKSIZE_);
 											assert(dz + zsrcoffset >= 0 && dz + zsrcoffset < _BLOCKSIZE_);
 											
-											texture->data[dz][dy][dx] = data[dz + zsrcoffset][dy + ysrcoffset][dx + xsrcoffset];
+											ptrtexdata[dx + _VOXELS_ * (dy + _VOXELS_ * dz)] = data[dz + zsrcoffset][dy + ysrcoffset][dx + xsrcoffset];
+											//texdata[dz][dy][dx] = data[dz + zsrcoffset][dy + ysrcoffset][dx + xsrcoffset];
 											//texture->data[dz][dy][dx] = 1;
 										}
 							}
@@ -226,18 +228,19 @@ int main(int argc, const char **  argv)
 						
 						Real mysum = 0, mymax = -HUGE_VAL, mymin = HUGE_VAL;
 						
-						for(int dz = 0; dz < _VOXELS_; ++dz)
+						/*for(int dz = 0; dz < _VOXELS_; ++dz)
 							for(int dy = 0; dy < _VOXELS_; ++dy)
-								for(int dx = 0; dx < _VOXELS_; ++dx)
-								{
-									const float val = texture->data[dz][dy][dx];
-									texture->data[dz][dy][dx] = std::min(1.f, std::max(0.f, a0 + a1 * val));
-									assert(texture->data[dz][dy][dx] >= 0 && texture->data[dz][dy][dx] <= 1);
+								for(int dx = 0; dx < _VOXELS_; ++dx)*/
+						for(int i = 0; i < _VOXELS_ * _VOXELS_ * _VOXELS_; ++i)
+						{
+							const float val = ptrtexdata[i]; 
+							ptrtexdata[i] = std::min(1.f, std::max(0.f, a0 + a1 * val));
+							assert(ptrtexdata[i] >= 0 && ptrtexdata[i] <= 1);
 
-									mysum += val;
-									mymin = min(mymin, (Real)val);
-									mymax = max(mymax, (Real)val);									
-								}
+							mysum += val;
+							mymin = min(mymin, (Real)val);
+							mymax = max(mymax, (Real)val);									
+						}
 						
 						vmaxval.push_back(mymax);
 						vminval.push_back(mymin);

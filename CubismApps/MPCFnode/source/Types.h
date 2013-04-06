@@ -181,23 +181,21 @@ struct StreamerGridPointIterative //dummy
 {
     static const int channels = 7;
 
-	Real operate(const int channel, const FluidElement& input) const
-	{
-		switch (channel)
-		{
-			case 0: return input.rho;
-			case 1: return input.u/input.rho;
-			case 2: return input.v/input.rho;
-			case 3: return input.w/input.rho;
-			case 4: return (input.energy-0.5*(input.u*input.u+input.v*input.v+input.w*input.w)/input.rho - input.P)/input.G;
-			case 5: return input.G;		
-			case 6: return input.P;
-			default: abort(); return 0;
-		}	
-	}
+	template<int channel>
+	static inline Real operate(const FluidElement& input) { abort(); return 0; } 
+	
 	
 	const char * name() { return "StreamerGridPointIterative" ; }
 };
+
+
+template<> inline Real StreamerGridPointIterative::operate<0>(const FluidElement& e) { return e.rho; }
+template<> inline Real StreamerGridPointIterative::operate<1>(const FluidElement& e) { return e.u/e.rho; }
+template<> inline Real StreamerGridPointIterative::operate<2>(const FluidElement& e) { return e.v/e.rho; }
+template<> inline Real StreamerGridPointIterative::operate<3>(const FluidElement& e) { return e.w/e.rho; }
+template<> inline Real StreamerGridPointIterative::operate<4>(const FluidElement& e) { return (e.energy-0.5*(e.u*e.u+e.v*e.v+e.w*e.w)/e.rho - e.P)/e.G; }
+template<> inline Real StreamerGridPointIterative::operate<5>(const FluidElement& e) { return e.G; }
+template<> inline Real StreamerGridPointIterative::operate<6>(const FluidElement& e) { return e.P; }
 
 struct StreamerDensity
 {

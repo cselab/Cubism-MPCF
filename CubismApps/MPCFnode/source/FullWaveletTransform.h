@@ -120,6 +120,47 @@ namespace WaveletsOnInterval
 			
 			return retval;
 		}
+
+		template<typename DataType, int REFBS>
+		int threshold(const FwtAp eps, bitset<REFBS * REFBS * REFBS>& mask_survivors, DataType * const buffer_survivors)
+		{
+			enum { BSH = BS / 2 };
+				
+			const int survivors = child.template threshold<DataType, REFBS>(eps, mask_survivors, buffer_survivors);
+			
+			DataType * const buffer_start = buffer_survivors + survivors;
+			int local_survivors = 0;
+
+			for(int code = 1; code < 8; ++code)
+			{
+				const int xstart = BSH * (code & 1);
+				const int ystart = BSH * (code / 2 & 1);
+				const int zstart = BSH * (code / 4 & 1);
+				
+				for(int iz = 0; iz < BSH; ++iz)
+					for(int iy = 0; iy < BSH; ++iy)
+						for(int ix = 0; ix < BSH; ++ix)
+						{
+							const int xsrc = xstart + ix;
+							const int ysrc = ystart + iy;
+							const int zsrc = zstart + iz;
+														
+							const FwtAp mydata = data[zsrc][ysrc][xsrc];
+							
+							const bool accepted = fabs(mydata) > eps; 
+							
+							const int dst = xsrc + REFBS * (ysrc + REFBS * zsrc);
+
+							mask_survivors[dst] = accepted;
+							
+							if (accepted)
+								buffer_start[local_survivors++] = (DataType)mydata;
+						}
+			}
+	
+			return survivors + local_survivors;			
+		}
+		
 		
 		template<typename DataType>
 		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask)
@@ -203,6 +244,24 @@ namespace WaveletsOnInterval
 			retval.second.set();
 			
 			return retval; 
+		}
+		
+		template<typename DataType, int REFBS>
+		int threshold(const FwtAp eps, bitset<REFBS * REFBS * REFBS>& mask_survivors, DataType * const buffer_survivors)
+		{	
+			for(int iz = 0; iz < BS; ++iz)
+				for(int iy = 0; iy < BS; ++iy)
+					for(int ix = 0; ix < BS; ++ix)
+						mask_survivors[ix + REFBS * (iy + REFBS * iz)] = true;
+			
+			enum { N = BS * BS * BS };
+			
+			const FwtAp * const e = &data[0][0][0];
+			
+			for(int i = 0; i < N; ++i)
+				buffer_survivors[i] = e[i];
+			
+			return N;
 		}
 		
 		template<typename DataType>

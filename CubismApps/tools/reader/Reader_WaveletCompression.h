@@ -356,7 +356,7 @@ public:
 			//printf("decompressing %d bytes...\n", nbytes);
 			WaveletCompressor compressor;
 			
-			memcpy(compressor.data(), &waveletbuf[readbytes], nbytes);
+			memcpy(compressor.compressed_data(), &waveletbuf[readbytes], nbytes);
 			readbytes += nbytes;
 			
 			compressor.decompress(halffloat, nbytes, MYBLOCK);

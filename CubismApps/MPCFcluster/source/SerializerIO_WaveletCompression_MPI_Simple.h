@@ -49,7 +49,7 @@ protected:
 	  unsigned char compressedbuffer[BUFFERSIZE];
 	};
 
-	
+	struct TimingInfo { float total, fwt, encoding; };
 	
 	string binaryocean_title, binarylut_title, header;
 	
@@ -62,9 +62,10 @@ protected:
 	Real threshold;
 	bool halffloat, verbosity;
 	
-	vector< float > workload; //per-thread cpu time for imbalance insight
+	vector< float > workload_total, workload_fwt, workload_encode; //per-thread cpu time for imbalance insight for fwt and encoding
 	vector<CompressionBuffer> workbuffer; //per-thread compression buffer
-	void _zcompress_and_flush(unsigned char inputbuffer[], int& bufsize, const int maxsize, BlockMetadata metablocks[], int& nblocks)
+	
+	float _encode_and_flush(unsigned char inputbuffer[], int& bufsize, const int maxsize, BlockMetadata metablocks[], int& nblocks)
 	{
 		//0. setup
 		//1. compress the data with zlib, obtain zptr, zbytes
@@ -74,6 +75,7 @@ protected:
 		//5. for all blocks, set the myblockindices[blockids[i]] to a valid state
 		//6. set nblocks to zero	
 		
+		Timer timer; timer.start();
 		const unsigned char * const zptr = inputbuffer;
 		size_t zbytes = bufsize;
 		int dstoffset = -1;
@@ -102,6 +104,7 @@ protected:
 			if (written_bytes > allmydata.size())
 			{
 				//spin-wait until writes complete
+#pragma omp taskyield
 				while (pending_writes != completed_writes);
 				
 				//safely resize
@@ -135,9 +138,12 @@ protected:
 		//6.
 		bufsize = 0;
 		nblocks = 0;
+		
+		return timer.stop();
 	}
 	
-	void _compress(const vector<BlockInfo>& vInfo, const int NBLOCKS, IterativeStreamer streamer, const int channelid)
+	template<int channel>
+	void _compress(const vector<BlockInfo>& vInfo, const int NBLOCKS, IterativeStreamer streamer)
 	{
 #pragma omp parallel  
 		{			
@@ -147,33 +153,38 @@ protected:
 
 			int mybytes = 0, myhotblocks = 0;
 			
+			float tfwt = 0, tencode = 0;
 			Timer timer;
 			timer.start();
 			
 #pragma omp for
 			for(int i = 0; i < NBLOCKS; ++i)
 			{
+				Timer tw; tw.start();
+				
 				//wavelet compression
 				{
 					FluidBlock& b = *(FluidBlock*)vInfo[i].ptrBlock;
 					
-					Real mysoabuffer[_BLOCKSIZE_][_BLOCKSIZE_][_BLOCKSIZE_];
+					WaveletCompressor compressor;
+
+					Real * const mysoabuffer = &compressor.uncompressed_data()[0][0][0];
 					
 					for(int iz=0; iz<FluidBlock::sizeZ; iz++)
 						for(int iy=0; iy<FluidBlock::sizeY; iy++)
 							for(int ix=0; ix<FluidBlock::sizeX; ix++)
-								mysoabuffer[iz][iy][ix] = streamer.operate(channelid, b(ix, iy, iz));
-					
-					WaveletCompressor compressor;
+								mysoabuffer[ix + _BLOCKSIZE_ * (iy + _BLOCKSIZE_ * iz)] = streamer.template operate<channel>(b(ix, iy, iz));
 					
 					//wavelet digestion
-					const int nbytes = (int)compressor.compress(this->threshold, this->halffloat, mysoabuffer);
+					const int nbytes = (int)compressor.compress(this->threshold, this->halffloat);
 					memcpy(mybuf.compressedbuffer + mybytes, &nbytes, sizeof(nbytes));
 					mybytes += sizeof(nbytes);
 					
-					memcpy(mybuf.compressedbuffer + mybytes, compressor.data(), sizeof(unsigned char) * nbytes);
+					memcpy(mybuf.compressedbuffer + mybytes, compressor.compressed_data(), sizeof(unsigned char) * nbytes);
 					mybytes += nbytes;
 				}
+				
+				tfwt += tw.stop();
 				
 				//building the meta data
 				{
@@ -183,13 +194,15 @@ protected:
 				}
 				
 				if (mybytes >= ALERT || myhotblocks >= ENTRIES)
-					_zcompress_and_flush(mybuf.compressedbuffer, mybytes, BUFFERSIZE, mybuf.hotblocks, myhotblocks);
+					tencode = _encode_and_flush(mybuf.compressedbuffer, mybytes, BUFFERSIZE, mybuf.hotblocks, myhotblocks);
 			}
 			
 			if (mybytes > 0)
-				_zcompress_and_flush(mybuf.compressedbuffer, mybytes, BUFFERSIZE, mybuf. hotblocks, myhotblocks);
+				tencode = _encode_and_flush(mybuf.compressedbuffer, mybytes, BUFFERSIZE, mybuf. hotblocks, myhotblocks);
 			
-			workload[omp_get_thread_num()] += timer.stop();
+			workload_total[tid] = timer.stop();
+			workload_fwt[tid] = tfwt;
+			workload_encode[tid] = tencode;
 		}
 	}
 	
@@ -272,7 +285,27 @@ protected:
 		myfile.Close(); //bon voila tu vois ou quoi
 	}
 	
-	void _write(GridType & inputGrid, string fileName, IterativeStreamer streamer, const int channel)
+	float _profile_report(const char * const workload_name, vector<float>& workload, const MPI::Intracomm& mycomm, bool isroot)
+	{
+		float tmin = *std::min_element(workload.begin(), workload.end());
+		float tmax = *std::max_element(workload.begin(), workload.end());
+		float tsum = std::accumulate(workload.begin(), workload.end(), 0.f);
+		
+		mycomm.Reduce(isroot ? MPI::IN_PLACE : &tmin, &tmin, 1, MPI_FLOAT, MPI::MIN, 0);
+		mycomm.Reduce(isroot ? MPI::IN_PLACE : &tsum, &tsum, 1, MPI_FLOAT, MPI::SUM, 0);
+		mycomm.Reduce(isroot ? MPI::IN_PLACE : &tmax, &tmax, 1, MPI_FLOAT, MPI::MAX, 0);
+		
+		tsum /= mycomm.Get_size() / workload.size();
+		
+		if (isroot)
+			printf("TLP %-10s min:%.0e s avg:%.0e s max:%.0e s imb:%.0f%%\n", 
+				   workload_name, tmin, tsum, tmax, (tmax - tmin) / tsum * 100);
+		
+		return tsum;
+	}
+	
+	template<int channel>
+	void _write(GridType & inputGrid, string fileName, IterativeStreamer streamer)
 	{				
 		const vector<BlockInfo> infos = inputGrid.getBlocksInfo();
 		const int NBLOCKS = infos.size();
@@ -340,7 +373,7 @@ protected:
 			
 			lut_compression.clear();
 			
-			_compress(infos, infos.size(), streamer, channel);
+			_compress<channel>(infos, infos.size(), streamer);
 			
 			//manipulate the file data (allmydata, lut_compression, myblockindices)
 			//so that they are file-friendly
@@ -363,30 +396,35 @@ protected:
 		const size_t mygid = mycomm.Get_rank();
 		
 		//write into the file
+		Timer timer; timer.start();
 		_to_file(mycomm, fileName);
+		vector<float> workload_file(1, timer.stop());
 		
 		//just a report now
 		if (verbosity)
 		{			
-			float tmin = *std::min_element(workload.begin(), workload.end());
-			float tmax = *std::max_element(workload.begin(), workload.end());
-			float tmed = std::accumulate(workload.begin(), workload.end(), 0) / workload.size();
-			
 			size_t aggregate_written_bytes = -1;
 			
 			mycomm.Reduce(&written_bytes, &aggregate_written_bytes, 1, MPI_UINT64_T, MPI::SUM, 0);
-			mycomm.Reduce(mygid ? &tmin : MPI::IN_PLACE, &tmin, 1, MPI_FLOAT, MPI::MIN, 0);
-			mycomm.Reduce(mygid ? &tmed : MPI::IN_PLACE, &tmed, 1, MPI_FLOAT, MPI::SUM, 0);
-			mycomm.Reduce(mygid ? &tmax : MPI::IN_PLACE, &tmax, 1, MPI_FLOAT, MPI::MAX, 0);
-			
-			tmed /= mycomm.Get_size();
-			
+			const bool isroot = mygid == 0;
 			if (mygid == 0)
+				printf("Channel %d: %.2f kB, wavelet-threshold: %.1e, compr. rate: %.2f\n",
+				   channel, aggregate_written_bytes/1024., 
+				   threshold, NPTS * sizeof(Real) * NBLOCKS * mycomm.Get_size() / (float) aggregate_written_bytes);
+			
+			const float tavgcompr = _profile_report("Compr", workload_total, mycomm, isroot); 
+			const float tavgfwt =_profile_report("FWT+decim", workload_fwt, mycomm, isroot); 
+			const float tavgenc =_profile_report("Encoding", workload_encode, mycomm, isroot);
+			const float tavgio =_profile_report("FileIO", workload_file, mycomm, isroot);
+			const float toverall = tavgio + tavgcompr;
+			
+			if (isroot)
 			{
-				printf("Channel %d: %.2f kB, wavelet-threshold: %.1e, compr. rate: %.2f, thread-workload (min, avg, max): %.2f %.2f %.2f\n", 
-					   channel, aggregate_written_bytes/1024., 
-					   threshold, NPTS * sizeof(Real) * NBLOCKS * mycomm.Get_size() / (float) aggregate_written_bytes, 
-					   tmin, tmed, tmax);
+				printf("Time distribution: %+5s:%.0f%% %+5s:%.0f%% %+5s:%.0f%% %+5s:%.0f%%\n",
+					   "FWT", tavgfwt / toverall * 100, 
+					   "ENC", tavgenc / toverall * 100, 
+					   "IO", tavgio / toverall * 100, 
+					   "Other",  (tavgcompr - tavgfwt - tavgenc)/ toverall * 100);
 			}
 		}
 	}
@@ -652,7 +690,7 @@ protected:
 				//printf("OK MY BYTES ARE: %d\n", nbytes);
 				
 				WaveletCompressor compressor;
-				memcpy(compressor.data(), &waveletbuf[readbytes], nbytes);
+				memcpy(compressor.compressed_data(), &waveletbuf[readbytes], nbytes);
 				readbytes += nbytes;
 				
 				compressor.decompress(halffloat, nbytes, MYBLOCK);
@@ -677,20 +715,20 @@ public:
 	void verbose() { verbosity = true; }
 	
 	SerializerIO_WaveletCompression_MPI_SimpleBlocking(): 
-	threshold(0), halffloat(false), verbosity(false), workload(omp_get_max_threads()), workbuffer(omp_get_max_threads()), 
+	threshold(0), halffloat(false), verbosity(false), 
+	workload_total(omp_get_max_threads()), workload_fwt(omp_get_max_threads()), workload_encode(omp_get_max_threads()),
+	workbuffer(omp_get_max_threads()), 
 	written_bytes(0), pending_writes(0)
 	{
 	}
 	
+	template< int channel >
 	void Write(GridType & inputGrid, string fileName, IterativeStreamer streamer = IterativeStreamer())
 	{		
-		for(int channel = 0; channel < NCHANNELS; ++channel)
-		{
-			std::stringstream ss;
-			ss << "." << streamer.name() << ".channel"  << channel;
-			
-			_write(inputGrid, fileName + ss.str(), streamer, channel);
-		}
+		std::stringstream ss;
+		ss << "." << streamer.name() << ".channel"  << channel;
+
+		_write<channel>(inputGrid, fileName + ss.str(), streamer);
 	}
 	
 	void Read(string fileName, IterativeStreamer streamer = IterativeStreamer())

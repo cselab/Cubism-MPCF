@@ -38,40 +38,65 @@ private:
 	size_t bufsize;
 	
 public: 
-			
-	virtual void * data()
+	
+	WaveletsOnInterval::FwtAp (& uncompressed_data()) [DATASIZE1D][DATASIZE1D][DATASIZE1D] { return full.data; } 
+
+	virtual void * compressed_data() { return bufcompression; }
+		
+	virtual	size_t compress(const float threshold, const bool float16);
+	
+	virtual void decompress(const bool float16, size_t bytes);
+	
+	virtual void decompress(const bool float16, size_t ninputbytes, DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
 	{
-		return bufcompression;
+		decompress(float16, ninputbytes);
+		
+		this->copy_to(data);
 	}
 	
-	virtual	size_t compress(const float threshold, const bool float16, const DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D]);
+	void copy_to(DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
+	{
+		DataType * const dst = &data[0][0][0];
+		const WaveletsOnInterval::FwtAp * const src = &full.data[0][0][0];
+		for(int i = 0; i < BS3; ++i)
+		{ 
+			dst[i] = src[i];
+			assert(!std::isnan(dst[i]));
+		}
+	}
 	
-	virtual void decompress(const bool float16, size_t bytes, DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D]);
+	void copy_from(const DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
+	{
+		const DataType * const src = &data[0][0][0];
+		WaveletsOnInterval::FwtAp * const dst = &full.data[0][0][0];
+		for(int i = 0; i < BS3; ++i)
+		{
+			dst[i] = src[i];
+			assert(!std::isnan(dst[i]));
+		}
+	}
 };
 
 template<int DATASIZE1D, typename DataType>
-class WaveletCompressorGeneric_zlib: protected WaveletCompressorGeneric<DATASIZE1D, DataType>
+class WaveletCompressorGeneric_zlib: public WaveletCompressorGeneric<DATASIZE1D, DataType>
 {
 	unsigned char bufzlib[WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE];
 
 public:
 
-	void * data()
-	{
-		return bufzlib;
-	}
+	void * compressed_data() { return bufzlib; }
 
-	size_t compress(const float threshold, const bool float16, const DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
+	size_t compress(const float threshold, const bool float16)
 	{
 		int compressedbytes = 0;
 		
-		const size_t ninputbytes = WaveletCompressorGeneric<DATASIZE1D, DataType>::compress(threshold, float16, data);
+		const size_t ninputbytes = WaveletCompressorGeneric<DATASIZE1D, DataType>::compress(threshold, float16);
 
 		z_stream datastream = { 0 };
 		datastream.total_in = datastream.total_out = 0;
 		datastream.avail_in = ninputbytes;
 		datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE;
-		datastream.next_in = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::data();
+		datastream.next_in = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::compressed_data();
 		datastream.next_out = bufzlib;
 
 		if (Z_OK == deflateInit(&datastream, Z_DEFAULT_COMPRESSION) && Z_STREAM_END == deflate(&datastream, Z_FINISH))
@@ -84,11 +109,10 @@ public:
 
 		deflateEnd( &datastream );
 
-
 		return compressedbytes;
 	}
 
-	void decompress(const bool float16, size_t ninputbytes, DataType data[DATASIZE1D][DATASIZE1D][DATASIZE1D])
+	void decompress(const bool float16, size_t ninputbytes)
 	{
 		int decompressedbytes = 0;
 
@@ -97,7 +121,7 @@ public:
 		datastream.avail_in = ninputbytes;
 		datastream.avail_out = WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE;
 		datastream.next_in = bufzlib;
-		datastream.next_out = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::data();
+		datastream.next_out = (unsigned char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::compressed_data();
 
 		const int retval = inflateInit(&datastream);
 
@@ -111,7 +135,7 @@ public:
 
 		inflateEnd(&datastream);
 		
-		WaveletCompressorGeneric<DATASIZE1D, DataType>::decompress(float16, decompressedbytes, data);
+		WaveletCompressorGeneric<DATASIZE1D, DataType>::decompress(float16, decompressedbytes);
 	}
 };
 
