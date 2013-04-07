@@ -81,6 +81,7 @@ public:
 		
 		vector<BlockMetadata> metablocks;
 		vector<size_t> lutchunks;
+		vector<int> sizechunks;
 		
 		{
 			FILE * file = fopen(path.c_str(), "rb");
@@ -228,7 +229,7 @@ public:
 					
 					do 
 					{ 
-						//printf("shouldnt be here! 0x%x\n", c); 
+						printf("shouldnt be here! 0x%x\n", c); 
 						//abort();
 						c = fgetc(file);
 					}
@@ -239,7 +240,6 @@ public:
 				for(int s = 0, currblock = 0; s < SUBDOMAINS; ++s)
 				{
 					const int nglobalchunks = lutchunks.size();
-					
 					
 					const int nchunks = headerluts[s].nchunks;
 					const size_t myamount = headerluts[s].aggregate_bytes;
@@ -255,6 +255,21 @@ public:
 					for(int i=1; i< nchunks; ++i)
 						assert(mylut[i-1] < mylut[i]);
 					
+					//compute the chunk sizes
+					{
+						for(int i = 0; i < mylut.size()-1; ++i)
+						{
+							const int mysize = mylut[i+1] - mylut[i];
+							assert(mysize > 0);
+							sizechunks.push_back(mysize);
+						}
+						
+						const size_t mysize = myamount - mylut[mylut.size()-1];
+						
+						assert(mysize > 0);
+						sizechunks.push_back(mysize);					
+					}
+					
 					for(int i = 0; i < mylut.size(); ++i)
 					{
 						assert(mylut[i] < myamount);
@@ -264,7 +279,7 @@ public:
 					assert(myamount > 0);
 					base += myamount;
 					assert(base <= global_header_displacement);
-					
+										
 					//compute the base for this blocks
 					for(int i = 0; i < BPS; ++i, ++currblock)
 						metablocks[currblock].idcompression += nglobalchunks;
@@ -290,7 +305,11 @@ public:
 			assert(entry.idcompression < lutchunks.size()-1);
 			
 			size_t start_address = lutchunks[entry.idcompression];
-			size_t end_address = lutchunks[entry.idcompression + 1];
+			assert(sizechunks.size() > entry.idcompression);
+			size_t end_address = start_address + sizechunks[entry.idcompression] ;
+			assert(sizechunks[entry.idcompression] > 0);
+			assert (end_address > start_address);
+			assert (end_address <= lutchunks[entry.idcompression + 1]);
 			
 			assert(start_address < end_address);
 			assert(end_address <= global_header_displacement);
