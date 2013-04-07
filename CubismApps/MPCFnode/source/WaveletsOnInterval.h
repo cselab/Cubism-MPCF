@@ -106,21 +106,21 @@ namespace WaveletsOnInterval
 		}
 	};
 		
-	template<typename WaveletType>
+	template<typename WaveletType, int ROWSIZE, int COLSIZE>
 	struct WaveletSweep
 	{
 		template<int BS, bool forward>
-		inline void sweep1D(FwtAp data[BS][BS])
+		inline void sweep1D(FwtAp data[BS][ROWSIZE])
 		{
-			for(int iy=0; iy<BS; iy++)
+			for(int iy = 0; iy < BS; ++iy)
 				WaveletType::template transform<BS, forward>(&data[iy][0]);
 		}
 		
 		template<int BS>
-		inline void xy_transpose(FwtAp data[BS][BS])
+		inline void xy_transpose(FwtAp data[BS][ROWSIZE])
 		{
-			for(int iy=0; iy<BS; iy++)
-					for(int ix=iy+1; ix<BS; ix++)
+			for(int iy = 0; iy < BS; ++iy)
+					for(int ix = iy + 1; ix < BS; ++ix)
 					{
 						const FwtAp temp = data[iy][ix];
 						data[iy][ix] = data[ix][iy];
@@ -129,11 +129,11 @@ namespace WaveletsOnInterval
 		}
 		
 		template<int BS>
-		inline void xz_transpose(FwtAp data[BS][BS][BS])
+		inline void xz_transpose(FwtAp data[BS][COLSIZE][ROWSIZE])
 		{
-			for(int iy=0; iy<BS; iy++)	
-				for(int iz=0; iz<BS; iz++)
-					for(int ix=iz+1; ix<BS; ix++)
+			for(int iy = 0; iy < BS; ++iy)	
+				for(int iz = 0; iz < BS; ++iz)
+					for(int ix = iz + 1; ix < BS; ++ix)
 					{
 						const FwtAp temp = data[iz][iy][ix];
 						data[iz][iy][ix] = data[ix][iy][iz];
@@ -142,7 +142,7 @@ namespace WaveletsOnInterval
 		}
 		
 		template<int BS, bool forward>
-		inline void sweep2D(FwtAp data[BS][BS])
+		inline void sweep2D(FwtAp data[BS][ROWSIZE])
 		{			
 			sweep1D<BS, forward>(data);
 			xy_transpose<BS>(data);
@@ -151,30 +151,30 @@ namespace WaveletsOnInterval
 		}
 		
 		template<int BS, bool bForward>
-		inline void sweep3D(FwtAp data[BS][BS][BS])
+		inline void sweep3D(FwtAp data[BS][COLSIZE][ROWSIZE])
 		{			
 			if(bForward)
 			{
-				for(int iz=0; iz<BS; iz++)
+				for(int iz = 0; iz < BS; ++iz)
 					sweep2D<BS, true>(data[iz]);
 				
 				xz_transpose<BS>(data);
 				
-				for(int iz=0; iz<BS; iz++)
-					for(int iy=0; iy<BS; iy++)
+				for(int iz = 0; iz < BS; ++iz)
+					for(int iy = 0; iy < BS; ++iy)
 						WaveletType::template transform<BS, true>(&data[iz][iy][0]);
 			}
 			else
 			{
 				//xz_transpose(); we don't need this (cross the fingers)
 				
-				for(int iz=0; iz<BS; iz++)
-					for(int iy=0; iy<BS; iy++)
+				for(int iz = 0; iz < BS; ++iz)
+					for(int iy = 0; iy < BS; ++iy)
 						WaveletType::template transform<BS, false>(&data[iz][iy][0]);
 				
 				xz_transpose<BS>(data);
 				
-				for(int iz=0; iz<BS; iz++)
+				for(int iz = 0; iz < BS; ++iz)
 					sweep2D<BS, false>(data[iz]);
 			}
 		}

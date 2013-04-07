@@ -31,102 +31,32 @@ namespace WaveletsOnInterval
 	inline const char * _name<WI4<true> >() { return "LiftedInterpWavelet4thOrder"; }
 
 	inline const char * ChosenWavelets_GetName() { return _name<ChosenWavelets>(); }
-	
-	template<int BS, bool lifting>
-	struct FullTransform : WaveletSweep< ChosenWavelets >
-	{
-		FwtAp data[BS][BS][BS];
+
+	template<int BS, int ROWSIZE, int COLSIZE, int SLICESIZE, bool lifting>
+	struct FullTransformEngine : WaveletSweep< ChosenWavelets, ROWSIZE, COLSIZE>
+	{		
+		FullTransformEngine<BS/2, ROWSIZE, COLSIZE, SLICESIZE, lifting> child;
 		
-		FullTransform<BS/2, lifting> child;
-		
-		inline void fwt()
+		inline void fwt(FwtAp data[SLICESIZE][COLSIZE][ROWSIZE])
 		{
 			this->template sweep3D<BS, true>(data);
 			
-			static const int BSH = BS/2;
-			for(int iz = 0; iz < BSH; ++iz)
-				for(int iy = 0; iy < BSH; ++iy)
-					for(int ix = 0; ix < BSH; ++ix)
-						child.data[iz][iy][ix] = data[iz][iy][ix];
-			
-			child.fwt();
+			child.fwt(data);
 		}
 		
-		inline void iwt()
+		inline void iwt(FwtAp data[SLICESIZE][COLSIZE][ROWSIZE])
 		{
-			child.iwt();
-			
-			static const int BSH = BS/2;
-			for(int iz = 0; iz < BSH; ++iz)
-				for(int iy = 0; iy < BSH; ++iy)
-					for(int ix = 0; ix < BSH; ++ix)
-						data[iz][iy][ix] = child.data[iz][iy][ix];
+			child.iwt(data);
 			
 			this->template sweep3D<BS, false>(data);
 		}
-		
-		template<typename DataType>
-		pair<vector<DataType>, bitset<BS * BS * BS> > threshold(const FwtAp eps)
-		{
-			static const int BSH = BS / 2;
-			
-			pair<vector<DataType>, bitset<BS * BS * BS> > retval;
-			
-			//code 0
-			{
-				pair<vector<DataType>, bitset<BSH * BSH * BSH> > childretval = child.template threshold<DataType>(eps);
-				
-				retval.first = childretval.first;
-				
-				for(int iz = 0; iz < BSH; ++iz)
-					for(int iy = 0; iy < BSH; ++iy)
-						for(int ix = 0; ix < BSH; ++ix)
-						{
-							const int dst = ix + BS * (iy + BS * iz);
-							const int src = ix + BSH * (iy + BSH * iz);
-							
-							retval.second[dst] = childretval.second[src];
-						}
-			}
-			
-			for(int code = 1; code < 8; ++code)
-			{
-				const int xstart = BSH * (code & 1);
-				const int ystart = BSH * (code / 2 & 1);
-				const int zstart = BSH * (code / 4 & 1);
-				
-				for(int iz = 0; iz < BSH; ++iz)
-					for(int iy = 0; iy < BSH; ++iy)
-						for(int ix = 0; ix < BSH; ++ix)
-						{
-							const int xsrc = xstart + ix;
-							const int ysrc = ystart + iy;
-							const int zsrc = zstart + iz;
-							
-							const int dst = xsrc + BS * (ysrc + BS * zsrc);
-							
-							const DataType mydata = (DataType)data[zsrc][ysrc][xsrc];
-							
-							const bool accepted = fabs(mydata) > eps; 
-							
-							retval.second[dst] = accepted;
-							
-							if (accepted)
-								retval.first.push_back(mydata);
-							else 
-								data[zsrc][ysrc][xsrc] = 0;
-						}
-			}
-			
-			return retval;
-		}
 
 		template<typename DataType, int REFBS>
-		int threshold(const FwtAp eps, bitset<REFBS * REFBS * REFBS>& mask_survivors, DataType * const buffer_survivors)
+		int threshold(const FwtAp eps, bitset<REFBS * REFBS * REFBS>& mask_survivors, DataType * const buffer_survivors, const FwtAp data[SLICESIZE][COLSIZE][ROWSIZE])
 		{
 			enum { BSH = BS / 2 };
 				
-			const int survivors = child.template threshold<DataType, REFBS>(eps, mask_survivors, buffer_survivors);
+			const int survivors = child.template threshold<DataType, REFBS>(eps, mask_survivors, buffer_survivors, data);
 			
 			DataType * const buffer_start = buffer_survivors + survivors;
 			int local_survivors = 0;
@@ -163,7 +93,7 @@ namespace WaveletsOnInterval
 		
 		
 		template<typename DataType>
-		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask)
+		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask, FwtAp data[SLICESIZE][COLSIZE][ROWSIZE])
 		{			
 			static const int BSH = BS / 2;
 			
@@ -211,61 +141,38 @@ namespace WaveletsOnInterval
 							childmask[dst] = mask[src];
 						}
 				
-				child.load(datastream, childmask);
+				child.load(datastream, childmask, data);
 			}
 		}
 	};
 	
-	template<bool lifting>
-	struct FullTransform<4, lifting>
+	template<int ROWSIZE, int COLSIZE, int SLICESIZE, bool lifting>
+	struct FullTransformEngine<4, ROWSIZE, COLSIZE, SLICESIZE, lifting>
 	{
 		enum { BS = 4 } ;
 		
-		FwtAp data[BS][BS][BS];
+		void fwt(FwtAp data[SLICESIZE][COLSIZE][ROWSIZE]) { }
 		
-		void fwt() { }
-		
-		void iwt() { }
-		
-		template<typename DataType>
-		pair<vector<DataType>, bitset<BS * BS * BS> > threshold(const FwtAp eps) 
-		{
-			enum { N = BS * BS * BS };
-			
-			const FwtAp * const e = &data[0][0][0];
-			
-			vector<DataType> v(N);
-			
-			for(int i = 0; i < N; ++i)
-				v[i] = e[i];
-			
-			pair<vector<DataType>, bitset<BS * BS * BS> > retval;
-			retval.first = v;
-			retval.second.set();
-			
-			return retval; 
-		}
+		void iwt(FwtAp data[SLICESIZE][COLSIZE][ROWSIZE]) { }
 		
 		template<typename DataType, int REFBS>
-		int threshold(const FwtAp eps, bitset<REFBS * REFBS * REFBS>& mask_survivors, DataType * const buffer_survivors)
+		int threshold(const FwtAp eps, bitset<REFBS * REFBS * REFBS>& mask_survivors, DataType * const buffer_survivors, const FwtAp data[SLICESIZE][COLSIZE][ROWSIZE])
 		{	
 			for(int iz = 0; iz < BS; ++iz)
 				for(int iy = 0; iy < BS; ++iy)
 					for(int ix = 0; ix < BS; ++ix)
 						mask_survivors[ix + REFBS * (iy + REFBS * iz)] = true;
 			
-			enum { N = BS * BS * BS };
+			for(int iz = 0, c = 0; iz < BS; ++iz)
+				for(int iy = 0; iy < BS; ++iy)
+					for(int ix = 0; ix < BS; ++ix, ++c)
+						buffer_survivors[c] = data[iz][iy][ix];
 			
-			const FwtAp * const e = &data[0][0][0];
-			
-			for(int i = 0; i < N; ++i)
-				buffer_survivors[i] = e[i];
-			
-			return N;
+			return BS * BS * BS;
 		}
 		
 		template<typename DataType>
-		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask)
+		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask, FwtAp data[SLICESIZE][COLSIZE][ROWSIZE])
 		{
 			assert(datastream.size() == BS * BS * BS);
 			
@@ -275,6 +182,28 @@ namespace WaveletsOnInterval
 						data[iz][iy][ix] = datastream[c];
 			
 			datastream.clear();
+		}
+	};
+	
+	template<int BS, bool lifting>
+	struct FullTransform : FullTransformEngine<BS, BS, BS, BS, lifting>
+	{
+		FwtAp data[BS][BS][BS];
+		
+		void fwt()  { FullTransformEngine<BS, BS, BS, BS, lifting>::fwt(data); }
+		
+		void iwt() { FullTransformEngine<BS, BS, BS, BS, lifting>::iwt(data); }
+		
+		template<typename DataType, int REFBS>
+		int threshold(const FwtAp eps, bitset<REFBS * REFBS * REFBS>& mask_survivors, DataType * const buffer_survivors)
+		{
+			return FullTransformEngine<BS, BS, BS, BS, lifting>::template threshold<DataType, BS>(eps, mask_survivors, buffer_survivors, data);
+		}
+
+		template<typename DataType>
+		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask)
+		{
+			FullTransformEngine<BS, BS, BS, BS, lifting>::template load(datastream, mask, data);
 		}
 	};
 }
