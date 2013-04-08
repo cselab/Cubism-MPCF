@@ -10,6 +10,7 @@
 #pragma once
 
 #include <zlib.h>
+#include <lz4.h>
 
 inline int deflate_inplace(z_stream *strm, unsigned char *buf, unsigned len, unsigned *max);
 inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned char * outputbuf, const size_t maxsize);
@@ -18,7 +19,7 @@ inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned
 inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned char * outputbuf, const size_t maxsize)
 {
 	int decompressedbytes = 0;
-	
+#if defined(_USE_ZLIB_)
 	z_stream datastream = {0};
 	datastream.total_in = datastream.avail_in = ninputbytes;
 	datastream.total_out = datastream.avail_out = maxsize;
@@ -38,7 +39,14 @@ inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned
 	}
 	
 	inflateEnd(&datastream);
-
+#else
+	decompressedbytes = LZ4_uncompress_unknownOutputSize((char *)inputbuf, (char*) outputbuf, ninputbytes, maxsize);
+	if (decompressedbytes < 0)
+	{
+		printf("LZ4 DECOMPRESSION FAILURE!!\n");
+		abort();
+	}
+#endif
 	return decompressedbytes;
 }
 
@@ -67,6 +75,7 @@ inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned
 inline int deflate_inplace(z_stream *strm, unsigned char *buf, unsigned len,
 						   unsigned *max)
 {
+#if defined(_USE_ZLIB_)
     int ret;                    /* return code from deflate functions */
     unsigned have;              /* number of bytes in temp[] */
     unsigned char *hold;        /* allocated buffer to hold input data */
@@ -140,4 +149,26 @@ inline int deflate_inplace(z_stream *strm, unsigned char *buf, unsigned len,
     strm->zfree(strm->opaque, hold);
     *max = strm->next_out - buf;
     return ret == Z_OK ? Z_BUF_ERROR : (ret == Z_STREAM_END ? Z_OK : ret);
+#else
+	#define ZBUFSIZE (4*1024*1024)	/* fix this */
+	static char bufzlib[ZBUFSIZE];	/* and this per thread */
+
+	if (ZBUFSIZE < *max) {
+		printf("small ZBUFSIZE\n");
+		abort();
+	}
+
+	int ninputbytes = len;          
+	int compressedbytes;
+
+#pragma omp critical
+	{
+	compressedbytes = LZ4_compress((char*) buf, (char *)bufzlib, ninputbytes);
+	memcpy(buf, bufzlib, compressedbytes);	
+	}
+
+	strm->total_out = compressedbytes;
+	*max = compressedbytes;
+        return (compressedbytes >= 0) ? Z_OK : Z_BUF_ERROR;
+#endif
 }
