@@ -14,7 +14,9 @@
 #include <bitset>
 
 #include "WaveletsOnInterval.h"
-
+#if defined(_QPX_) || defined(_QPXEMU_)
+#include "WaveletsOnIntervalQPX.h"
+#endif
 using namespace std;
 
 namespace WaveletsOnInterval 
@@ -33,7 +35,11 @@ namespace WaveletsOnInterval
 	inline const char * ChosenWavelets_GetName() { return _name<ChosenWavelets>(); }
 
 	template<int BS, int ROWSIZE, int COLSIZE, int SLICESIZE, bool lifting>
+#if defined(_QPX_) || defined(_QPXEMU_)
+	struct FullTransformEngine : WaveletSweepQPX< ROWSIZE, COLSIZE>
+#else
 	struct FullTransformEngine : WaveletSweep< ChosenWavelets, ROWSIZE, COLSIZE>
+#endif
 	{		
 		FullTransformEngine<BS/2, ROWSIZE, COLSIZE, SLICESIZE, lifting> child;
 		
@@ -186,9 +192,9 @@ namespace WaveletsOnInterval
 	};
 	
 	template<int BS, bool lifting>
-	struct FullTransform : FullTransformEngine<BS, BS, BS, BS, lifting>
+	struct __attribute__((__aligned__(_ALIGNBYTES_))) FullTransform : FullTransformEngine<BS, BS, BS, BS, lifting>
 	{
-		FwtAp data[BS][BS][BS];
+		FwtAp  data[BS][BS][BS];
 		
 		void fwt()  { FullTransformEngine<BS, BS, BS, BS, lifting>::fwt(data); }
 		

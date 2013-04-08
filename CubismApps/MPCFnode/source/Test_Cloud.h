@@ -166,6 +166,13 @@ public:
             //and ignore seed and cloud_config.dat
             {
                 ifstream f_read_cloud("cloud.dat");
+                
+                if (!f_read_cloud.good())
+                {
+					cout << "Watchout! cant read the file <cloud.dat>. Aborting now...\n";
+					abort();
+				}
+				
                 for(int i=0; i<CloudData::n_shapes; ++i)
                 {
                     int idx;
@@ -185,6 +192,13 @@ public:
             return;
             
             ifstream f_read("seed.dat");
+            
+            if (!f_read.good())
+            {
+				cout << "Watchout! cant read the file <seed.dat>. Aborting now...\n";
+				abort();
+			}
+				
             if(f_read)
             {
                 cout << "seed file is there" << endl;
@@ -257,6 +271,13 @@ public:
             //and ignore seed and cloud_config.dat
             {
                 ifstream f_read_cloud("cloud.dat");
+                
+                if (!f_read_cloud.good())
+                {
+					cout << "Watchout! cant read the file <cloud.dat>. Aborting now...\n";
+					abort();
+				}
+				
                 for(int i=0; i<CloudData::n_shapes; ++i)
                 {
                     int idx;

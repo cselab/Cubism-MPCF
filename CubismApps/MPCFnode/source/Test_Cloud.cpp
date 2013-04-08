@@ -37,6 +37,13 @@ Test_Cloud::Test_Cloud(const int argc, const char ** argv): Test_ShockBubble(arg
 void Test_Cloud::_initialize_cloud()
 {
     ifstream f_read("cloud_config.dat");
+
+	if (!f_read.good())
+	{
+		cout << "Watchout! cant read the file <cloud_config.dat>. Aborting now...\n";
+		abort();
+	}
+	
     if(f_read)
     {
         if (VERBOSITY) cout << "cloud config file is there" << endl;
