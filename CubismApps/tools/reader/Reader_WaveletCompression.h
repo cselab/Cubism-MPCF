@@ -264,7 +264,7 @@ public:
 							sizechunks.push_back(mysize);
 						}
 						
-						const size_t mysize = myamount - mylut[mylut.size()-1];
+						const size_t mysize = (myamount - sizeof(size_t) * nchunks) - mylut[mylut.size() - 1];
 						
 						assert(mysize > 0);
 						sizechunks.push_back(mysize);					
