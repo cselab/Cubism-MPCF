@@ -209,7 +209,7 @@ namespace WaveletsOnInterval
 		template<typename DataType>
 		void load(vector<DataType>& datastream, bitset<BS * BS * BS> mask)
 		{
-			FullTransformEngine<BS, BS, BS, BS, lifting>::template load(datastream, mask, data);
+			FullTransformEngine<BS, BS, BS, BS, lifting>::template load<DataType>(datastream, mask, data);
 		}
 	};
 }

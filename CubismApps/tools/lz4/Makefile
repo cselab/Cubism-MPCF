@@ -1,8 +1,13 @@
+zlib = 0
 include ../../Makefile.config
 
-#/bgsys/drivers/ppcfloor/gnu-linux/bin/powerpc64-bgq-linux-ar
 
+ifeq "$(bgq)" "1"
+AR = /bgsys/drivers/ppcfloor/gnu-linux/bin/powerpc64-bgq-linux-ar
+CPPFLAGS += -qpack_semantic=gnu
+else
 AR = ar
+endif
 ARFLAGS = rcs
 
 all: liblz4.a
