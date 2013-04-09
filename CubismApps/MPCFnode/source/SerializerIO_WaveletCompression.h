@@ -367,7 +367,11 @@ public:
 			myfile << "Blocksize: " << _BLOCKSIZE_ << "\n";
 			myfile << "Channels: " << NCHANNELS << "\n";
 			myfile << "HalfFloat: " << (halffloat ? "yes" : "no") << "\n";
-			myfile << "Zlib: " << (usezlib ? "yes" : "no") << "\n";
+#if defined(_USE_ZLIB_)
+			myfile << "Compression: " << (usezlib ? "zlib" : "no") << "\n";
+#else	/* _USE_LZ4 */
+			myfile << "Compression: " << (usezlib ? "lz4" : "no") << "\n";
+#endif
 			myfile << "==============START-BINARY-DATA===============\n";
 			
 			size_t written_bytes = 0;
@@ -445,7 +449,11 @@ public:
 				assert(atoi(strblocksize.c_str()) == _BLOCKSIZE_);
 				assert(atoi(strnchannels.c_str()) == NCHANNELS);
 				assert(strhalffloat == (halffloat ? "yes" : "no"));
-				assert(strzlib == (usezlib ? "yes" : "no"));
+#if defined(_USE_ZLIB_)
+				assert(strzlib == (usezlib ? "zlib" : "no"));
+#else	/* _USE_LZ4 */
+				assert(strzlib == (usezlib ? "lz4" : "no"));
+#endif
 				
 				cout  << "Endianess: <" << strendianess << ">\n"; 
 				cout  << "SizeOfReal: <" << strsizeofreal << ">\n"; 
@@ -453,7 +461,7 @@ public:
 				cout  << "Blocksize: <" << strblocksize<< ">\n";
 				cout  << "Channels: <" << strnchannels<< ">\n"; 
 				cout  << "HalfFloat: <" << strhalffloat<< ">\n"; 
-				cout  << "Zlib: <" << strzlib << ">\n";			
+				cout  << "Compression: <" << strzlib << ">\n";			
 				
 				cout.flush();
 				
