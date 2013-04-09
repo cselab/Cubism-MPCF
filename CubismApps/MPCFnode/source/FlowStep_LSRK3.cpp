@@ -144,6 +144,7 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
     const int N = vInfo.size();
     const BlockInfo * const ary = &vInfo.front();
 
+#if 0   /* !defined(FUSED_MAXSOS) */
     Real * tmp = NULL;
     int error = posix_memalign((void**)&tmp, std::max(8, _ALIGNBYTES_), sizeof(Real) * N);
     assert(error == 0);
@@ -228,6 +229,31 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
 	
     free(tmp);
     
+#else   /* FUSED_MAXSOS */
+
+    Real global_sos = 0;
+#ifdef _USE_HPM_
+    HPM_Start("dt_for_reduce");
+#endif
+
+#pragma omp parallel
+    {
+      TSOS kernel;
+        Real mymax = 0;
+
+#pragma omp for schedule(runtime) reduction(max:global_sos)
+        for (size_t i=0; i<N; ++i)
+        {
+            FluidBlock & block = *(FluidBlock *)ary[i].ptrBlock;
+            global_sos =  kernel.compute(&block.data[0][0][0].rho, FluidBlock::gptfloats);
+        }
+    }
+
+#ifdef _USE_HPM_
+        HPM_Stop("dt_for_reduce");
+#endif
+
+#endif
 	return global_sos;
 }
 
