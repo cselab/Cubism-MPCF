@@ -13,7 +13,9 @@
 #include <cstring>
 
 #include <zlib.h>
-
+#if defined(_USE_LZ4_)
+#include <lz4.h>
+#endif
 #include "FullWaveletTransform.h"
 static const bool lifting_scheme = false;
 
@@ -92,6 +94,7 @@ public:
 		
 		const size_t ninputbytes = WaveletCompressorGeneric<DATASIZE1D, DataType>::compress(threshold, float16);
 
+#if defined(_USE_ZLIB_)
 		z_stream datastream = { 0 };
 		datastream.total_in = datastream.total_out = 0;
 		datastream.avail_in = ninputbytes;
@@ -108,6 +111,14 @@ public:
 		}
 
 		deflateEnd( &datastream );
+#else /* _USE_LZ4 */
+		compressedbytes = LZ4_compress((char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::compressed_data(), (char *)bufzlib, ninputbytes);
+		if (compressedbytes < 0)
+		{
+			printf("LZ4 COMPRESSION FAILURE!!\n");
+			abort();
+		}
+#endif
 
 		return compressedbytes;
 	}
@@ -116,6 +127,7 @@ public:
 	{
 		int decompressedbytes = 0;
 
+#if defined(_USE_ZLIB_)
 		z_stream datastream = { 0 };
 		datastream.total_in = datastream.total_out = 0;
 		datastream.avail_in = ninputbytes;
@@ -136,6 +148,15 @@ public:
 		inflateEnd(&datastream);
 		
 		WaveletCompressorGeneric<DATASIZE1D, DataType>::decompress(float16, decompressedbytes);
+#else /* _USE_LZ4 */
+                decompressedbytes = LZ4_uncompress_unknownOutputSize((char *)bufzlib, (char*) WaveletCompressorGeneric<DATASIZE1D, DataType>::compressed_data(),
+									ninputbytes, WaveletCompressorGeneric<DATASIZE1D, DataType>::BUFMAXSIZE);
+		if (decompressedbytes < 0)
+		{
+			printf("LZ4 DECOMPRESSION FAILURE!!\n");
+			abort();
+		}
+#endif
 	}
 };
 

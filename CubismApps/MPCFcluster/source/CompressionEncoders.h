@@ -10,8 +10,9 @@
 #pragma once
 
 #include <zlib.h>
+#if defined(_USE_LZ4_)
 #include <lz4.h>
-
+#endif
 inline int deflate_inplace(z_stream *strm, unsigned char *buf, unsigned len, unsigned *max);
 inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned char * outputbuf, const size_t maxsize);
 
@@ -39,7 +40,7 @@ inline size_t zdecompress(unsigned char * inputbuf, size_t ninputbytes, unsigned
 	}
 	
 	inflateEnd(&datastream);
-#else
+#else	/* _USE_LZ4_ */
 	decompressedbytes = LZ4_uncompress_unknownOutputSize((char *)inputbuf, (char*) outputbuf, ninputbytes, maxsize);
 	if (decompressedbytes < 0)
 	{
@@ -149,9 +150,9 @@ inline int deflate_inplace(z_stream *strm, unsigned char *buf, unsigned len,
     strm->zfree(strm->opaque, hold);
     *max = strm->next_out - buf;
     return ret == Z_OK ? Z_BUF_ERROR : (ret == Z_STREAM_END ? Z_OK : ret);
-#else
+#else	/* _USE_LZ4_ */
 	#define ZBUFSIZE (4*1024*1024)	/* fix this */
-	static char bufzlib[ZBUFSIZE];	/* and this per thread */
+	static char bufzlib[ZBUFSIZE];	/* and this per thread (threadprivate or better an small cyclic array of buffers ) */
 
 	if (ZBUFSIZE < *max) {
 		printf("small ZBUFSIZE\n");

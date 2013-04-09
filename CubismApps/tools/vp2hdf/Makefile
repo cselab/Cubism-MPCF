@@ -1,10 +1,7 @@
-CC = mpic++
-bs ?= 32
-zlib ?= 1
-lz4 ?= 1
+hdf = 1
+include ../../Makefile.config 
 
-MYFLAGS = -O3 -mtune=native -march=native -ftree-vectorize -fstrict-aliasing -D_BLOCKSIZE_=$(bs) -D_FLOAT_PRECISION_ -D_SP_COMP_ -g -fopenmp -I../reader/ -I../../../Cubism/source
-MYFLAGS = -D_BLOCKSIZE_=$(bs) -D_FLOAT_PRECISION_ -D_SP_COMP_ -g -fopenmp -I../reader/ -I../../../Cubism/source -I../lz4
+CPPFLAGS += -I../reader 
 
 ifeq "$(zlib)" "1"
 	MYFLAGS += -D_USE_ZLIB_
@@ -16,13 +13,13 @@ endif
 
 
 vp2hdf: main.o WaveletCompressor.o
-	$(CC) WaveletCompressor.o  main.o  -o vp2hdf  $(MYFLAGS) -lhdf5 -lz -lstdc++ -L../lz4 -llz4
+	$(CC) $(CPPFLAGS) WaveletCompressor.o  main.o  -o vp2hdf $(LIBS)
 
 main.o: main.cpp
-	$(CC) $(MYFLAGS) -c main.cpp -o main.o
+	$(CC) $(CPPFLAGS) -c main.cpp -o main.o
 	
 WaveletCompressor.o: ../../MPCFnode/source/WaveletCompressor.cpp
-	$(CC) $(MYFLAGS) -c ../../MPCFnode/source/WaveletCompressor.cpp -o WaveletCompressor.o
+	$(CC) $(CPPFLAGS) -c ../../MPCFnode/source/WaveletCompressor.cpp -o WaveletCompressor.o
 	
 clean:
 	rm -f vp2hdf *.o
