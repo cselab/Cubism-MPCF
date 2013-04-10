@@ -156,7 +156,7 @@ void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t,
 	if (labs == NULL)
 	{
 		int NTH = omp_get_max_threads();
-		printf("allocating %d labs\n", NTH); fflush(0);
+		//printf("allocating %d labs\n", NTH); fflush(0);
 
 		const SynchronizerMPI& synch = grid.get_SynchronizerMPI(rhs);
 		labs = new Lab[NTH];

@@ -200,6 +200,97 @@ protected:
     
     void _sse_u_hllc(const float * const v_minus, const float * const v_plus, const float * const s_minus, const float * const s_plus, const float * const u_star, float * const out_u_hllc);
     
+    void _xflux(const int relid)
+	{
+		_xweno_minus(rho.ring(relid), rho.weno.ref(0));
+		_xweno_pluss(rho.ring(relid), rho.weno.ref(1));
+		_xweno_minus(u.ring(relid), u.weno.ref(0));
+		_xweno_pluss(u.ring(relid), u.weno.ref(1));
+		_xweno_minus(v.ring(relid), v.weno.ref(0));
+		_xweno_pluss(v.ring(relid), v.weno.ref(1));
+		_xweno_minus(w.ring(relid), w.weno.ref(0));
+		_xweno_pluss(w.ring(relid), w.weno.ref(1));
+		_xweno_minus(p.ring(relid), p.weno.ref(0));
+		_xweno_pluss(p.ring(relid), p.weno.ref(1));
+		_xweno_minus(G.ring(relid), G.weno.ref(0));
+		_xweno_pluss(G.ring(relid), G.weno.ref(1));
+		_xweno_minus(P.ring(relid), P.weno.ref(0));
+		_xweno_pluss(P.ring(relid), P.weno.ref(1));
+		
+		_char_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
+		
+		_xextraterm(u.weno(0), u.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
+		
+		_hlle_rho(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), rho.flux.ref());
+		_hlle_pvel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), u.flux.ref());
+		_hlle_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), v.flux.ref());
+		_hlle_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), w.flux.ref());
+		_hlle_e(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), p.flux.ref());
+		
+		_hlle_rho(G.weno(0), G.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), G.flux.ref());
+		_hlle_rho(P.weno(0), P.weno(1), u.weno(0), u.weno(1), charvel(0), charvel(1), P.flux.ref());
+	}
+
+	void _yflux(const int relid)
+	{
+		_yweno_minus(rho.ring(relid), rho.weno.ref(0));
+		_yweno_pluss(rho.ring(relid), rho.weno.ref(1));
+		_yweno_minus(u.ring(relid), u.weno.ref(0));
+		_yweno_pluss(u.ring(relid), u.weno.ref(1));
+		_yweno_minus(v.ring(relid), v.weno.ref(0));
+		_yweno_pluss(v.ring(relid), v.weno.ref(1));
+		_yweno_minus(w.ring(relid), w.weno.ref(0));
+		_yweno_pluss(w.ring(relid), w.weno.ref(1));
+		_yweno_minus(p.ring(relid), p.weno.ref(0));
+		_yweno_pluss(p.ring(relid), p.weno.ref(1));
+		_yweno_minus(G.ring(relid), G.weno.ref(0));
+		_yweno_pluss(G.ring(relid), G.weno.ref(1));
+		_yweno_minus(P.ring(relid), P.weno.ref(0));
+		_yweno_pluss(P.ring(relid), P.weno.ref(1));
+		
+		_char_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
+		_yextraterm(v.weno(0), v.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1));
+		
+		_hlle_rho(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), rho.flux.ref());
+		_hlle_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), u.flux.ref());
+		_hlle_pvel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), v.flux.ref());
+		_hlle_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), w.flux.ref());
+		_hlle_e(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), p.flux.ref());
+		
+		_hlle_rho(G.weno(0), G.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), G.flux.ref());
+		_hlle_rho(P.weno(0), P.weno(1), v.weno(0), v.weno(1), charvel(0), charvel(1), P.flux.ref());
+	}
+
+	void _zflux(const int relid)
+	{
+		_zweno_minus(relid, rho.ring, rho.weno.ref(0));
+		_zweno_pluss(relid, rho.ring, rho.weno.ref(1));
+		_zweno_minus(relid, u.ring, u.weno.ref(0));
+		_zweno_pluss(relid, u.ring, u.weno.ref(1));
+		_zweno_minus(relid, v.ring, v.weno.ref(0));
+		_zweno_pluss(relid, v.ring, v.weno.ref(1));
+		_zweno_minus(relid, w.ring, w.weno.ref(0));
+		_zweno_pluss(relid, w.ring, w.weno.ref(1));
+		_zweno_minus(relid, p.ring, p.weno.ref(0));
+		_zweno_pluss(relid, p.ring, p.weno.ref(1));
+		_zweno_minus(relid, G.ring, G.weno.ref(0));
+		_zweno_pluss(relid, G.ring, G.weno.ref(1));
+		_zweno_minus(relid, P.ring, P.weno.ref(0));
+		_zweno_pluss(relid, P.ring, P.weno.ref(1));
+		
+		_char_vel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel.ref(0), charvel.ref(1));
+		_zextraterm(w.weno(-2), w.weno(-1), w.weno(0), w.weno(1), G.weno(-1), G.weno(0), P.weno(-1), P.weno(0), charvel(-2), charvel(-1), charvel(0), charvel(1));
+		
+		_hlle_rho(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), rho.flux.ref());
+		_hlle_vel(rho.weno(0), rho.weno(1), u.weno(0), u.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), u.flux.ref());
+		_hlle_vel(rho.weno(0), rho.weno(1), v.weno(0), v.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), v.flux.ref());
+		_hlle_pvel(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), p.weno(0), p.weno(1), charvel(0), charvel(1), w.flux.ref());
+		_hlle_e(rho.weno(0), rho.weno(1), w.weno(0), w.weno(1), u.weno(0), u.weno(1), v.weno(0), v.weno(1), p.weno(0), p.weno(1), G.weno(0), G.weno(1), P.weno(0), P.weno(1), charvel(0), charvel(1), p.flux.ref());
+		
+		_hlle_rho(G.weno(0), G.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), G.flux.ref());
+		_hlle_rho(P.weno(0), P.weno(1), w.weno(0), w.weno(1), charvel(0), charvel(1), P.flux.ref());
+	}
+    
 	void _xrhs()
 	{
 		_sse_xrhsadd(rho.flux().ptr(0,0), &rho.rhs.ref(0,0));

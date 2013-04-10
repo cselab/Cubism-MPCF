@@ -25,15 +25,16 @@ public:
 	{
 		if (m_pData != NULL)
 		{
-			allocator<DataType> alloc;
+			//allocator<DataType> alloc;
 			
 			if (!bPrimitiveType)
 			{
-				for(int i=0; i<m_nElements; i++)
-					alloc.destroy(m_pData+i);
+			//	for(int i=0; i<m_nElements; i++)
+			//		alloc.destroy(m_pData+i);
 			}
 			
-			alloc.deallocate(m_pData, m_nElements);
+			free(m_pData);
+			//alloc.deallocate(m_pData, m_nElements);
 			
 			m_pData = NULL;
 		}
@@ -51,16 +52,17 @@ public:
 		
 		m_nElements = nSizeX*nSizeY*nSizeZ;
 		
-		allocator<DataType> alloc;
-		m_pData = alloc.allocate(m_nElements);
-		
+		//allocator<DataType> alloc;
+		//m_pData = alloc.allocate(m_nElements);
+		const int retval = posix_memalign((void **)&m_pData, max(8, _ALIGNBYTES_), sizeof(DataType)*m_nElements);
+		assert(retval == 0);
 		assert(m_pData != NULL);
-		
+		/*
 		if (!bPrimitiveType)
 		{
 			for(int i=0; i<m_nElements; i++)
 				alloc.construct(m_pData+i, DataType());
-		}
+		}*/
 	}
 
 	
