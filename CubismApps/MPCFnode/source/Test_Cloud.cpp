@@ -26,7 +26,7 @@ namespace CloudData
     int small_count = 0;
     Real min_rad = 0;
     Real max_rad = 0;
-    Real seed_s[3], seed_e[3];
+    double seed_s[3], seed_e[3];
 }
 
 Test_Cloud::Test_Cloud(const int argc, const char ** argv): Test_ShockBubble(argc, argv)
@@ -106,7 +106,7 @@ FluidElement operator + (FluidElement gpa, FluidElement gpb)
 //will solve a laplace p = 0 without going back and forth
 //between energy and pressure
 template<typename T>
-T get_ic(const Real p[3], const vector< shape * > v_shapes)
+T get_ic(const double bubble)
 {
     T out;
     
@@ -114,8 +114,6 @@ T get_ic(const Real p[3], const vector< shape * > v_shapes)
     const double G2 = Simulation_Environment::GAMMA2-1;
     const double F1 = Simulation_Environment::GAMMA1*Simulation_Environment::PC1;
     const double F2 = Simulation_Environment::GAMMA2*Simulation_Environment::PC2;
-    
-    const double bubble = eval(v_shapes, p);
     
     const Real pre_shock[3] = {1000,0,100};
     
@@ -135,8 +133,9 @@ T get_ic(const Real p[3], const vector< shape * > v_shapes)
     return out;    
 }
 
+
 template<typename T>
-T integral(const Real p[3], float h, const vector< shape * > v_shapes) // h should be cubism h/2
+T integral(const Real p[3], float h, const vector< shape >& v_shapes) // h should be cubism h/2
 {
 	T samples[3][3][3];
 	T zintegrals[3][3];
@@ -149,7 +148,7 @@ T integral(const Real p[3], float h, const vector< shape * > v_shapes) // h shou
 			for(int ix=0; ix<3; ix++)
             {
                 const Real mypos[3] = {x0[0]+ix*h, x0[1]+iy*h, x0[2]+iz*h};
-				samples[iz][iy][ix] = get_ic<T>(mypos, v_shapes);
+				samples[iz][iy][ix] = get_ic<T>(eval(v_shapes, mypos));
             }
 	
 	for(int iy=0; iy<3; iy++)
@@ -195,7 +194,7 @@ void Test_Cloud::_set_energy(FluidGrid& grid)
 	}
 }
 
-void Test_Cloud::_my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes)
+void Test_Cloud::_my_ic_quad(FluidGrid& grid, const Seed myseed)
 {
 	if (VERBOSITY)
 		cout << "Cloud Initial condition..." ;
@@ -211,22 +210,55 @@ void Test_Cloud::_my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes)
 		const int mynode = omp_get_thread_num() / cores_per_node;
 		numa_run_on_node(mynode);
 #endif
-        
+        if (myseed.get_shapes().size() == 0)
+        {
+			FluidElement myconstant = get_ic<FluidElement>(0);
+
+#pragma omp for
+			for(int i=0; i<(int)vInfo.size(); i++)
+			{
+				BlockInfo info = vInfo[i];
+				FluidBlock& b = *(FluidBlock*)info.ptrBlock;
+				for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+					for(int iy=0; iy<FluidBlock::sizeY; iy++)
+						for(int ix=0; ix<FluidBlock::sizeX; ix++)
+							b(ix,iy,iz) = myconstant;
+			}
+		}
+		else
 #pragma omp for
 		for(int i=0; i<(int)vInfo.size(); i++)
 		{
             BlockInfo info = vInfo[i];
+            
+            double myextent[3] = { info.h, info.h, info.h } ;
+	
             FluidBlock& b = *(FluidBlock*)info.ptrBlock;
             
-            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
-                for(int iy=0; iy<FluidBlock::sizeY; iy++)
-                    for(int ix=0; ix<FluidBlock::sizeX; ix++)
-                    {
-                        Real p[3], post_shock[3];
-                        info.pos(p, ix, iy, iz);
-                        
-                        b(ix,iy,iz) = integral<FluidElement>(p,0.5*h,v_shapes);
-                    }
+			vector<shape> myshapes = myseed.retain_shapes(info.origin, myextent).get_shapes();
+			printf("processing %d out of %d. for this block i have: %d bubbles\n", i, (int)vInfo.size(), myshapes.size());
+			
+			const bool isempty = myshapes.size() == 0;
+			
+			if (isempty)
+			{
+				FluidElement myconstant = get_ic<FluidElement>(0);
+				
+						for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+						for(int iy=0; iy<FluidBlock::sizeY; iy++)
+							for(int ix=0; ix<FluidBlock::sizeX; ix++)
+							 b(ix,iy,iz) = myconstant;
+			}
+			else
+				for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+					for(int iy=0; iy<FluidBlock::sizeY; iy++)
+						for(int ix=0; ix<FluidBlock::sizeX; ix++)
+						{
+							Real p[3], post_shock[3];
+							info.pos(p, ix, iy, iz);
+														
+							b(ix,iy,iz) = integral<FluidElement>(p, 0.5*h, myshapes);
+						}
         }
 	}
 	
@@ -234,8 +266,11 @@ void Test_Cloud::_my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes)
 		cout << "done." << endl;
 }
 
-void Test_Cloud::_my_ic(FluidGrid& grid, const vector< shape * > v_shapes)
+void Test_Cloud::_my_ic(FluidGrid& grid, const Seed myseed)
 {
+	cout <<"oops this is not ready\n";
+	abort();
+	
 	if (VERBOSITY)
 		cout << "Cloud Initial condition..." ;
     
@@ -259,7 +294,10 @@ void Test_Cloud::_my_ic(FluidGrid& grid, const vector< shape * > v_shapes)
 #pragma omp for
 		for(int i=0; i<(int)vInfo.size(); i++)
 		{
+			printf("processing %d out of %d\n", i, (int)vInfo.size());
             BlockInfo info = vInfo[i];
+            double myextent[3] = { info.h, info.h, info.h } ;
+             Seed currseed = myseed.retain_shapes(info.origin, myextent);
             FluidBlock& b = *(FluidBlock*)info.ptrBlock;
             
             for(int iz=0; iz<FluidBlock::sizeZ; iz++)
@@ -269,7 +307,7 @@ void Test_Cloud::_my_ic(FluidGrid& grid, const vector< shape * > v_shapes)
                         Real p[3], post_shock[3];
                         info.pos(p, ix, iy, iz);
                         
-                        const double bubble = eval(v_shapes, p);
+                        const double bubble = eval(currseed.get_shapes(), p);
                         
                         const Real pre_shock[3] = {1000,0,100};
                         
@@ -318,10 +356,10 @@ void Test_Cloud::setup()
   {
       bRestartedSeed = parser("-seed").asBool(0);
       
-      Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
-      my_seed.make_shapes(bRestartedSeed);
+      Seed my_seed(CloudData::seed_s, CloudData::seed_e);
+      my_seed.make_shapes(CloudData::n_shapes);
       
       //_my_ic(*grid, my_seed.get_vshapes());
-      _my_ic_quad(*grid, my_seed.get_vshapes());
+      _my_ic_quad(*grid, my_seed);
   }
 }

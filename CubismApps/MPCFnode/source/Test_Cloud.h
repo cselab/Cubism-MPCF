@@ -16,7 +16,8 @@
 
 namespace CloudData
 {
-    extern Real seed_s[3], seed_e[3], min_rad, max_rad;
+    extern double seed_s[3], seed_e[3];
+    extern Real min_rad, max_rad;
     extern int n_shapes, n_small, small_count;
 };
 
@@ -58,7 +59,7 @@ public:
         }
     }
     
-    void get_bbox(Real s[3], Real e[3]) const
+    void get_bbox(double s[3], double e[3]) const
     {
         for(int i=0; i<3; ++i)
         {
@@ -95,7 +96,7 @@ public:
     //Every other derived shape should implement this method.
     bool rejection_check(shape * this_shape, const Real start[3], const Real end[3]) const
     {
-        Real s[3], e[3];
+        double s[3], e[3];
         this->get_bbox(s,e);
         
         //this rule checks that the buble is inside the bounding box
@@ -107,7 +108,7 @@ public:
         
         if(this!=this_shape)
         {
-            Real this_s[3], this_e[3];
+            double this_s[3], this_e[3];
             
             this_shape->get_bbox(this_s,this_e);
             
@@ -133,16 +134,18 @@ public:
         
         return false;
     }
+    
+    Real * get_pointer_to_beginninig() {return &center[0];}
 };
 
 class Seed
 {
-    Real start[3], end[3];
-    int n_shapes;
-    vector<shape *> v_shapes;
+    double start[3], end[3];
+    
+    vector<shape> v_shapes;
     
 public:
-    Seed(const Real _start[3], const Real _end[3], const int _n_shapes): n_shapes(_n_shapes)
+    Seed(const double _start[3], const double _end[3])
     {
         start[0] = _start[0];
         start[1] = _start[1];
@@ -152,254 +155,107 @@ public:
         end[1] = _end[1];
         end[2] = _end[2];
     }
-    
-    void make_shapes(const bool bRestartedSeed=false)
-    {
-        bool bFull = false;
         
-        unsigned int restarted_seed;
-        
-        //read seed if needed
-        if (bRestartedSeed)
-        {
-            //For the moment we just read the cloud.dat
-            //and ignore seed and cloud_config.dat
-            {
-                ifstream f_read_cloud("cloud.dat");
-                
-                if (!f_read_cloud.good())
-                {
-					cout << "Watchout! cant read the file <cloud.dat>. Aborting now...\n";
-					abort();
-				}
-				
-                for(int i=0; i<CloudData::n_shapes; ++i)
-                {
-                    int idx;
-                    Real c[3], rad;
-                    f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
-                    cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
-                    
-                    shape * cur_shape = new shape(c,rad);
-                    v_shapes.push_back(cur_shape);
-                }
-                
-                f_read_cloud.close();
-                
-                cout << "number of shapes are " << v_shapes.size() << endl;
-            }
-            
-            return;
-            
-            ifstream f_read("seed.dat");
-            
-            if (!f_read.good())
-            {
-				cout << "Watchout! cant read the file <seed.dat>. Aborting now...\n";
+    void make_shapes(int ntocheck)
+    {        	
+		//For the moment we just read the cloud.dat
+		//and ignore seed and cloud_config.dat
+		{
+			ifstream f_read_cloud("cloud.dat");
+			
+			if (!f_read_cloud.good())
+			{
+				cout << "Watchout! cant read the file <cloud.dat>. Aborting now...\n";
 				abort();
 			}
-				
-            if(f_read)
-            {
-                cout << "seed file is there" << endl;
-                f_read >> restarted_seed;
-                f_read.close();
-            }
-            else
-            {
-                cout << "seed file not there...aborting" << endl;
-                abort();
-            }
-        }
-        
-        const unsigned int seed = bRestartedSeed? restarted_seed : time(0);
-        
-        //save seed anyway
-        {
-            ofstream f_save("seed.dat");
-            f_save<<seed;
-            f_save.close();
-        }
-        
-        srand48(seed);
-        
-        while(!bFull)
-        {
-            shape * cur_shape = new shape();
-            
-            if (reject_check(cur_shape))
-            {
-                delete cur_shape;
-                continue;
-            }
-            
-            v_shapes.push_back(cur_shape);
-            
-            printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
-            
-            bFull = v_shapes.size()==n_shapes;
-        }
-        
-        //We are even more paranoic so we save the bubble centers and radii
-        //If the first method does not work on different platforms,
-        //a method must be implemented to read the following data.
-        {
-            ofstream f_save("cloud.dat");
-            for(int i=0; i< v_shapes.size(); i++)
-            {
-                Real c[3], rad;
-                rad = v_shapes[i]->get_rad();
-                v_shapes[i]->get_center(c);
-                f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
-            }
-            
-            f_save.close();
-        }
-    }
-    
-    void make_shapes(const Real mystart[3], const Real myend[3], const bool bRestartedSeed=false, const bool isroot=false)
-    {
-        bool bFull = false;
-        
-        unsigned int restarted_seed;
-        
-        //read seed if needed
-        if (bRestartedSeed)
-        {
-            v_shapes.clear();
-            //For the moment we just read the cloud.dat
-            //and ignore seed and cloud_config.dat
-            {
-                ifstream f_read_cloud("cloud.dat");
-                
-                if (!f_read_cloud.good())
-                {
-					cout << "Watchout! cant read the file <cloud.dat>. Aborting now...\n";
+			
+			while(true)
+			{
+				if (!f_read_cloud.good())
 					abort();
-				}
 				
-                for(int i=0; i<CloudData::n_shapes; ++i)
-                {
-                    int idx;
-                    Real c[3], rad;
-                    f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;
-                    if(isroot)
-                        cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
-                    
-                    shape * cur_shape = new shape(c,rad);
-                    
-                    Real s[3],e[3];
-                    cur_shape->get_bbox(s,e);
-                    
-                    const Real overlap_start[3] =
-                    {
-                        max(mystart[0]-(Real)2.5*CloudData::max_rad, s[0]),
-                        max(mystart[1]-(Real)2.5*CloudData::max_rad, s[1]),
-                        max(mystart[2]-(Real)2.5*CloudData::max_rad, s[2])
-                    };
-                    
-                    const Real overlap_end[3] =
-                    {
-                        min(myend[0]+(Real)2.5*CloudData::max_rad, e[0]),
-                        min(myend[1]+(Real)2.5*CloudData::max_rad, e[1]),
-                        min(myend[2]+(Real)2.5*CloudData::max_rad, e[2])
-                    };
-                    
-                    const bool bOverlap = overlap_end[0] > overlap_start[0] && overlap_end[1] > overlap_start[1] && overlap_end[2] > overlap_start[2];
-                    
-                    if (bOverlap)
-                        v_shapes.push_back(cur_shape);
-                    else
-                        delete cur_shape;
-                }
-                
-                f_read_cloud.close();
-                
-                cout << "number of shapes are " << v_shapes.size() << endl;
-            }
-            
-            return;
-        }
-        
-        //save seed in case
-        if(isroot)
-        {
-            const unsigned int seed = time(0);
-            
-            ofstream f_save("seed.dat");
-            f_save<<seed;
-            f_save.close();
-            
-            srand48(seed);
-            
-            while(!bFull)
-            {
-                shape * cur_shape = new shape();
-                
-                if (reject_check(cur_shape))
-                {
-                    delete cur_shape;
-                    continue;
-                }
-                
-                v_shapes.push_back(cur_shape);
-                
-                printf("size is %ld out of %d\n", v_shapes.size(), n_shapes);
-                
-                bFull = v_shapes.size()==n_shapes;
-            }
-            
-            //We are even more paranoic so we save the bubble centers and radii
-            //If the first method does not work on different platforms,
-            //a method must be implemented to read the following data.
-            {
-                ofstream f_save("cloud.dat");
-                for(int i=0; i< v_shapes.size(); i++)
-                {
-                    Real c[3], rad;
-                    rad = v_shapes[i]->get_rad();
-                    v_shapes[i]->get_center(c);
-                    f_save<<i<< " " << c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
-                }
-                
-                f_save.close();
-            }
-        }
-        
-        //ok let them all find their own subset
-        this->make_shapes(mystart, myend, true);
+				int idx;
+				Real c[3], rad;
+				f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;			
+				
+				cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+				
+				shape cur_shape(c,rad);
+				v_shapes.push_back(cur_shape);
+				
+				if (f_read_cloud.eof()) break;
+			}
+			
+			f_read_cloud.close();
+		
+			cout << "number of shapes are " << v_shapes.size() << endl;
+			
+			if (v_shapes.size() != ntocheck)
+			{
+				 cout << "PROBLEM! ntocheck is " << ntocheck << " which does not correspond to the number of shapes!!!\n";
+			}
+		}           
     }
     
-    bool reject_check(shape * cur_shape) const
+    Seed retain_shapes(const double mystart[3], const double extent[3]) const
     {
-        if (v_shapes.size()==0)
-            return cur_shape->rejection_check(cur_shape, start, end);
+		assert(v_shapes.size() > 0);
+		
+		const double myend[3] = {
+			mystart[0] + extent[0],
+			mystart[1] + extent[1],
+			mystart[2] + extent[2]
+		};
+		
+		Seed retval(mystart, myend);
+		
+		 for(int i=0; i<v_shapes.size(); ++i)
+         {
+				
+                   shape curr_shape = v_shapes[i];
         
-        for(int i=0; i<v_shapes.size(); ++i)
-        {
-            shape * this_shape = v_shapes[i];
-            if (cur_shape->rejection_check(this_shape, start, end))
-                return true;
+                    double s[3],e[3];
+                    curr_shape.get_bbox(s,e);
+                    
+                    const Real xrange =  min(myend[0], e[0]) - max(mystart[0], s[0]);
+                    const Real yrange =  min(myend[1], e[1]) - max(mystart[1], s[1]);
+                    const Real zrange =  min(myend[2], e[2]) - max(mystart[2], s[2]);
+                    const bool bOverlap = (xrange > 0) && (yrange > 0) && (zrange > 0);
+
+					if (bOverlap) retval.v_shapes.push_back(curr_shape);
         }
         
-        return false;
+        return retval;
     }
     
-    vector<shape*> get_vshapes() const
-    {
-        return v_shapes;
-    }
+    vector<shape> get_shapes() const { return v_shapes; }
+    
+    int get_shapes_size() const { return v_shapes.size(); }
+    
+    void set_shapes(vector<shape> v) { v_shapes = v; }
+    /*
+    void resize_shapes(const int n_shapes) {v_shapes.resize(n_shapes); }
+    
+    Real * get_pointer_to_shapes() { return v_shapes.front().get_pointer_to_beginninig();}*/
 };
 
-inline double eval(const vector<shape*> v_shapes, const Real pos[3])
+inline double eval(const vector<shape>& v_shapes, const Real pos[3])
 {
     Real d = HUGE_VAL;
     
     for( int i=0; i<v_shapes.size(); ++i)
-        d = min(d, v_shapes[i]->eval(pos));
-    
+    {
+		const Real newdistance = v_shapes[i].eval(pos);
+		
+		if (newdistance < Simulation_Environment::EPSILON * 0.5)
+			return 1;
+		
+        d = min(d, newdistance);
+	}
+	
     const double alpha = M_PI*min(1., max(0., (d+0.5*Simulation_Environment::EPSILON)/Simulation_Environment::EPSILON));
-    return 0.5+0.5*cos(alpha);
+    
+    return 0.5 + 0.5 * cos(alpha);
 }
 
 class Test_Cloud: public Test_ShockBubble
@@ -410,8 +266,8 @@ class Test_Cloud: public Test_ShockBubble
     
     void _ic(FluidGrid & grid);
     
-    void _my_ic(FluidGrid& grid, const vector< shape * > v_shapes);
-    void _my_ic_quad(FluidGrid& grid, const vector< shape * > v_shapes);
+    void _my_ic(FluidGrid& grid, const Seed myseed);
+    void _my_ic_quad(FluidGrid& grid, const Seed myseed);
     void _set_energy(FluidGrid& grid);
     void _initialize_cloud();
     

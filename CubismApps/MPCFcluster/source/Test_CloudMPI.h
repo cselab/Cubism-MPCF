@@ -172,61 +172,84 @@ public:
 		}
 		else
         {
-            _initialize_cloud();
-            
-            bRestartedSeed = parser("-seed").asBool(0);
-            
-            const int n_shapes = CloudData::n_shapes;
-            
-            vector< shape * > v_shapes;
-            
-            //everyone does the following
-            //so at the end every one has its own shapes vector
+			const MPI::Cartcomm& mycartcomm = grid->getCartComm();
+			//load the Cloud namespace and broadcast it
             {
-                Seed my_seed(CloudData::seed_s, CloudData::seed_e, CloudData::n_shapes);
-                
-                MPI::Cartcomm cartcomm = grid->getCartComm();
-                
-                int myrank, mycoords[3];
-                myrank = cartcomm.Get_rank();
-                cartcomm.Get_coords(myrank, 3, mycoords);
-                
-                const double h = grid->getH();
-                printf("SPACING is %e, myycoords are %d %d %d\n", h, mycoords[0], mycoords[1], mycoords[2]);
-
-                const Real mystart[3] = {mycoords[0]*BPDX*_BLOCKSIZEX_*h, mycoords[1]*BPDY*_BLOCKSIZEY_*h, mycoords[2]*BPDZ*_BLOCKSIZEZ_*h};
-                const Real myend[3] = {mystart[0]+BPDX*_BLOCKSIZEX_*h, mystart[1]+BPDY*_BLOCKSIZEY_*h, mystart[2]+BPDZ*_BLOCKSIZEZ_*h};
-
-		printf("START %f %f %f\n", mystart[0], mystart[1], mystart[2]);
-		printf("END %f %f %f\n", myend[0], myend[1], myend[2]);
-
-                my_seed.make_shapes(mystart, myend, bRestartedSeed, isroot);
-                
-                v_shapes = my_seed.get_vshapes();                
-            }
-            
-            printf("my v_shapes size is %d\n", v_shapes.size());
-            
-            int myrank;
-            MPI::Cartcomm cartcomm = grid->getCartComm();
-            myrank = cartcomm.Get_rank();
-            if (isroot)
-                cout << "rank " << myrank << " Setting ic now..." << endl;
-            //_my_ic(*grid, v_shapes);
-            _my_ic_quad(*grid, v_shapes);
-            if (isroot)
-                cout << "rank " << myrank << " ...done"<< endl;
-            
-            v_shapes.clear();
-            /*
-            for(int i=0; i<50; i++)
+				if(isroot)
+					_initialize_cloud();
+					
+				mycartcomm.Bcast(&CloudData::n_shapes, 1, MPI::INT, 0);
+				mycartcomm.Bcast(&CloudData::n_small, 1, MPI::INT, 0);
+				mycartcomm.Bcast(&CloudData::small_count, 1, MPI::INT, 0);
+				mycartcomm.Bcast(&CloudData::min_rad, 1, MPI_REAL, 0);
+				mycartcomm.Bcast(&CloudData::max_rad, 1, MPI_REAL, 0);
+				mycartcomm.Bcast(CloudData::seed_s, 3, MPI::DOUBLE, 0);
+				mycartcomm.Bcast(CloudData::seed_e, 3, MPI::DOUBLE, 0);
+			}
+                                 
+            Seed myseed(CloudData::seed_s, CloudData::seed_e);
+            		
+            //load the shapes from file and broadcast them		
             {
-                if (isroot) printf("iteration %d ", i);
-                _relax_pressure(*grid);
-                MPI::COMM_WORLD.Barrier();
-                if (isroot) printf("...done\n");
-            }
-            */
+				vector<shape> v(CloudData::n_shapes);
+				
+				if(isroot)
+				{
+					myseed.make_shapes(CloudData::n_shapes);
+					v = myseed.get_shapes();
+				}
+				
+				mycartcomm.Bcast(&v.front(), v.size() * sizeof(shape), MPI::CHAR, 0);
+				
+				if (!isroot)
+					myseed.set_shapes(v);
+			}
+            
+            /*int n_shapes, buf_size;
+            
+            if(isroot)
+            {
+				n_shapes = CloudData::n_shapes;
+				myseed.make_shapes(n_shapes);
+				buf_size = myseed.get_shapes_size()*sizeof(shape);
+			}
+			
+			//MPI::COMM_WORLD.Bcast(&n_shapes, 1, MPI::INT, 0);
+			
+			if(!isroot)
+				myseed.resize_shapes(n_shapes);
+            
+			assert(myseed.get_shapes_size()==n_shapes);			
+            			
+			MPI::COMM_WORLD.Bcast(myseed.get_pointer_to_shapes(), buf_size, MPI::CHAR, 0);
+			*/
+			assert(myseed.get_shapes_size()>0 && myseed.get_shapes_size() == CloudData::n_shapes);
+			
+			int peidx[3];
+			grid->peindex(peidx);
+			const double spacing = grid->getH()*_BLOCKSIZE_;
+			const double mystart[3] = {peidx[0]*BPDX*spacing, peidx[1]*BPDY*spacing, peidx[2]*BPDZ*spacing};
+			const double myextent[3] = {BPDX*spacing, BPDY*spacing, BPDZ*spacing};
+			
+			//printf("start %f %f %f extent %f %f %f\n", mystart[0], mystart[1], mystart[2], myextent[0], myextent[1], myextent[2]);
+			
+			vector<shape> my_shape = myseed.get_shapes();
+			for(int i=0; i<my_shape.size(); ++i)
+			{		
+                   shape curr_shape = my_shape[i];
+
+					Real c[3];
+					curr_shape.get_center(c);
+                //   printf("shape %d %f %f %f %f\n", i, curr_shape.get_rad(), c[0], c[1], c[2]);
+			}
+             
+                  
+			myseed = myseed.retain_shapes(mystart,myextent);
+			MPI::COMM_WORLD.Barrier();
+            if (isroot) cout << "Setting ic now...\n";
+            _my_ic_quad(*grid, myseed);
+            if (isroot) cout << "done!"<< endl;
+            
             if (isroot) printf("Setting energy now...");
             _set_energy(*grid);
             if (isroot) printf("done\n");
