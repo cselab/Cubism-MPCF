@@ -2,6 +2,7 @@ hdf = 1
 include ../../Makefile.config 
 
 CPPFLAGS += -I../reader 
+CPPFLAGS += $(extra)
 
 ifeq "$(zlib)" "1"
 	MYFLAGS += -D_USE_ZLIB_

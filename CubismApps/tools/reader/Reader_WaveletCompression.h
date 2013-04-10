@@ -176,9 +176,15 @@ public:
 				
 				fscanf(file, "Encoder: %s\n", buf);
 				printf("Encoder: <%s>\n", buf);
+#if defined(_USE_ZLIB_)
 				MYASSERT(buf == string("zlib"),
-						 "\nATTENZIONE:\nWavelets in the file is " << buf << 
+						 "\nATTENZIONE:\nEncoder in the file is " << buf << 
 						 " and i have zlib.\n");
+#else	/* _USE_LZ4_ */
+				MYASSERT(buf == string("lz4"),
+						 "\nATTENZIONE:\nEncoder in the file is " << buf << 
+						 " and i have lz4.\n");
+#endif
 				
 				fgets(buf, sizeof(buf), file);
 				

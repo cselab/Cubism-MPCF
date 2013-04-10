@@ -350,8 +350,12 @@ protected:
 				ss << "SubdomainBlocks: " << xbpd << " x "  << ybpd << " x " << zbpd  << "\n";
 				ss << "HalfFloat: " << (this->halffloat ? "yes" : "no") << "\n";
 				ss << "Wavelets: " << WaveletsOnInterval::ChosenWavelets_GetName() << "\n";
-				ss << "WaveletThreshold: " << threshold << "\n"; 
+				ss << "WaveletThreshold: " << threshold << "\n";
+#if defined(_USE_ZLIB_)
 				ss << "Encoder: " << "zlib" << "\n";
+#else	/* _USE_LZ4_ */
+				ss << "Encoder: " << "lz4" << "\n";
+#endif
 				ss << "==============START-BINARY-METABLOCKS==============\n";
 				
 				this->header = ss.str();
@@ -466,7 +470,16 @@ protected:
 				assert(string("==============START-ASCI-HEADER==============\n") == string(buf));
 				
 				fscanf(file, "Endianess:  %s\n", buf);
-				assert(string(buf) == "little");
+				{
+					int one = 1;
+					bool isone = *(char *)(&one);
+
+					if (isone)
+						assert(string(buf) == "little");
+					else							
+						assert(string(buf) == "big");
+				}
+
 				
 				int sizeofreal = -1;
 				fscanf(file, "sizeofReal:  %d\n", &sizeofreal);
@@ -485,7 +498,12 @@ protected:
 				assert(buf == string(WaveletsOnInterval::ChosenWavelets_GetName()));
 				
 				fscanf(file, "Encoder: %s\n", buf);
+#if defined(_USE_ZLIB_)
 				assert(buf == string("zlib"));
+#else	/* _USE_LZ4_ */
+				assert(buf == string("lz4"));
+#endif
+
 				
 				fgets(buf, sizeof(buf), file);
 				assert(string("==============START-BINARY-METABLOCKS==============\n") == string(buf));

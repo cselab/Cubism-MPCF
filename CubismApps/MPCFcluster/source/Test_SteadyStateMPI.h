@@ -192,11 +192,12 @@ public:
 		}
 
 		delete stepper;
+		stepper = NULL;
 		
 		if (isroot)
 			printf("Finishing RUN\n");
 
-		MPI::Finalize();
+//		MPI::Finalize();
 	}
 	
 	void dispose()
