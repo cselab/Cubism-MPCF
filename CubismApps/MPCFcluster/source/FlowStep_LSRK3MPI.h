@@ -126,7 +126,7 @@ namespace LSRK3MPIdata
 template<typename Lab, typename Operator, typename TGrid>
 void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t, const bool record) 
 {
-#if 0
+#if 1
 
 #pragma omp parallel
     {

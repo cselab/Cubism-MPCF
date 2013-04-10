@@ -77,7 +77,7 @@ class Convection_QPX : public Convection_CPP
 		
 	}
 	
-	void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts)
+	/*void _convert(const Real * const gptfirst, const int gptfloats, const int rowgpts)
 	{
 		{
 			const size_t x = (size_t)gptfirst;
@@ -100,7 +100,7 @@ class Convection_QPX : public Convection_CPP
 							 & G.ring.ref().ref(-4,-3), 
 							 & P.ring.ref().ref(-4,-3));
 		
-	}
+	}*/
 	
 	void _xrhs()
 	{
