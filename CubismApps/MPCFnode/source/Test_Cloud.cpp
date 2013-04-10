@@ -236,7 +236,7 @@ void Test_Cloud::_my_ic_quad(FluidGrid& grid, const Seed myseed)
             FluidBlock& b = *(FluidBlock*)info.ptrBlock;
             
 			vector<shape> myshapes = myseed.retain_shapes(info.origin, myextent).get_shapes();
-			printf("processing %d out of %d. for this block i have: %d bubbles\n", i, (int)vInfo.size(), myshapes.size());
+			//printf("processing %d out of %d. for this block i have: %d bubbles\n", i, (int)vInfo.size(), myshapes.size());
 			
 			const bool isempty = myshapes.size() == 0;
 			
