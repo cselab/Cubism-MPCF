@@ -24,7 +24,7 @@
 #ifdef _AVX_
 #include <Convection_AVX.h>
 #endif
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 #include <Convection_QPX.h>
 #include <Update_QPX.h>
 #endif
@@ -405,7 +405,7 @@ public:
 		else if (parser("-kernels").asString("cpp")=="avx")
 			LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
 #endif
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 		else if (parser("-kernels").asString("cpp")=="qpx")
 			LSRKstepMPI<Convection_QPX, Update_QPX>(grid, dt/h, current_time);
 #endif

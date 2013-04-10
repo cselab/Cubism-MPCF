@@ -90,6 +90,12 @@ ifeq "$(qpx)" "1"
           OBJECTS += ../../MPCFcore/makefiles/DivSOA2D_QPX.o
 endif
 
+ifeq "$(qpxemu)" "1"
+          OBJECTS += ../../MPCFcore/makefiles/WenoSOA2D_QPX.o
+          OBJECTS += ../../MPCFcore/makefiles/HLLESOA2D_QPX.o
+          OBJECTS += ../../MPCFcore/makefiles/DivSOA2D_QPX.o
+endif
+
 ifeq "$(sse)" "1"
 	ifeq "$(ap)" "double"
 		OBJECTS += ../../MPCFcore/makefiles/Convection_SSEd.o

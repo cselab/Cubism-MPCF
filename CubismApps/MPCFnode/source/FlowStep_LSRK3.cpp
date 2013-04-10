@@ -31,12 +31,14 @@
 #include <Convection_QPX.h>
 #include <Update_QPX.h>
 #include <MaxSpeedOfSound_QPX.h>
+#ifdef _QPX_
 //here are for cycle counting
 #include <ucontext.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <errno.h>
 #include "spi/include/upci/upci.h"
+#endif
 #endif
 
 #include <Update.h>
