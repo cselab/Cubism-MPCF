@@ -189,12 +189,9 @@ public:
 			t += dt;
 			i++;
 		}
-
 		
 		if (isroot)
 			printf("Finishing RUN\n");
-
-//		MPI::Finalize();
 	}
 	
 	void dispose()
