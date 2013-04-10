@@ -1,10 +1,9 @@
-#pragma once
 #include "DivSOA2D_QPX.h"
+
+#define MYCODE vec_gpci(01234)
 
 inline void _qpx_xrhsadd(Real * const f, Real * const r)
 {
-	const vector4double code = vec_gpci(01234);
-
 	for(int iy=0; iy<OutputSOA::NY; iy++)
 		for(int ix=0; ix<OutputSOA::NX; ix+=4)
 		{
@@ -12,12 +11,11 @@ inline void _qpx_xrhsadd(Real * const f, Real * const r)
 
 			const vector4double data0 = vec_lda(0L, entry_in);
 			const vector4double data1 = vec_lda(sizeof(Real) * 4, entry_in);
-			const vector4double datanext = vec_perm(data0, data1, code);
+			const vector4double datanext = vec_perm(data0, data1, MYCODE);
 
 			vec_sta(vec_sub(datanext, data0), 0L, r + ix + OutputSOA::PITCH*iy);
 		}
 }
-
 
 inline void _qpx_yrhsadd(Real * const f, Real * const r)
 {
@@ -25,8 +23,6 @@ inline void _qpx_yrhsadd(Real * const f, Real * const r)
 		SP = TempSOA::PITCH,
 		DP = OutputSOA::PITCH
 	} ;
-
-	const vector4double code = vec_gpci(01234);
 
 	for(int iy=0; iy<OutputSOA::NY; iy+=4)
 		for(int ix=0; ix<OutputSOA::NX; ix+=4)
@@ -45,10 +41,10 @@ inline void _qpx_yrhsadd(Real * const f, Real * const r)
 
 			vector4double rhs0, rhs1, rhs2, rhs3;
 
-			rhs0 = vec_sub(vec_perm(dataA0, dataA1, code), dataA0);
-			rhs1 = vec_sub(vec_perm(dataB0, dataB1, code), dataB0);
-			rhs2 = vec_sub(vec_perm(dataC0, dataC1, code), dataC0);
-			rhs3 = vec_sub(vec_perm(dataD0, dataD1, code), dataD0);
+			rhs0 = vec_sub(vec_perm(dataA0, dataA1, MYCODE), dataA0);
+			rhs1 = vec_sub(vec_perm(dataB0, dataB1, MYCODE), dataB0);
+			rhs2 = vec_sub(vec_perm(dataC0, dataC1, MYCODE), dataC0);
+			rhs3 = vec_sub(vec_perm(dataD0, dataD1, MYCODE), dataD0);
 
 			_DIEGO_TRANSPOSE4(rhs0, rhs1, rhs2, rhs3);
 
@@ -109,8 +105,6 @@ inline vector4double _mixedterm(const vector4double am,  const vector4double ap,
 
 inline void _qpx_xextraterm(Real * const _am, Real * const _ap, Real * const _um, Real * const _up, Real * const output)
 {
-	const vector4double code = vec_gpci(01234);
-
 	for(int iy=0; iy<OutputSOA::NY; ++iy)
 	{
 		Real * const amptr = _am + iy * TempSOA::PITCH;
@@ -123,14 +117,14 @@ inline void _qpx_xextraterm(Real * const _am, Real * const _ap, Real * const _um
 		for(int ix=0; ix<OutputSOA::NX; ix += 4)
 		{
 			const vector4double am0 = vec_lda(0L, amptr + ix);
-			const vector4double am1 = vec_perm(am0, vec_lda(4 * sizeof(Real), amptr + ix), code);
+			const vector4double am1 = vec_perm(am0, vec_lda(4 * sizeof(Real), amptr + ix), MYCODE);
 			const vector4double ap0 = vec_lda(0L, apptr + ix);
-			const vector4double ap1 = vec_perm(ap0, vec_lda(4 * sizeof(Real), apptr + ix), code);
+			const vector4double ap1 = vec_perm(ap0, vec_lda(4 * sizeof(Real), apptr + ix), MYCODE);
 
 			const vector4double um0 = vec_lda(0L, umptr + ix);
-			const vector4double um1 = vec_perm(um0, vec_lda(4 * sizeof(Real), umptr + ix), code);
+			const vector4double um1 = vec_perm(um0, vec_lda(4 * sizeof(Real), umptr + ix), MYCODE);
 			const vector4double up0 = vec_lda(0L, upptr + ix);
-			const vector4double up1 = vec_perm(up0, vec_lda(4 * sizeof(Real), upptr + ix), code);
+			const vector4double up1 = vec_perm(up0, vec_lda(4 * sizeof(Real), upptr + ix), MYCODE);
 
 			const vector4double result = vec_sub(_mixedterm(am1, ap1, um1, up1), _mixedterm(am0, ap0, um0, up0));
 
@@ -148,8 +142,6 @@ inline void _qpx_yextraterm(Real * const xm, Real * const xp, Real * const outpu
 		JUMP = sizeof(Real) * 4
 	};
 
-	const vector4double code = vec_gpci(01234);
-
 	for(int iy=0; iy<OutputSOA::NY; iy+=4)
 		for(int ix=0; ix<OutputSOA::NX; ix+=4)
 		{
@@ -160,10 +152,10 @@ inline void _qpx_yextraterm(Real * const xm, Real * const xp, Real * const outpu
 
 			const int offset_out = ix + DP * iy;
 
-			vector4double rhs0 = vec_add(vec_ld(0L, xp + offset_in0), vec_perm(vec_lda(0L, xm + offset_in0), vec_lda(JUMP, xm + offset_in0), code)); 
-			vector4double rhs1 = vec_add(vec_ld(0L, xp + offset_in1), vec_perm(vec_lda(0L, xm + offset_in1), vec_lda(JUMP, xm + offset_in1), code)); 
-			vector4double rhs2 = vec_add(vec_ld(0L, xp + offset_in2), vec_perm(vec_lda(0L, xm + offset_in2), vec_lda(JUMP, xm + offset_in2), code)); 
-			vector4double rhs3 = vec_add(vec_ld(0L, xp + offset_in3), vec_perm(vec_lda(0L, xm + offset_in3), vec_lda(JUMP, xm + offset_in3), code)); 
+			vector4double rhs0 = vec_add(vec_lda(0L, xp + offset_in0), vec_perm(vec_lda(0L, xm + offset_in0), vec_lda(JUMP, xm + offset_in0), MYCODE)); 
+			vector4double rhs1 = vec_add(vec_lda(0L, xp + offset_in1), vec_perm(vec_lda(0L, xm + offset_in1), vec_lda(JUMP, xm + offset_in1), MYCODE)); 
+			vector4double rhs2 = vec_add(vec_lda(0L, xp + offset_in2), vec_perm(vec_lda(0L, xm + offset_in2), vec_lda(JUMP, xm + offset_in2), MYCODE)); 
+			vector4double rhs3 = vec_add(vec_lda(0L, xp + offset_in3), vec_perm(vec_lda(0L, xm + offset_in3), vec_lda(JUMP, xm + offset_in3), MYCODE)); 
 
 			_DIEGO_TRANSPOSE4(rhs0, rhs1, rhs2, rhs3); 
 
@@ -179,7 +171,7 @@ inline void _qpx_yextraterm(Real * const xm, Real * const xp, Real * const outpu
 		}
 }
 
-__align(_ALIGNBYTES_) struct TinyScratchPadExtraTerm { Real tmp[4][4];};
+struct __align(_ALIGNBYTES_)  TinyScratchPadExtraTerm { Real tmp[4][4];};
 
 inline void _qpx_yextraterm(Real * const am, Real * const ap,
 		Real * const um, Real * const up, Real * const output)
@@ -194,8 +186,6 @@ inline void _qpx_yextraterm(Real * const am, Real * const ap,
 
 	Real * const tmp = (Real *)&scratchpad.tmp[0][0];
 
-	const vector4double code = vec_gpci(01234);
-
 	for(int iy=0; iy<OutputSOA::NY; iy+=4)
 	{
 		for(int ix=0; ix<OutputSOA::NX; ix+=4)
@@ -204,14 +194,14 @@ inline void _qpx_yextraterm(Real * const am, Real * const ap,
 			{
 				const int offset_in = iy + SP * (ix + j);
 
-				const vector4double am0 = vec_ld(0L, am + offset_in);
-				const vector4double am1 = vec_perm(am0, vec_ld(JUMP, am + offset_in), code);
-				const vector4double ap0 = vec_ld(0L, ap + offset_in);
-				const vector4double ap1 = vec_perm(ap0, vec_ld(JUMP, ap + offset_in), code);
-				const vector4double um0 = vec_ld(0L, um + offset_in);
-				const vector4double um1 = vec_perm(um0, vec_ld(JUMP, um + offset_in), code);
-				const vector4double up0 = vec_ld(0L, up + offset_in);
-				const vector4double up1 = vec_perm(up0, vec_ld(JUMP, up + offset_in), code);
+				const vector4double am0 = vec_lda(0L, am + offset_in);
+				const vector4double am1 = vec_perm(am0, vec_lda(JUMP, am + offset_in), MYCODE);
+				const vector4double ap0 = vec_lda(0L, ap + offset_in);
+				const vector4double ap1 = vec_perm(ap0, vec_lda(JUMP, ap + offset_in), MYCODE);
+				const vector4double um0 = vec_lda(0L, um + offset_in);
+				const vector4double um1 = vec_perm(um0, vec_lda(JUMP, um + offset_in), MYCODE);
+				const vector4double up0 = vec_lda(0L, up + offset_in);
+				const vector4double up1 = vec_perm(up0, vec_lda(JUMP, up + offset_in), MYCODE);
 
 				const vector4double result = vec_sub(_mixedterm(am1, ap1, um1, up1), _mixedterm(am0, ap0, um0, up0));
 

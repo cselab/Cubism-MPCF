@@ -27,7 +27,7 @@
 #include <Convection_AVX.h>
 #endif
 
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 #include <Convection_QPX.h>
 #include <Update_QPX.h>
 #include <MaxSpeedOfSound_QPX.h>
@@ -193,8 +193,8 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
 	HPM_Start("dt_reduce");
 #endif
     
-#ifdef _QPX_
-    const int N8 = 8 * (N / 8);
+#if defined(_QPX_) || defined(_QPXEMU_)    
+	const int N8 = 8 * (N / 8);
     vector4double sos4A = vec_splats(0);
     vector4double sos4B = vec_splats(0);
 	
@@ -279,7 +279,7 @@ Real FlowStep_LSRK3::_computeSOS(bool bAwk)
 	Timer timer;
     
 	timer.start();
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)	
 	if (kernels == "qpx")
 		sos = _computeSOS_OMP<MaxSpeedOfSound_QPX>(grid,  bAwk);
 	else
@@ -508,8 +508,8 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
     else if (parser("-kernels").asString("cpp")=="avx")
         LSRKstep<Convection_AVX, Update_AVX>(grid, dt/h, current_time, bAwk);
 #endif
-#ifdef _QPX_
-    else if (parser("-kernels").asString("cpp")=="qpx")
+#if defined(_QPX_) || defined(_QPXEMU_)    
+	else if (parser("-kernels").asString("cpp")=="qpx")
 		LSRKstep<Convection_QPX, Update_QPX>(grid, dt/h, current_time, bAwk);
 #endif
     else

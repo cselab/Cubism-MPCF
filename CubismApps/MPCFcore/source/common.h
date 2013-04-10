@@ -8,6 +8,9 @@
  */
 
 #pragma once
+#ifdef _QPXEMU_
+#include "QPXEMU.h"
+#endif
 
 #include <cstdlib>
 #include <cmath>
@@ -76,9 +79,10 @@ inline Real getPC(const Real phi, const Real smoothlength, const Real pc1, const
 	return reconstruct(pc1, pc2, phi, 1/smoothlength); 
 }
 
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 
 //QPX related functions
+#ifdef _QPX_
 #define _DIEGO_TRANSPOSE4(a, b, c, d)\
 {\
 const vector4double v01L = vec_perm(a, b, vec_gpci(00415));\
@@ -91,6 +95,7 @@ b = vec_perm(v01L, v23L, vec_gpci(02367));\
 c = vec_perm(v01H, v23H, vec_gpci(00145));\
 d = vec_perm(v01H, v23H, vec_gpci(02367));\
 }
+#endif
 
 template< int preclevel >
 vector4double inline myreciprocal(vector4double a) 
@@ -160,12 +165,20 @@ int mysqrt_flops()
 
 inline vector4double mymin(const vector4double a, const vector4double b)
 {
+#ifdef _QPXEMU_
+	return _mm_min_ps(a,b);
+#else
 	return vec_sel(a, b, vec_cmpgt(a, b));
+#endif
 }
 
 inline vector4double mymax(const vector4double a, const vector4double b)
 {
+#ifdef _QPXEMU_
+	return _mm_max_ps(a,b);
+#else
 	return vec_sel(a, b, vec_cmplt(a, b));
+#endif
 }
 
 inline int myminmax_flops()

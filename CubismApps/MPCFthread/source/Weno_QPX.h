@@ -8,6 +8,9 @@
  *        */
 
 #pragma once
+#ifdef _QPXEMU_
+#include "QPXEMU.h"
+#endif
 
 struct WenoQPX_BaseFunctor
 {
@@ -285,7 +288,7 @@ public:
 			const vector4double myd = vec_lda(offset, d);
 			const vector4double mye = vec_lda(offset, e);
 			
-			const vector4double result = _weno(mya, myb, myc, myd, mye);
+			const vector4double result = this->_weno(mya, myb, myc, myd, mye);
 			
 			vec_sta(result, offset, out);
 		}
@@ -308,7 +311,7 @@ public:
 			const vector4double myd = vec_lda(offset, d);
 			const vector4double mye = vec_lda(offset, e);
 			
-			const vector4double result = _weno(mya, myb, myc, myd, mye);
+			const vector4double result = this->_weno(mya, myb, myc, myd, mye);
 			
 			vec_sta(result, offset, out);
 		}

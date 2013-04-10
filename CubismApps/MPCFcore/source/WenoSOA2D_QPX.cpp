@@ -18,7 +18,7 @@
 //=============================== KERNELS ===========================================
 
 
-__align(_ALIGNBYTES_) struct WenoScratchPad { Real tmp[TempSOA::NX][4];};
+struct __align(_ALIGNBYTES_) WenoScratchPad { Real tmp[TempSOA::NX][4];};
 
 template<typename Tomato> inline void _qpx_xweno_minus(Real * const in, Real * const out) 
 {
@@ -39,9 +39,9 @@ template<typename Tomato> inline void _qpx_xweno_minus(Real * const in, Real * c
 #pragma unroll(4)
 		for(int dx=0; dx<NX; dx += 4)
 		{
-			const vector4double W4 = vec_ld(0 * sizeof(Real), row + dx);
-			const vector4double C4 = vec_ld(4 * sizeof(Real), row + dx);
-			const vector4double E4 = vec_ld(8 * sizeof(Real), row + dx);
+			const vector4double W4 = vec_lda(0 * sizeof(Real), row + dx);
+			const vector4double C4 = vec_lda(4 * sizeof(Real), row + dx);
+			const vector4double E4 = vec_lda(8 * sizeof(Real), row + dx);
 
 			const vector4double a = vec_perm(W4, C4, vec_gpci(01234));
 			const vector4double b = vec_perm(W4, C4, vec_gpci(02345));
@@ -76,9 +76,9 @@ template<typename Tomato> inline void _qpx_xweno_plus(Real * const in, Real * co
 #pragma unroll(4)
 		for(int dx=0; dx<NX; dx += 4)
 		{
-			const vector4double W4 = vec_ld(0 * sizeof(Real), row + dx);
-			const vector4double C4 = vec_ld(4 * sizeof(Real), row + dx);
-			const vector4double E4 = vec_ld(8 * sizeof(Real), row + dx);
+			const vector4double W4 = vec_lda(0 * sizeof(Real), row + dx);
+			const vector4double C4 = vec_lda(4 * sizeof(Real), row + dx);
+			const vector4double E4 = vec_lda(8 * sizeof(Real), row + dx);
 
 			const vector4double a = vec_perm(W4, C4, vec_gpci(02345));
 			const vector4double b = vec_perm(W4, C4, vec_gpci(03456));
@@ -115,9 +115,9 @@ inline void _qpx_xweno_fused(Real * const in, Real * const outm, Real * const ou
 #pragma unroll(4)
 		for(int dx=0; dx<NX; dx += 4)
 		{
-			const vector4double W4 = vec_ld(0 * sizeof(Real), row + dx);
-			const vector4double C4 = vec_ld(4 * sizeof(Real), row + dx);
-			const vector4double E4 = vec_ld(8 * sizeof(Real), row + dx);
+			const vector4double W4 = vec_lda(0 * sizeof(Real), row + dx);
+			const vector4double C4 = vec_lda(4 * sizeof(Real), row + dx);
+			const vector4double E4 = vec_lda(8 * sizeof(Real), row + dx);
 
 			const vector4double a = vec_perm(W4, C4, vec_gpci(01234));
 			const vector4double b = vec_perm(W4, C4, vec_gpci(02345));

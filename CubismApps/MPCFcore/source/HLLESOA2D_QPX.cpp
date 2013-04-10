@@ -205,21 +205,21 @@ inline void _qpx_char_vel(Real * const rm, Real * const rp,
 
 	for(int ID = 0; ID < NTOTAL; ID += 4) 
 	{
-		const vector4double rminus = vec_ld(0L, rm + ID);
-		const vector4double vminus = vec_ld(0L, vm + ID);
-		const vector4double pminus = vec_ld(0L, pm + ID);
-		const vector4double Gminus = vec_ld(0L, Gm + ID);
-		const vector4double PIminus = vec_ld(0L, PIm + ID);
+		const vector4double rminus = vec_lda(0L, rm + ID);
+		const vector4double vminus = vec_lda(0L, vm + ID);
+		const vector4double pminus = vec_lda(0L, pm + ID);
+		const vector4double Gminus = vec_lda(0L, Gm + ID);
+		const vector4double PIminus = vec_lda(0L, PIm + ID);
 
 		const vector4double invGm = myreciprocal<preclevel>(Gminus);
 		const vector4double cminus2 = vec_mul(vec_madd(invGm, vec_add(pminus, PIminus), pminus), myreciprocal<preclevel>(rminus));
 		const vector4double cminus = mysqrt<preclevel>(cminus2);
 
-		const vector4double rplus = vec_ld(0L, rp + ID);
-		const vector4double vplus = vec_ld(0L, vp + ID);
-		const vector4double pplus = vec_ld(0L, pp + ID);
-		const vector4double Gplus = vec_ld(0L, Gp + ID);
-		const vector4double PIplus = vec_ld(0L, PIp + ID);
+		const vector4double rplus = vec_lda(0L, rp + ID);
+		const vector4double vplus = vec_lda(0L, vp + ID);
+		const vector4double pplus = vec_lda(0L, pp + ID);
+		const vector4double Gplus = vec_lda(0L, Gp + ID);
+		const vector4double PIplus = vec_lda(0L, PIp + ID);
 
 		const vector4double invGp = myreciprocal<preclevel>(Gplus);
 		const vector4double cplus2 = vec_mul(vec_madd(invGp, vec_add(pplus, PIplus), pplus), myreciprocal<preclevel>(rplus));
@@ -311,13 +311,13 @@ inline void _qpx_hlle_all(Real * const rm, Real * const rp,
 	
 	for(int ID = 0; ID < NTOTAL; ID += 4) 
 	{
-		const vector4double rminus = vec_ld(0L, rm + ID);
-		const vector4double vdminus = vec_ld(0L, vdm + ID);
+		const vector4double rminus = vec_lda(0L, rm + ID);
+		const vector4double vdminus = vec_lda(0L, vdm + ID);
 		const vector4double v1minus	= vec_lda(0L, v1m + ID);
 		const vector4double v2minus	= vec_lda(0L, v2m + ID);
-		const vector4double pminus = vec_ld(0L, pm + ID);
-		const vector4double Gminus = vec_ld(0L, Gm + ID);
-		const vector4double PIminus = vec_ld(0L, PIm + ID);
+		const vector4double pminus = vec_lda(0L, pm + ID);
+		const vector4double Gminus = vec_lda(0L, Gm + ID);
+		const vector4double PIminus = vec_lda(0L, PIm + ID);
 		
 		const vector4double uminus = vec_mul(vdminus, rminus);
 		const vector4double uminus_v1 = vec_mul(v1minus, rminus);
@@ -328,13 +328,13 @@ inline void _qpx_hlle_all(Real * const rm, Real * const rp,
 		const vector4double cminus2 = vec_mul(vec_madd(invGm, vec_add(pminus, PIminus), pminus), myreciprocal<preclevel>(rminus));
 		const vector4double cminus = mysqrt<preclevel>(cminus2);
 		
-		const vector4double rplus = vec_ld(0L, rp + ID);
-		const vector4double vdplus = vec_ld(0L, vdp + ID);
+		const vector4double rplus = vec_lda(0L, rp + ID);
+		const vector4double vdplus = vec_lda(0L, vdp + ID);
 		const vector4double v1plus = vec_lda(0L, v1p + ID);
 		const vector4double v2plus = vec_lda(0L, v2p + ID);
-		const vector4double pplus = vec_ld(0L, pp + ID);
-		const vector4double Gplus = vec_ld(0L, Gp + ID);
-		const vector4double PIplus = vec_ld(0L, PIp + ID);
+		const vector4double pplus = vec_lda(0L, pp + ID);
+		const vector4double Gplus = vec_lda(0L, Gp + ID);
+		const vector4double PIplus = vec_lda(0L, PIp + ID);
 		
 		const vector4double uplus = vec_mul(vdplus, rplus);
 		const vector4double uplus_v1 = vec_mul(v1plus, rplus);

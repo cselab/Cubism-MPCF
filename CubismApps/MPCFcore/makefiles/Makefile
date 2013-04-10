@@ -30,6 +30,13 @@ OBJECTS += DivSOA2D_QPX.o
 NASTYFLAGS = -qlist -qsource -qreport -O5 -qarch=qp -qtune=qp  -qhot=level=2 -qunroll
 endif
 
+ifeq "$(qpxemu)" "1"
+OBJECTS += WenoSOA2D_QPX.o 
+OBJECTS += HLLESOA2D_QPX.o
+OBJECTS += DivSOA2D_QPX.o
+NASTYFLAGS = -Ofast $(CPPFLAGS)
+endif
+
 OBJECTS += Convection_CPP_omp.o
 
 ifeq "$(sse)" "1"

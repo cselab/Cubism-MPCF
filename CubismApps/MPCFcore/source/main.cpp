@@ -42,7 +42,7 @@ extern "C" void HPM_Stop(char *);
 #include "Convection_CPP.h"
 #include "Convection_CPP_omp.h"
 
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 #include "Convection_QPX.h"
 #include "Update_QPX.h"
 #include "MaxSpeedOfSound_QPX.h"
@@ -179,7 +179,7 @@ int main (int argc, const char ** argv)
 	}
 	
 	//QPX kernels
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 	{
 		if (kernel == "Convection_QPX" || kernel == "all")
 			testing(Test_Convection(), Convection_QPX(0, 1), info);
