@@ -107,7 +107,7 @@ FluidElement operator + (FluidElement gpa, FluidElement gpb)
 //between energy and pressure
 template<typename T>
 T get_ic(const double bubble)
-{
+{	
     T out;
     
     const double G1 = Simulation_Environment::GAMMA1-1;
@@ -126,7 +126,7 @@ T get_ic(const double bubble)
     
     const double mix_gamma = 1 + (G2*G1)/(G1*bubble+G2*(1-bubble));
     const double mix_pinf  = (mix_gamma-1)/mix_gamma * (F1/G1*(1-bubble) + F2/G2*bubble);
-    out.G  = 1./(mix_gamma-1);
+    out.G  = 1. / (mix_gamma-1);
     out.P = mix_gamma*mix_pinf/(mix_gamma-1);
     out.energy   = pressure;
     
@@ -210,10 +210,11 @@ void Test_Cloud::_my_ic_quad(FluidGrid& grid, const Seed myseed)
 		const int mynode = omp_get_thread_num() / cores_per_node;
 		numa_run_on_node(mynode);
 #endif
+		
+		FluidElement myconstant = get_ic<FluidElement>(0);
+
         if (myseed.get_shapes().size() == 0)
         {
-			FluidElement myconstant = get_ic<FluidElement>(0);
-
 #pragma omp for
 			for(int i=0; i<(int)vInfo.size(); i++)
 			{
@@ -235,21 +236,20 @@ void Test_Cloud::_my_ic_quad(FluidGrid& grid, const Seed myseed)
 	
             FluidBlock& b = *(FluidBlock*)info.ptrBlock;
             
-			vector<shape> myshapes = myseed.retain_shapes(info.origin, myextent).get_shapes();
+			vector<shape> myshapes = myseed.get_shapes().size() ? myseed.retain_shapes(info.origin, myextent).get_shapes() : myseed.get_shapes();
 			//printf("processing %d out of %d. for this block i have: %d bubbles\n", i, (int)vInfo.size(), myshapes.size());
 			
 			const bool isempty = myshapes.size() == 0;
 			
 			if (isempty)
-			{
-				FluidElement myconstant = get_ic<FluidElement>(0);
-				
-						for(int iz=0; iz<FluidBlock::sizeZ; iz++)
-						for(int iy=0; iy<FluidBlock::sizeY; iy++)
-							for(int ix=0; ix<FluidBlock::sizeX; ix++)
+			{	
+				for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+					for(int iy=0; iy<FluidBlock::sizeY; iy++)
+						for(int ix=0; ix<FluidBlock::sizeX; ix++)
 							 b(ix,iy,iz) = myconstant;
 			}
 			else
+			{				
 				for(int iz=0; iz<FluidBlock::sizeZ; iz++)
 					for(int iy=0; iy<FluidBlock::sizeY; iy++)
 						for(int ix=0; ix<FluidBlock::sizeX; ix++)
@@ -259,6 +259,7 @@ void Test_Cloud::_my_ic_quad(FluidGrid& grid, const Seed myseed)
 														
 							b(ix,iy,iz) = integral<FluidElement>(p, 0.5*h, myshapes);
 						}
+			}
         }
 	}
 	

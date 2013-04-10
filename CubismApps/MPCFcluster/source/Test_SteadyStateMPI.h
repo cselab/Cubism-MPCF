@@ -35,7 +35,7 @@ public:
 	const bool isroot;
 	
 	Test_SteadyStateMPI(const bool isroot, const int argc, const char ** argv):
-	Test_SteadyState(argc, argv), isroot(isroot) { }
+	Test_SteadyState(argc, argv), isroot(isroot), grid(NULL), mystepper(NULL) { }
 	
     void setup_mpi_constants(int& xpesize, int& ypesize, int& zpesize)
 	{	
@@ -99,7 +99,6 @@ public:
         DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, "data_restart", path.c_str());
         
 		if (isroot) cout << "done" <<endl;
-		
 	}
     
     void vp(G& grid, const int step_id, const bool bVP)
@@ -191,8 +190,6 @@ public:
 			i++;
 		}
 
-		delete stepper;
-		stepper = NULL;
 		
 		if (isroot)
 			printf("Finishing RUN\n");

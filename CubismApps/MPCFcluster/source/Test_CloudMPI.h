@@ -205,24 +205,6 @@ public:
 					myseed.set_shapes(v);
 			}
             
-            /*int n_shapes, buf_size;
-            
-            if(isroot)
-            {
-				n_shapes = CloudData::n_shapes;
-				myseed.make_shapes(n_shapes);
-				buf_size = myseed.get_shapes_size()*sizeof(shape);
-			}
-			
-			//MPI::COMM_WORLD.Bcast(&n_shapes, 1, MPI::INT, 0);
-			
-			if(!isroot)
-				myseed.resize_shapes(n_shapes);
-            
-			assert(myseed.get_shapes_size()==n_shapes);			
-            			
-			MPI::COMM_WORLD.Bcast(myseed.get_pointer_to_shapes(), buf_size, MPI::CHAR, 0);
-			*/
 			assert(myseed.get_shapes_size()>0 && myseed.get_shapes_size() == CloudData::n_shapes);
 			
 			int peidx[3];
@@ -230,29 +212,24 @@ public:
 			const double spacing = grid->getH()*_BLOCKSIZE_;
 			const double mystart[3] = {peidx[0]*BPDX*spacing, peidx[1]*BPDY*spacing, peidx[2]*BPDZ*spacing};
 			const double myextent[3] = {BPDX*spacing, BPDY*spacing, BPDZ*spacing};
-			
-			//printf("start %f %f %f extent %f %f %f\n", mystart[0], mystart[1], mystart[2], myextent[0], myextent[1], myextent[2]);
-			
-			vector<shape> my_shape = myseed.get_shapes();
-			for(int i=0; i<my_shape.size(); ++i)
-			{		
-                   shape curr_shape = my_shape[i];
-
-					Real c[3];
-					curr_shape.get_center(c);
-                //   printf("shape %d %f %f %f %f\n", i, curr_shape.get_rad(), c[0], c[1], c[2]);
-			}
-             
-                  
+						
 			myseed = myseed.retain_shapes(mystart,myextent);
 			MPI::COMM_WORLD.Barrier();
-            if (isroot) cout << "Setting ic now...\n";
+            if (isroot) 
+				cout << "Setting ic now...\n";
+				
             _my_ic_quad(*grid, myseed);
-            if (isroot) cout << "done!"<< endl;
             
-            if (isroot) printf("Setting energy now...");
+            if (isroot) 
+				cout << "done!"<< endl;
+            
+            if (isroot) 
+				printf("Setting energy now...");
+				
             _set_energy(*grid);
-            if (isroot) printf("done\n");
+            
+            if (isroot) 
+				printf("done\n");
         }
 	}
     
@@ -314,15 +291,32 @@ public:
 		streamer<<"data-"<<step_id;;
 		t_ssmpi->dump(*grid, step_id, streamer.str());
         
-		if (stepper != NULL)
-		{
-			delete stepper;
-			stepper = NULL;
-		}
 		if (isroot) printf("Finishing RUN\n");
 
 		//MPI_Finalize();
 	}
 	
+		void dispose()
+	{		
+		t_ssmpi->dispose();
+		delete t_ssmpi;
+		t_ssmpi = NULL;
+		
+		t_sbmpi->dispose();
+		delete t_sbmpi;
+		t_sbmpi = NULL;
+		
+		if (stepper != NULL)
+		{
+			delete stepper;
+			stepper = NULL;
+		}
+		
+		if (grid != NULL)
+		{
+			delete grid;
+			grid = NULL;
+		}
+	}
 };
 

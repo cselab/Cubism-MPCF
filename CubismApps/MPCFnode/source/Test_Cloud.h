@@ -145,6 +145,7 @@ class Seed
     vector<shape> v_shapes;
     
 public:
+
     Seed(const double _start[3], const double _end[3])
     {
         start[0] = _start[0];
@@ -157,44 +158,40 @@ public:
     }
         
     void make_shapes(int ntocheck)
-    {        	
-		//For the moment we just read the cloud.dat
-		//and ignore seed and cloud_config.dat
-		{
-			ifstream f_read_cloud("cloud.dat");
-			
-			if (!f_read_cloud.good())
-			{
-				cout << "Watchout! cant read the file <cloud.dat>. Aborting now...\n";
-				abort();
-			}
-			
-			while(true)
-			{
-				if (!f_read_cloud.good())
-					abort();
-				
-				int idx;
-				Real c[3], rad;
-				f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;			
-				
-				cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
-				
-				shape cur_shape(c,rad);
-				v_shapes.push_back(cur_shape);
-				
-				if (f_read_cloud.eof()) break;
-			}
-			
-			f_read_cloud.close();
+    {        			
+		ifstream f_read_cloud("cloud.dat");
 		
-			cout << "number of shapes are " << v_shapes.size() << endl;
+		if (!f_read_cloud.good())
+		{
+			cout << "Watchout! cant read the file <cloud.dat>. Aborting now...\n";
+			abort();
+		}
+		
+		while(true)
+		{
+			if (!f_read_cloud.good())
+				abort();
 			
-			if (v_shapes.size() != ntocheck)
-			{
-				 cout << "PROBLEM! ntocheck is " << ntocheck << " which does not correspond to the number of shapes!!!\n";
-			}
-		}           
+			int idx;
+			Real c[3], rad;
+			f_read_cloud >> idx >> c[0] >> c[1] >> c[2] >> rad;			
+			
+			cout << "shape " << idx << " " <<  c[0] << " " << c[1] << " " << c[2] << " " << rad << endl;
+			
+			shape cur_shape(c,rad);
+			v_shapes.push_back(cur_shape);
+			
+			if (f_read_cloud.eof()) break;
+		}
+		
+		f_read_cloud.close();
+	
+		cout << "number of shapes are " << v_shapes.size() << endl;
+		
+		if (v_shapes.size() != ntocheck)
+		{
+			 cout << "PROBLEM! ntocheck is " << ntocheck << " which does not correspond to the number of shapes!!!\n";
+		}       
     }
     
     Seed retain_shapes(const double mystart[3], const double extent[3]) const
@@ -233,10 +230,6 @@ public:
     int get_shapes_size() const { return v_shapes.size(); }
     
     void set_shapes(vector<shape> v) { v_shapes = v; }
-    /*
-    void resize_shapes(const int n_shapes) {v_shapes.resize(n_shapes); }
-    
-    Real * get_pointer_to_shapes() { return v_shapes.front().get_pointer_to_beginninig();}*/
 };
 
 inline double eval(const vector<shape>& v_shapes, const Real pos[3])
@@ -247,13 +240,10 @@ inline double eval(const vector<shape>& v_shapes, const Real pos[3])
     {
 		const Real newdistance = v_shapes[i].eval(pos);
 		
-		if (newdistance < Simulation_Environment::EPSILON * 0.5)
-			return 1;
-		
         d = min(d, newdistance);
 	}
 	
-    const double alpha = M_PI*min(1., max(0., (d+0.5*Simulation_Environment::EPSILON)/Simulation_Environment::EPSILON));
+    const double alpha = M_PI*min(1., max(0., (double)(d + 1 * Simulation_Environment::EPSILON)/(2*Simulation_Environment::EPSILON)));
     
     return 0.5 + 0.5 * cos(alpha);
 }
