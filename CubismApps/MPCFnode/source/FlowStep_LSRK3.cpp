@@ -84,13 +84,24 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
 	
 	const int NTH = omp_get_max_threads();
 	double total_time[NTH];
+
+	static Lab * labs = NULL;
+
+	if (labs == NULL)
+	{
+		printf("allocating %d labs\n", NTH); fflush(0);
+
+		labs = new Lab[NTH];
+		for(int i = 0; i < NTH; ++i)
+			labs[i].prepare(grid, stencil_start, stencil_end, tensorial);
+	}
 	
 #pragma omp parallel
 	{
 #ifdef _USE_NUMA_
         const int cores_per_node = numa_num_configured_cpus() / numa_num_configured_nodes();
         const int mynode = omp_get_thread_num() / cores_per_node;
-  asd      numa_run_on_node(mynode);
+	numa_run_on_node(mynode);
 #endif
 		
 		const int tid = omp_get_thread_num();
@@ -99,8 +110,9 @@ void _process(const Real a, const Real dtinvh, vector<BlockInfo>& myInfo, FluidG
 		Timer timer;
 		Kernel kernel(a, dtinvh);
 		
-		Lab mylab;
-		mylab.prepare(grid, stencil_start, stencil_end, tensorial);
+		Lab& mylab = labs[tid];
+//		Lab mylab;
+//		mylab.prepare(grid, stencil_start, stencil_end, tensorial);
 
 #pragma omp for schedule(runtime)
 		for(int i=0; i<N; i++)

@@ -125,7 +125,9 @@ namespace LSRK3MPIdata
 
 template<typename Lab, typename Operator, typename TGrid>
 void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t, const bool record) 
-{    
+{
+#if 0
+
 #pragma omp parallel
     {
         vector<BlockInfo>myInfo = vInfo;
@@ -147,6 +149,43 @@ void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t,
             myrhs(mylab, ary[i], *(FluidBlock*)ary[i].ptrBlock);
         }		
     }
+
+#else
+	static Lab * labs = NULL;
+
+	if (labs == NULL)
+	{
+		int NTH = omp_get_max_threads();
+		printf("allocating %d labs\n", NTH); fflush(0);
+
+		const SynchronizerMPI& synch = grid.get_SynchronizerMPI(rhs);
+		labs = new Lab[NTH];
+
+		for(int i = 0; i < NTH; ++i)
+			labs[i].prepare(grid, synch);
+	}
+
+#pragma omp parallel
+    {
+		vector<BlockInfo>myInfo = vInfo;
+		BlockInfo * ary = &myInfo.front();
+		const int tid = omp_get_thread_num();
+	
+        Operator myrhs = rhs;
+       
+        const int N = vInfo.size();
+        Lab& mylab = labs[tid];
+        
+#pragma omp for schedule(runtime)
+		for(int i=0; i<N; i++)
+		{
+			mylab.load(ary[i], t);
+			
+			myrhs(mylab, ary[i], *(FluidBlock*)ary[i].ptrBlock);
+		}	
+    }
+
+#endif
 }
 
 template<typename TGrid>

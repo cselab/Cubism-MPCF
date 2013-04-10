@@ -118,12 +118,6 @@ public:
 		streamer << "data-" << step_id;
 		t_ssmpi->dump(*grid, step_id, streamer.str());
 
-		if (stepper != NULL)
-		{
-			delete stepper;
-			stepper = NULL;
-		}
-		
 		if (isroot) printf("Finishing RUN\n");
 	}
 	

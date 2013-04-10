@@ -556,7 +556,7 @@ public:
 				}	
 			}
 			
-			printf("Alright. SerializerIO_WaveletCompression::Read triggers a smooth exit here.\n");
-			exit(0);
+			//printf("Alright. SerializerIO_WaveletCompression::Read triggers a smooth exit here.\n");
+			//exit(0);
 		}
 	};

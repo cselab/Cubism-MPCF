@@ -35,7 +35,7 @@ public:
 	const bool isroot;
 	
 	Test_SteadyStateMPI(const bool isroot, const int argc, const char ** argv):
-	Test_SteadyState(argc, argv), isroot(isroot) { }
+	Test_SteadyState(argc, argv), isroot(isroot), grid(NULL), mystepper(NULL) { }
 	
     void setup_mpi_constants(int& xpesize, int& ypesize, int& zpesize)
 	{	
@@ -191,8 +191,8 @@ public:
 			i++;
 		}
 
-		delete stepper;
-		stepper = NULL;
+//		delete stepper;
+//		stepper = NULL;
 		
 		if (isroot)
 			printf("Finishing RUN\n");

@@ -291,15 +291,32 @@ public:
 		streamer<<"data-"<<step_id;;
 		t_ssmpi->dump(*grid, step_id, streamer.str());
         
-		if (stepper != NULL)
-		{
-			delete stepper;
-			stepper = NULL;
-		}
 		if (isroot) printf("Finishing RUN\n");
 
-		//MPI_Finalize();
 	}
+
+        void dispose()
+        {
+                t_ssmpi->dispose();
+                delete t_ssmpi;
+                t_ssmpi = NULL;
+
+                t_sbmpi->dispose();
+                delete t_sbmpi;
+                t_sbmpi = NULL;
+
+                if (stepper != NULL)
+                {
+                        delete stepper;
+                        stepper = NULL;
+                }
+
+                if (grid != NULL)
+                {
+                        delete grid;
+                        grid = NULL;
+                }
+        }
 	
 };
 
