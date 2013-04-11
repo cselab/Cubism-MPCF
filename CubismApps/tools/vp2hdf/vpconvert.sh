@@ -1,8 +1,8 @@
 #MYSRCDIR=/tmp/CUBISM-DATA
-#MYDSTDIR=/tmp/CUBISM-DATA/VPCACHE
+#MYDSTDIR=/tmp/CUBISM-DATA/HDFCACHE
+MYSRCDIR=/home/chatzidp/LIQ_BGQ/10042013A/CUBISM-MPCF/CubismApps/tools/vp2hdf/tmpin
+MYDSTDIR=/home/chatzidp/LIQ_BGQ/10042013A/CUBISM-MPCF/CubismApps/tools/vp2hdf/tmp
 QUALITYCHECK=0
-
-MYSRCDIR=.
 
 #get the number of threads
 {
@@ -30,8 +30,8 @@ function generatechannel()
 	for F in ${MYSRCDIR}/*channel${MYCHANNEL} 
 	do
 		#ok, lets do it!
-		mpirun -mca btl sm,self -n $THREADS ./vp2hdf -simdata $F 
-		
+		mpirun -mca btl sm,self -n $THREADS ./vp2hdf -simdata $F -h5file ${MYDSTDIR}/$(basename $F)
+		#echo $F
 	done
 }
 
@@ -47,7 +47,7 @@ generatechannel 0 0.6 1e3
 
 generatechannel 4 0.02 100.0
 generatechannel 5 0.17 2.5; 
-generatechannel 6 3.47 4773.44
+#generatechannel 6 3.47 4773.44
 
 TOTALTIME="$(($(date +%s)-TSTART))"
 T_CHECK=0
