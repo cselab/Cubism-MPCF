@@ -196,6 +196,7 @@ template<> inline Real StreamerGridPointIterative::operate<3>(const FluidElement
 template<> inline Real StreamerGridPointIterative::operate<4>(const FluidElement& e) { return (e.energy-0.5*(e.u*e.u+e.v*e.v+e.w*e.w)/e.rho - e.P)/e.G; }
 template<> inline Real StreamerGridPointIterative::operate<5>(const FluidElement& e) { return e.G; }
 template<> inline Real StreamerGridPointIterative::operate<6>(const FluidElement& e) { return e.P; }
+template<> inline Real StreamerGridPointIterative::operate<7>(const FluidElement& e) { return e.dummy; }
 
 struct StreamerDensity
 {
