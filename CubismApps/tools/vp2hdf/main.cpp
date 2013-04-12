@@ -43,10 +43,12 @@ int main(int argc, const char **argv)
 	else
 		argparser.mute();
 
-	const string inputfile = argparser("-simdata").asString("none");
-	if (inputfile == "none")
+	const string inputfile_name = argparser("-simdata").asString("none");
+	const string h5file_name = argparser("-h5file").asString("none");
+
+	if ((inputfile_name == "none")||(h5file_name == "none"))
 	{
-		printf("usage: %s -simdata <filename>\n", argv[0]);
+		printf("usage: %s -simdata <filename>  -h5file <h5basefilename>\n", argv[0]);
 		exit(1);
 	}
 
@@ -60,9 +62,9 @@ int main(int argc, const char **argv)
 	herr_t	status;
 
 #if 1
-	Reader_WaveletCompressionMPI myreader(mycomm, inputfile);
+	Reader_WaveletCompressionMPI myreader(mycomm, inputfile_name);
 #else
-	Reader_WaveletCompression myreader(inputfile);
+	Reader_WaveletCompression myreader(inputfile_name);
 #endif
 	myreader.load_file();
 	const double init_t1 = omp_get_wtime();
@@ -70,9 +72,6 @@ int main(int argc, const char **argv)
 
 	const double t0 = omp_get_wtime(); 
 
-	stringstream ss;
-	ss << inputfile << "_np"  << mpi_size ;
-	string h5file_name = ss.str(); 
 	string h5file_fullname = h5file_name + ".h5";;
 
 	int dim[3], period[3], reorder;
