@@ -266,7 +266,7 @@ public:
             if (isroot) 
 				cout << "relaxing pressure a little bit..."<< endl;
             
-            for(int i = 0; i < 4; ++i)
+            for(int i = 0; i < 2; ++i)
 				_relax_pressure(*grid);
             
             if (isroot) 
