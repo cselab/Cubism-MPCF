@@ -24,7 +24,7 @@
 #ifdef _AVX_
 #include <Convection_AVX.h>
 #endif
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 #include <Convection_QPX.h>
 #include <Update_QPX.h>
 #endif
@@ -126,7 +126,7 @@ namespace LSRK3MPIdata
 template<typename Lab, typename Operator, typename TGrid>
 void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t, const bool record) 
 {
-#if 0
+#if 1
 
 #pragma omp parallel
     {
@@ -156,7 +156,7 @@ void _process(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const Real t,
 	if (labs == NULL)
 	{
 		int NTH = omp_get_max_threads();
-		printf("allocating %d labs\n", NTH); fflush(0);
+		//printf("allocating %d labs\n", NTH); fflush(0);
 
 		const SynchronizerMPI& synch = grid.get_SynchronizerMPI(rhs);
 		labs = new Lab[NTH];
@@ -405,7 +405,7 @@ public:
 		else if (parser("-kernels").asString("cpp")=="avx")
 			LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
 #endif
-#ifdef _QPX_
+#if defined(_QPX_) || defined(_QPXEMU_)
 		else if (parser("-kernels").asString("cpp")=="qpx")
 			LSRKstepMPI<Convection_QPX, Update_QPX>(grid, dt/h, current_time);
 #endif

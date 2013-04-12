@@ -9,14 +9,18 @@
 
 #include "common.h"
 #include "WenoSOA2D_QPX.h"
+
+#ifdef _WENO3_
+#include "../../MPCFthread/source/Weno_QPX_3rdOrder.h"
+#else
 #include "../../MPCFthread/source/WenoFused_QPX.h"
+#endif
 
 #ifndef _MICROFUSION_
 #define _MICROFUSION_ 2
 #endif
 
 //=============================== KERNELS ===========================================
-
 
 struct __align(_ALIGNBYTES_) WenoScratchPad { Real tmp[TempSOA::NX][4];};
 

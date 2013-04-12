@@ -5,7 +5,18 @@
  *  Created by Babak Hejazialhosseini on 2/25/13.
  *  Copyright 2012 ETH Zurich. All rights reserved.
  *
+ *  *
+ *	PATER NOSTER, qui es in caelis, sanctificetur nomen tuum. 
+ *	Adveniat regnum tuum. 
+ *	Fiat voluntas tua, sicut in caelo et in terra. 
+ *	Panem nostrum quotidianum da nobis hodie, 
+ *	et dimitte nobis debita nostra sicut et nos dimittimus debitoribus nostris. 
+ *	Et ne nos inducas in tentationem, 
+ *	sed libera nos a malo. 
+ *	Amen.
+ *
  */
+ 
 #pragma once
 
 #include <limits>
@@ -14,52 +25,48 @@
 
 #define Tshape shape
 
-typedef BlockLabMPI< BlockLabCloudLaplace< FluidBlock, std::allocator> > LabLaplace;
+//typedef BlockLabMPI< BlockLabCloudLaplace< FluidBlock, std::allocator> > LabLaplace;
 
-//ALERT: assuming no momenta at the initial condition
-//ALERT: assuming that initially pressure is written in energy channel
+
+typedef BlockLabMPI< BlockLab< FluidBlock, std::allocator> > LabLaplace;
+
 template<typename TLab>
-struct GaussSeidel
+struct GaussSeidel // , not. just 2ndorder bspline convolution
 {
     StencilInfo stencil;
     
     int stencil_start[3];
     int stencil_end[3];
     
-    GaussSeidel(): stencil(-2,-2,-2,3,3,3, false, 1, 4)
+    GaussSeidel(): stencil(-1, -1, -1, +2, +2, +2, true, 2, 4, 7)
     {
-        stencil_start[0] = stencil_start[1] = stencil_start[2] = -2;
-        stencil_end[0] = stencil_end[1] = stencil_end[2] = 3;
+        stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
+        stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
     }
     
-    GaussSeidel(const GaussSeidel& c): stencil(-2,-2,-2,3,3,3, false, 1, 4)
+    GaussSeidel(const GaussSeidel& c): stencil(-1, -1, -1, +2, +2, +2, true, 2, 4, 7)
     {
-        stencil_start[0] = stencil_start[1] = stencil_start[2] = -2;
-        stencil_end[0] = stencil_end[1] = stencil_end[2] = 3;
+        stencil_start[0] = stencil_start[1] = stencil_start[2] = -1;
+        stencil_end[0] = stencil_end[1] = stencil_end[2] = 2;
     }
     
     inline void operator()(TLab& lab, const BlockInfo& info, FluidBlock& o) const
-    {       
-        for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+    {     
+		const Real w[3] = { 0.25f, 0.5f, 0.25f };
+		
+		  for(int iz=0; iz<FluidBlock::sizeZ; iz++)
             for(int iy=0; iy<FluidBlock::sizeY; iy++)
                 for(int ix=0; ix<FluidBlock::sizeX; ix++)
                 {
-                    if(lab(ix,iy,iz).G<2.5)
-                    {
-                        Real p[15];
-                        const int span = 5;
-                        
-                        for(int dir=0;dir<3;dir++)
-                            for(int i=0;i<span;i++)
-                                p[i+dir*span] = lab(ix+ (dir==0? i-2 : 0 ), iy+ (dir==1? i-2 : 0), iz+ (dir==2? i-2 : 0)).energy;
-                        
-                        Real pressure_new = 0;
-                        for(int dir=0;dir<3;dir++)
-                            pressure_new += -p[dir*span+0]+16*p[dir*span+1]+16*p[dir*span+3]-p[dir*span+4];
-                                        
-                        o(ix,iy,iz).energy = pressure_new/(Real)90.0;
-                    }
-                }
+					double s = 0;
+					
+					for(int dz=-1; dz < 2; ++dz)
+					for(int dy=-1; dy < 2; ++dy)
+					for(int dx=-1; dx < 2; ++dx)
+						s += w[dx + 1]* w[dy + 1]* w[dz + 1] * lab(ix + dx, iy + dy, iz + dz).energy;
+					
+					o(ix,iy,iz).dummy = s;
+				}
     }
 };
 
@@ -84,6 +91,27 @@ void _process_laplace(vector<BlockInfo>& vInfo, Operator rhs, TGrid& grid, const
         {
             mylab.load(ary[i], t);
             myrhs(mylab, ary[i], *(FluidBlock*)ary[i].ptrBlock);
+        }
+    }
+}
+
+template <typename TGrid>
+void _process_update(const vector<BlockInfo>& vInfo, TGrid& grid)
+{
+#pragma omp parallel
+    {
+        vector<BlockInfo>myInfo = vInfo;
+        const int N = vInfo.size();
+        
+#pragma omp for schedule(runtime)
+        for(int i=0; i<N; i++)
+        {
+			FluidBlock& b = *(FluidBlock*)myInfo[i].ptrBlock;
+			
+            for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+				for(int iy=0; iy<FluidBlock::sizeY; iy++)
+					for(int ix=0; ix<FluidBlock::sizeX; ix++)
+						b(ix,iy,iz).energy = b(ix,iy,iz).dummy;
         }
     }
 }
@@ -132,12 +160,14 @@ public:
         
         while (!synch.done())
         {
-            if (isroot) printf("One avail loop of gs ");
+            //if (isroot) printf("One avail loop of gs ");
             vector<BlockInfo> avail = synch.avail(1);
             
             _process_laplace< LabLaplace >(avail, gs, (G&)grid);
-            if (isroot) printf("... done\n");            
+            //if (isroot) printf("... done\n");            
         }
+        
+        _process_update(grid.getBlocksInfo(), grid);
     }
     
 	void setup()
@@ -148,17 +178,27 @@ public:
         if (!isroot)
 			VERBOSITY = 0;
     
-        if (VERBOSITY)
+        if (isroot)
 		{
 			printf("////////////////////////////////////////////////////////////\n");
+			printf("///////////                                      ///////////\n");
 			printf("///////////               TEST Cloud MPI         ///////////\n");
+			printf("///////////                                      ///////////\n");
+			printf("PATER NOSTER, qui es in caelis, sanctificetur nomen tuum.\n"); 
+			printf("Adveniat regnum tuum.\n");
+			printf("Fiat voluntas tua, sicut in caelo et in terra.\n");
+			printf("Panem nostrum quotidianum da nobis hodie,\n");
+			printf("et dimitte nobis debita nostra sicut et\nnos dimittimus debitoribus nostris.\n");
+			printf("Et ne nos inducas in tentationem,\n");
+			printf("sed libera nos a malo.\n");
+			printf("Amen.\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
 
 	const double extent = parser("-extent").asDouble(1.0);
 	grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, extent);
 
-	printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
+	//printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
         
 		assert(grid != NULL);
         
@@ -224,6 +264,15 @@ public:
 				cout << "done!"<< endl;
             
             if (isroot) 
+				cout << "relaxing pressure a little bit..."<< endl;
+            
+            for(int i = 0; i < 4; ++i)
+	      _relax_pressure(*grid);
+            
+            if (isroot) 
+				cout << "done!"<< endl;
+            
+            if (isroot) 
 				printf("Setting energy now...");
 				
             _set_energy(*grid);
@@ -235,6 +284,8 @@ public:
     
 	void run()
 	{
+	  const bool bWithIO = parser("-io").asBool("1");
+
 		if (isroot) printf("HELLO RUN\n");
 		bool bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
         
@@ -247,16 +298,16 @@ public:
 				std::stringstream streamer;
 				streamer<<"data-"<<step_id;
                 profiler.push_start("IO HDF");
-                t_ssmpi->dump(*grid, step_id, streamer.str());
+                if(bWithIO) t_ssmpi->dump(*grid, step_id, streamer.str());
                 profiler.pop_stop();
                 profiler.push_start("IO WAVELET");
-				t_ssmpi->vp(*grid, step_id, bVP);
+		if(bWithIO) 	t_ssmpi->vp(*grid, step_id, bVP);
                 profiler.pop_stop();
 			}
             
             profiler.push_start("SAVE");
 			if (step_id%SAVEPERIOD==0)
-				t_ssmpi->save(*grid, step_id, t);
+			  if(bWithIO) 	t_ssmpi->save(*grid, step_id, t);
             profiler.pop_stop();
             
             profiler.push_start("STEP");
@@ -271,6 +322,7 @@ public:
             profiler.pop_stop();
             
             profiler.push_start("DUMP ANALYSIS");
+	    if(bWithIO) 
             if (step_id%ANALYSISPERIOD==0)
                 t_sbmpi->dumpAnalysis(*grid, step_id, t, dt);
             profiler.pop_stop();

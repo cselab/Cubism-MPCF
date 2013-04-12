@@ -31,12 +31,14 @@
 #include <Convection_QPX.h>
 #include <Update_QPX.h>
 #include <MaxSpeedOfSound_QPX.h>
+#ifdef _QPX_
 //here are for cycle counting
 #include <ucontext.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <errno.h>
 #include "spi/include/upci/upci.h"
+#endif
 #endif
 
 #include <Update.h>
@@ -193,7 +195,8 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
 	HPM_Start("dt_reduce");
 #endif
     
-#if defined(_QPX_) || defined(_QPXEMU_)    
+#if defined(_QPX_) 
+//|| defined(_QPXEMU_)    
 	const int N8 = 8 * (N / 8);
     vector4double sos4A = vec_splats(0);
     vector4double sos4B = vec_splats(0);

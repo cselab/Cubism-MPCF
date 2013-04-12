@@ -81,7 +81,7 @@ class Convection_QPX : public Convection_CPP
 	{
 		{
 			const size_t x = (size_t)gptfirst;
-			const int remainder = x & 0x1f;
+			const int remainder = x & 0x0f;
 			assert(remainder == 0);
 			assert(gptfloats == 16);
 			if (remainder)

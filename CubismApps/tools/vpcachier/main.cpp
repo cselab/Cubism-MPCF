@@ -108,9 +108,10 @@ int main(int argc, const char **  argv)
 		
 		MYASSERT(xtextures > 0 && ytextures > 0 && ztextures > 0, "NUMBER OF VP BLOCKS IS ZERO!");
 		
-		const int xrankwork = std::max(1, xtextures / xpe);
-		const int yrankwork = std::max(1, ytextures / ype);
-		const int zrankwork = std::max(1, ztextures / zpe);
+		//thank you panos
+		const int xrankwork = std::max(1, (int)std::ceil(xtextures / (double)xpe));
+		const int yrankwork = std::max(1, (int)std::ceil(ytextures / (double)ype));
+		const int zrankwork = std::max(1, (int)std::ceil(ztextures / (double)zpe));
 		
 		int peindex[3] = {-1, -1, -1};
 		mycartcomm.Get_coords(myrank, 3, peindex);
