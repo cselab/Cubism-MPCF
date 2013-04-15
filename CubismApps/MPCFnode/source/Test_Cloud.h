@@ -243,7 +243,8 @@ inline double eval(const vector<shape>& v_shapes, const Real pos[3])
         d = min(d, newdistance);
 	}
 	
-    const double alpha = M_PI*min(1., max(0., (double)(d + 4 * Simulation_Environment::EPSILON)/(4*Simulation_Environment::EPSILON)));
+	const double eps = Simulation_Environment::EPSILON;
+    const double alpha = M_PI*min(1., max(0., (double)(d + eps)/(2 * eps)));
     
     return 0.5 + 0.5 * cos(alpha);
 }

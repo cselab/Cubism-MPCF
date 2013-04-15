@@ -158,7 +158,7 @@ Real _computeSOS_OMP(FluidGrid& grid,  bool bAwk)
     const int N = vInfo.size();
     const BlockInfo * const ary = &vInfo.front();
 
-#if 0   /* !defined(FUSED_MAXSOS) */
+#if (_OPENMP < 201107)   
     Real * tmp = NULL;
     int error = posix_memalign((void**)&tmp, std::max(8, _ALIGNBYTES_), sizeof(Real) * N);
     assert(error == 0);

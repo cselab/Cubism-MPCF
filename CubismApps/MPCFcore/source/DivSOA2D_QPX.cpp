@@ -171,7 +171,7 @@ inline void _qpx_yextraterm(Real * const xm, Real * const xp, Real * const outpu
 		}
 }
 
-struct __align(_ALIGNBYTES_)  TinyScratchPadExtraTerm { Real tmp[4][4];};
+struct __attribute__((__aligned__(_ALIGNBYTES_)))  TinyScratchPadExtraTerm { Real tmp[4][4];};
 
 inline void _qpx_yextraterm(Real * const am, Real * const ap,
 		Real * const um, Real * const up, Real * const output)

@@ -198,7 +198,7 @@ public:
 	const double extent = parser("-extent").asDouble(1.0);
 	grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, extent);
 
-	printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
+	//printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
         
 		assert(grid != NULL);
         
@@ -266,8 +266,8 @@ public:
             if (isroot) 
 				cout << "relaxing pressure a little bit..."<< endl;
             
-            for(int i = 0; i < 2; ++i)
-				_relax_pressure(*grid);
+            //for(int i = 0; i < 2; ++i)
+		//		_relax_pressure(*grid);
             
             if (isroot) 
 				cout << "done!"<< endl;
@@ -284,6 +284,8 @@ public:
     
 	void run()
 	{
+	  const bool bWithIO = parser("-io").asBool("1");
+
 		if (isroot) printf("HELLO RUN\n");
 		bool bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
         
@@ -295,17 +297,17 @@ public:
 			{
 				std::stringstream streamer;
 				streamer<<"data-"<<step_id;
-                profiler.push_start("IO HDF");
-                t_ssmpi->dump(*grid, step_id, streamer.str());
-                profiler.pop_stop();
+                //profiler.push_start("IO HDF");
+                //if(bWithIO) t_ssmpi->dump(*grid, step_id, streamer.str());
+                //profiler.pop_stop();
                 profiler.push_start("IO WAVELET");
-				t_ssmpi->vp(*grid, step_id, bVP);
+		if(bWithIO) 	t_ssmpi->vp(*grid, step_id, bVP);
                 profiler.pop_stop();
 			}
             
             profiler.push_start("SAVE");
 			if (step_id%SAVEPERIOD==0)
-				t_ssmpi->save(*grid, step_id, t);
+			  if(bWithIO) 	t_ssmpi->save(*grid, step_id, t);
             profiler.pop_stop();
             
             profiler.push_start("STEP");
@@ -320,6 +322,7 @@ public:
             profiler.pop_stop();
             
             profiler.push_start("DUMP ANALYSIS");
+	    if(bWithIO) 
             if (step_id%ANALYSISPERIOD==0)
                 t_sbmpi->dumpAnalysis(*grid, step_id, t, dt);
             profiler.pop_stop();

@@ -202,7 +202,8 @@ void Test_SteadyState::_setup_constants()
 	bAWK = parser("-awk").asBool(false);
     ANALYSISPERIOD = parser("-analysisperiod").asInt(std::numeric_limits<int>::max());
     
-	parser.save_options();
+	if(VERBOSITY) 
+		parser.save_options();
 	parser.mute();
 	
 	assert(TEND >= 0.0);
