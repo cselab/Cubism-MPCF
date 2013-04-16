@@ -24,7 +24,9 @@
 #define vec_splats(a) _mm_set1_ps(a)
 #define vec_swdiv(a, b) _mm_div_ps(a, b)
 #define vec_res(a) _mm_rcp_ps(a)
+#define vec_re(a) _mm_rcp_ps(a)
 #define vec_rsqrtes(a) _mm_rsqrt_ps(a)
+#define vec_rsqrte(a) _mm_rsqrt_ps(a)
 #define vec_neg(a) _mm_setzero_ps() - (a)
 #define vec_gpci(a) a
 #define vec_perm(a,b,code) myshuffle<code>(a,b)

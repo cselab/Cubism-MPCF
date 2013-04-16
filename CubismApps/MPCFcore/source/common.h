@@ -106,13 +106,13 @@ vector4double inline myreciprocal(vector4double a)
 template<>
 vector4double inline myreciprocal<0>(vector4double a) 
 {
-	const vector4double Ra0 = vec_res(a);
+	const vector4double Ra0 = vec_re(a);
 	return vec_mul(Ra0, vec_nmsub(Ra0, a, vec_splats(2)));
 	//return vec_nmsub(vec_mul(Ra0, a), Ra0, vec_add(Ra0, Ra0));
 }
 
 template<>
-vector4double inline myreciprocal<-1>(vector4double a) { return vec_res(a); }
+vector4double inline myreciprocal<-1>(vector4double a) { return vec_re(a); }
 
 template< int preclevel>
 int myreciprocal_flops()
@@ -137,7 +137,7 @@ vector4double inline mydivision<0>(vector4double a, vector4double b)
 template<>
 vector4double inline mydivision<-1>(vector4double a, vector4double b) 
 { 
-	return vec_mul(a, vec_res(b)); 
+	return vec_mul(a, vec_re(b)); 
 }
 
 template< int preclevel>
@@ -150,8 +150,8 @@ int mydivision_flops()
 template<int preclevel>
 inline vector4double mysqrt(const vector4double a)
 {
-	const vector4double invz =  vec_rsqrtes(a);
-	const vector4double z = vec_res(invz);
+	const vector4double invz =  vec_rsqrte(a);
+	const vector4double z = vec_re(invz);
 	const vector4double tmp = vec_msub(z, z, a);
 	const vector4double candidate = vec_nmsub(tmp, vec_mul(invz, vec_splats(0.5f)), z);
 	return vec_sel(candidate, vec_splats(0.f), vec_neg(a));
