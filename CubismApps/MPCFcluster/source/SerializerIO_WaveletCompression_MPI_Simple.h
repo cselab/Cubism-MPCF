@@ -230,11 +230,25 @@ protected:
 		
 		//write the buffer - alias the binary ocean 
 		{
-			myfile.Seek_shared(current_displacement, MPI_SEEK_SET);
+			// apparently this suck: 
+			// myfile.Seek_shared(current_displacement, MPI_SEEK_SET);
+			// myfile.Write_ordered(&allmydata.front(), written_bytes, MPI_CHAR);
+			// current_displacement = myfile.Get_position_shared();
+			// so here we do it manually. so nice!
 			
-			myfile.Write_ordered(&allmydata.front(), written_bytes, MPI_CHAR);
+			size_t myfileoffset = 0;
+			mycomm.Exscan(&written_bytes, &myfileoffset, 1, MPI_UINT64_T, MPI::SUM);
 			
-			current_displacement = myfile.Get_position_shared();			
+			if (mygid == 0)
+				myfileoffset = 0;
+			
+			myfile.Write_at_all(current_displacement + myfileoffset, &allmydata.front(), written_bytes, MPI_CHAR);
+			
+			//here we update current_displacement by broadcasting the total written bytes from rankid = nranks -1
+			size_t total_written_bytes = myfileoffset + written_bytes;
+			mycomm.Bcast(&total_written_bytes, 1, MPI_UINT64_T, nranks - 1);
+			
+			current_displacement += total_written_bytes;
 		}
 		
 		//go back at the blank address and fill it with the displacement
@@ -295,7 +309,7 @@ protected:
 		mycomm.Reduce(isroot ? MPI::IN_PLACE : &tsum, &tsum, 1, MPI_FLOAT, MPI::SUM, 0);
 		mycomm.Reduce(isroot ? MPI::IN_PLACE : &tmax, &tmax, 1, MPI_FLOAT, MPI::MAX, 0);
 		
-		tsum /= mycomm.Get_size() / workload.size();
+		tsum /= mycomm.Get_size() * workload.size();
 		
 		if (isroot)
 			printf("TLP %-10s min:%.0e s avg:%.0e s max:%.0e s imb:%.0f%%\n", 
