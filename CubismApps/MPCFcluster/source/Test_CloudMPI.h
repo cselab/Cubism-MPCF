@@ -257,9 +257,14 @@ public:
 			MPI::COMM_WORLD.Barrier();
             if (isroot) 
 				cout << "Setting ic now...\n";
-			
+
+#ifdef _USE_HPM_
+			HPM_Start("CLOUDIC");
+#endif
             _my_ic_quad(*grid, myseed);
-            
+#ifdef _USE_HPM_
+			HPM_Stop("CLOUDIC");
+#endif
             if (isroot) 
 				cout << "done!"<< endl;
             

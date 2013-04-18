@@ -152,19 +152,19 @@ public:
     
 	void setup()
 	{
+		_setup_constants();
+		setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
+		
+		if (!isroot)
+			VERBOSITY = 0;
+
 		if (VERBOSITY)
 		{
 			printf("////////////////////////////////////////////////////////////\n");
 			printf("////////////      TEST STEADY STATE   MPI    ///////////////\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
-		
-		_setup_constants();
-		setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
-		
-		if (!isroot)
-			VERBOSITY = 0;
-		
+				
 		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ);
 		
 		assert(grid != NULL);

@@ -562,7 +562,7 @@ void HLLESOA2D_QPX::all(const TempSOA& rminus, const TempSOA& rplus,
 	
 #elif _MICROFUSION_ == 1
 	
-	e_charvel(rminus, rplus, vdminus, vdplus, v1minus, v1plus, v2minus, v2plus, pminus, pplus, Gminus, Gplus, PIminus, PIplus, outam, outap, oute, outam, outap)
+	e_charvel(rminus, rplus, vdminus, vdplus, v1minus, v1plus, v2minus, v2plus, pminus, pplus, Gminus, Gplus, PIminus, PIplus, outam, outap, oute, outam, outap);
 	pvel_rho(rminus, rplus, vdminus, vdplus, pminus, pplus, outam, outap, outrho, outvd);
 	vel(rminus, rplus, v1minus, v1plus, vdminus,  vdplus, outam, outap, outv1);
 	vel(rminus, rplus, v2minus, v2plus, vdminus,  vdplus, outam, outap, outv2);
