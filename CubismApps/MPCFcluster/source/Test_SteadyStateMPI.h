@@ -28,7 +28,7 @@ protected:
 	
 	FlowStep_LSRK3MPI<G> * mystepper;
 	
-	SerializerIO_WaveletCompression_MPI_Simple<G, StreamerGridPointIterative> mywaveletdumper;
+	SerializerIO_WaveletCompression_MPI_SimpleBlocking<G, StreamerGridPointIterative> mywaveletdumper;
 	
 public:
 	
@@ -119,10 +119,9 @@ public:
 			streamer<<step_id;
 			
 			mywaveletdumper.verbose();
-			mywaveletdumper.set_threshold(1e-4);
-			
-			mywaveletdumper.Write<0>(grid, streamer.str());
+			mywaveletdumper.set_threshold(1e-2);
 			mywaveletdumper.Write<4>(grid, streamer.str());
+			mywaveletdumper.set_threshold(1e-3);
 			mywaveletdumper.Write<5>(grid, streamer.str());
 			//mywaveletdumper.Write<6>(grid, streamer.str());
 	
