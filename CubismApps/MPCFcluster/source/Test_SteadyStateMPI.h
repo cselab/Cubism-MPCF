@@ -23,7 +23,7 @@ class Test_SteadyStateMPI: public Test_SteadyState
 protected:
 	
 	int XPESIZE, YPESIZE, ZPESIZE;
-	
+	int myflipflop;
     G * grid;
 	
 	FlowStep_LSRK3MPI<G> * mystepper;
@@ -35,7 +35,7 @@ public:
 	const bool isroot;
 	
 	Test_SteadyStateMPI(const bool isroot, const int argc, const char ** argv):
-	Test_SteadyState(argc, argv), isroot(isroot), grid(NULL), mystepper(NULL) { }
+	Test_SteadyState(argc, argv), myflipflop(0),  isroot(isroot), grid(NULL), mystepper(NULL) { }
 	
     void setup_mpi_constants(int& xpesize, int& ypesize, int& zpesize)
 	{	
@@ -96,8 +96,15 @@ public:
             printf( "stepid: %d\n", step_id);
         }
         
-        DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, "data_restart", path.c_str());
-        
+	{
+		char buf[1024];
+		sprintf(buf, "data_restart_flipflop%d", myflipflop);
+        	DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, buf, path.c_str());
+        	myflipflop = 1 - myflipflop;
+
+		DumpHDF5_MPI<G, StreamerDummy_HDF5>(grid, step_id, "data_restart", path.c_str());
+	}
+
 		if (isroot) cout << "done" <<endl;
 	}
     
