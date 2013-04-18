@@ -178,6 +178,8 @@ void Test_SteadyState::paint() { }
 
 void Test_SteadyState::_setup_constants()
 {    
+	parser.mute();
+	
     bRESTART = parser("-restart").asBool();
 	
 	parser.set_strict_mode();
@@ -201,10 +203,6 @@ void Test_SteadyState::_setup_constants()
 	NSTEPS = parser("-nsteps").asInt(0);
 	bAWK = parser("-awk").asBool(false);
     ANALYSISPERIOD = parser("-analysisperiod").asInt(std::numeric_limits<int>::max());
-    
-	if(VERBOSITY) 
-		parser.save_options();
-	parser.mute();
 	
 	assert(TEND >= 0.0);
 	assert(BPDX >= 1);
@@ -222,7 +220,12 @@ void Test_SteadyState::_setup_constants()
 void Test_SteadyState::setup()
 {
 	_setup_constants();
-	    
+	
+#ifndef _SEQUOIA_
+	if(VERBOSITY) 
+		parser.save_options();
+#endif    
+	
     if (VERBOSITY)
 	{
 		printf("////////////////////////////////////////////////////////////\n");

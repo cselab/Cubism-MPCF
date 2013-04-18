@@ -49,14 +49,16 @@ namespace LSRK3MPIdata
     double t_synch_fs = 0, t_bp_fs = 0;
     int counter = 0, GSYNCH = 0, nsynch = 0;
 	
+#ifndef _SEQUOIA_
     MPI_ParIO_Group hist_group;     // peh+
     MPI_ParIO hist_update, hist_rhs, hist_stepid, hist_nsync;// peh
-    
+#endif
     //Histogram histogram;
     
     template<typename Kflow, typename Kupdate>
     void notify(double avg_time_rhs, double avg_time_update, const size_t NBLOCKS, const size_t NTIMES)
     {
+#ifndef _SEQUOIA_
 		if(LSRK3data::step_id % LSRK3data::ReportFreq == 0 && LSRK3data::step_id > 0)
 		{
 		    hist_update.Consolidate(LSRK3data::step_id);// peh
@@ -69,7 +71,7 @@ namespace LSRK3MPIdata
 		hist_rhs.Notify((float)avg_time_rhs); //peh
 		hist_stepid.Notify((float)LSRK3data::step_id);// peh
 		hist_nsync.Notify((float)nsynch/NTIMES);//peh
-		
+#endif
 		//histogram.notify("FLOWSTEP", (float)avg_time_rhs);
 		//histogram.notify("UPDATE", (float)avg_time_update);
 		//histogram.notify("STEPID", (float)LSRK3data::step_id);
@@ -321,10 +323,12 @@ public:
 	
 	~FlowStep_LSRK3MPI()
 	{
+#ifndef _SEQUOIA_
 		LSRK3MPIdata::hist_update.Finalize();
 		LSRK3MPIdata::hist_rhs.Finalize();
 		LSRK3MPIdata::hist_stepid.Finalize();
 		LSRK3MPIdata::hist_nsync.Finalize();
+#endif
 	}
 	
 	FlowStep_LSRK3MPI(TGrid & grid, const Real CFL, const Real gamma1, const Real gamma2, ArgumentParser& parser, const int verbosity, Profiler* profiler=NULL, const Real pc1=0, const Real pc2=0):
@@ -333,6 +337,7 @@ public:
     {
 		if (verbosity) cout << "GSYNCH " << parser("-gsync").asInt(omp_get_max_threads()) << endl;
 		
+#ifndef _SEQUOIA_	
 		static const int pehflag = 0; 
 		LSRK3MPIdata::hist_group.Init(8, parser("-report").asInt(1), pehflag); // peh
 		
@@ -340,6 +345,7 @@ public:
 		LSRK3MPIdata::hist_rhs.Init("hist_FLOWSTEP.bin", &LSRK3MPIdata::hist_group); //peh
 		LSRK3MPIdata::hist_stepid.Init("hist_STEPID.bin", &LSRK3MPIdata::hist_group); // peh
 		LSRK3MPIdata::hist_nsync.Init("hist_NSYNCH.bin", &LSRK3MPIdata::hist_group); // peh
+#endif
     }
 	
 	Real operator()(const Real max_dt)

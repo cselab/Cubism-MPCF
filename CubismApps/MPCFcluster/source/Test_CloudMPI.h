@@ -16,7 +16,7 @@
  *	Amen.
  *
  */
- 
+
 #pragma once
 
 #include <limits>
@@ -54,16 +54,16 @@ struct GaussSeidel // , not. just 2ndorder bspline convolution
     {     
 		const Real w[3] = { 0.25f, 0.5f, 0.25f };
 		
-		  for(int iz=0; iz<FluidBlock::sizeZ; iz++)
+		for(int iz=0; iz<FluidBlock::sizeZ; iz++)
             for(int iy=0; iy<FluidBlock::sizeY; iy++)
                 for(int ix=0; ix<FluidBlock::sizeX; ix++)
                 {
 					double s = 0;
 					
 					for(int dz=-1; dz < 2; ++dz)
-					for(int dy=-1; dy < 2; ++dy)
-					for(int dx=-1; dx < 2; ++dx)
-						s += w[dx + 1]* w[dy + 1]* w[dz + 1] * lab(ix + dx, iy + dy, iz + dz).energy;
+						for(int dy=-1; dy < 2; ++dy)
+							for(int dx=-1; dx < 2; ++dx)
+								s += w[dx + 1]* w[dy + 1]* w[dz + 1] * lab(ix + dx, iy + dy, iz + dz).energy;
 					
 					o(ix,iy,iz).dummy = s;
 				}
@@ -155,7 +155,7 @@ public:
     void _relax_pressure(G & grid)
     {
         GaussSeidel< LabLaplace > gs;
-               
+		
         SynchronizerMPI& synch = ((G&)grid).sync(gs);
         
         while (!synch.done())
@@ -174,10 +174,10 @@ public:
 	{
 		_setup_constants();
         t_ssmpi->setup_mpi_constants(XPESIZE, YPESIZE, ZPESIZE);
-
+		
         if (!isroot)
 			VERBOSITY = 0;
-    
+		
         if (isroot)
 		{
 			printf("////////////////////////////////////////////////////////////\n");
@@ -194,11 +194,11 @@ public:
 			printf("Amen.\n");
 			printf("////////////////////////////////////////////////////////////\n");
 		}
-
-	const double extent = parser("-extent").asDouble(1.0);
-	grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, extent);
-
-	//printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
+		
+		const double extent = parser("-extent").asDouble(1.0);
+		grid = new G(XPESIZE, YPESIZE, ZPESIZE, BPDX, BPDY, BPDZ, extent);
+		
+		//printf("rank %d local bpd %d %d %d\n", isroot, grid->getResidentBlocksPerDimension(0), grid->getResidentBlocksPerDimension(1), grid->getResidentBlocksPerDimension(2));
         
 		assert(grid != NULL);
         
@@ -217,7 +217,7 @@ public:
             {
 				if(isroot)
 					_initialize_cloud();
-					
+				
 				mycartcomm.Bcast(&CloudData::n_shapes, 1, MPI::INT, 0);
 				mycartcomm.Bcast(&CloudData::n_small, 1, MPI::INT, 0);
 				mycartcomm.Bcast(&CloudData::small_count, 1, MPI::INT, 0);
@@ -226,9 +226,9 @@ public:
 				mycartcomm.Bcast(CloudData::seed_s, 3, MPI::DOUBLE, 0);
 				mycartcomm.Bcast(CloudData::seed_e, 3, MPI::DOUBLE, 0);
 			}
-                                 
+			
             Seed myseed(CloudData::seed_s, CloudData::seed_e);
-            		
+			
             //load the shapes from file and broadcast them		
             {
 				vector<shape> v(CloudData::n_shapes);
@@ -252,12 +252,12 @@ public:
 			const double spacing = grid->getH()*_BLOCKSIZE_;
 			const double mystart[3] = {peidx[0]*BPDX*spacing, peidx[1]*BPDY*spacing, peidx[2]*BPDZ*spacing};
 			const double myextent[3] = {BPDX*spacing, BPDY*spacing, BPDZ*spacing};
-						
+			
 			myseed = myseed.retain_shapes(mystart,myextent);
 			MPI::COMM_WORLD.Barrier();
             if (isroot) 
 				cout << "Setting ic now...\n";
-				
+			
             _my_ic_quad(*grid, myseed);
             
             if (isroot) 
@@ -267,14 +267,14 @@ public:
 				cout << "relaxing pressure a little bit..."<< endl;
             
             //for(int i = 0; i < 2; ++i)
-		//		_relax_pressure(*grid);
+			//		_relax_pressure(*grid);
             
             if (isroot) 
 				cout << "done!"<< endl;
             
             if (isroot) 
 				printf("Setting energy now...");
-				
+			
             _set_energy(*grid);
             
             if (isroot) 
@@ -284,50 +284,48 @@ public:
     
 	void run()
 	{
-	  const bool bWithIO = parser("-io").asBool("1");
-
+		const bool bWithIO = parser("-io").asBool("1");
+		
 		if (isroot) printf("HELLO RUN\n");
 		bool bLoop = (NSTEPS>0) ? (step_id<NSTEPS) : (fabs(t-TEND) > std::numeric_limits<Real>::epsilon()*1e1);
         
 		while(bLoop)
 		{
 			if (isroot) printf("Step id %d,Time %f\n", step_id, t);
-
-			if (step_id%DUMPPERIOD==0)
+			
+			if (step_id % DUMPPERIOD == 0 && bWithIO)
 			{
-				std::stringstream streamer;
-				streamer<<"data-"<<step_id;
-                //profiler.push_start("IO HDF");
-                //if(bWithIO) t_ssmpi->dump(*grid, step_id, streamer.str());
-                //profiler.pop_stop();
-                profiler.push_start("IO WAVELET");
-		if(bWithIO) 	t_ssmpi->vp(*grid, step_id, bVP);
-                profiler.pop_stop();
+				profiler.push_start("IO WAVELET");
+				t_ssmpi->vp(*grid, step_id, bVP);
+				profiler.pop_stop();
 			}
             
-            profiler.push_start("SAVE");
-			if (step_id%SAVEPERIOD==0)
-			  if(bWithIO) 	t_ssmpi->save(*grid, step_id, t);
-            profiler.pop_stop();
+			if (step_id % SAVEPERIOD == 0 && bWithIO)
+			{
+				profiler.push_start("SAVE");
+				t_ssmpi->save(*grid, step_id, t);
+				profiler.pop_stop();
+			}
             
             profiler.push_start("STEP");
-            //stepper->set_CFL(CFL/(1+15*BS4::eval((t-0.3)/0.025)));
-            if (isroot) printf("CFL is %f, original CFL is %f\n", stepper->CFL, CFL);
+
+            if (isroot) 
+				printf("CFL is %f, original CFL is %f\n", stepper->CFL, CFL);
+			
 			const Real dt = (*stepper)(TEND-t);
-            profiler.pop_stop();
             
-            profiler.push_start("DUMP STATISTICS");
+			profiler.pop_stop();
+			
+#ifndef _SEQUOIA_
             if (step_id%ANALYSISPERIOD==0)
+			{
+				profiler.push_start("DUMP STATISTICS");
                 t_sbmpi->dumpStatistics(*grid, step_id, t, dt);
-            profiler.pop_stop();
-           /* 
-            profiler.push_start("DUMP ANALYSIS");
-	    if(bWithIO) 
-            if (step_id%ANALYSISPERIOD==0)
-                t_sbmpi->dumpAnalysis(*grid, step_id, t, dt);
-            profiler.pop_stop();
-            */
-            if(step_id%10 == 0 && isroot && step_id > 0)
+				profiler.pop_stop();
+			}
+#endif
+
+            if(step_id % 10 == 0 && isroot && step_id > 0)
 				profiler.printSummary();
             
 			t+=dt;
@@ -346,28 +344,28 @@ public:
 		if (isroot) 
 			printf("Finishing RUN\n");
 	}
-
+	
 	void dispose()
 	{
-			t_ssmpi->dispose();
-			delete t_ssmpi;
-			t_ssmpi = NULL;
-
-			t_sbmpi->dispose();
-			delete t_sbmpi;
-			t_sbmpi = NULL;
-
-			if (stepper != NULL)
-			{
-					delete stepper;
-					stepper = NULL;
-			}
-
-			if (grid != NULL)
-			{
-					delete grid;
-					grid = NULL;
-			}
+		t_ssmpi->dispose();
+		delete t_ssmpi;
+		t_ssmpi = NULL;
+		
+		t_sbmpi->dispose();
+		delete t_sbmpi;
+		t_sbmpi = NULL;
+		
+		if (stepper != NULL)
+		{
+			delete stepper;
+			stepper = NULL;
+		}
+		
+		if (grid != NULL)
+		{
+			delete grid;
+			grid = NULL;
+		}
 	}
 };
 

@@ -22,7 +22,7 @@
 
 //=============================== KERNELS ===========================================
 
-struct __align(_ALIGNBYTES_) WenoScratchPad { Real tmp[TempSOA::NX][4];};
+struct __attribute__((__aligned__(_ALIGNBYTES_))) WenoScratchPad { Real tmp[TempSOA::NX][4];};
 
 template<typename Tomato> inline void _qpx_xweno_minus(Real * const in, Real * const out) 
 {
