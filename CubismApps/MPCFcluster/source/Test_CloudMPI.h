@@ -320,13 +320,13 @@ public:
             if (step_id%ANALYSISPERIOD==0)
                 t_sbmpi->dumpStatistics(*grid, step_id, t, dt);
             profiler.pop_stop();
-            
+           /* 
             profiler.push_start("DUMP ANALYSIS");
 	    if(bWithIO) 
             if (step_id%ANALYSISPERIOD==0)
                 t_sbmpi->dumpAnalysis(*grid, step_id, t, dt);
             profiler.pop_stop();
-            
+            */
             if(step_id%10 == 0 && isroot && step_id > 0)
 				profiler.printSummary();
             
