@@ -9,7 +9,7 @@
 
 #include <iostream>
 #include <mpi.h>
-#ifdef _SSE_
+#ifdef _QPXEMU_
 #include <xmmintrin.h>
 #endif
 
@@ -40,7 +40,7 @@ int main (int argc, const char ** argv)
 	ArgumentParser parser(argc, argv);	
 	const bool bFlush2Zero = parser("-f2z").asBool(true);
 	
-#ifdef _SSE_
+#ifdef _QPXEMU_
 	if (bFlush2Zero)
 #pragma omp parallel
 	{

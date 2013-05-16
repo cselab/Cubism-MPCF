@@ -10,7 +10,6 @@
 #include <limits>
 #include <omp.h>
 
-//#include <BlockProcessingMPI.h>
 #include <BlockLabMPI.h>
 #include <Histogram.h>
 
@@ -18,12 +17,6 @@
 #include <Convection_CPP.h>
 #include <Update.h>
 
-#ifdef _SSE_
-#include <Convection_SSE.h>
-#endif
-#ifdef _AVX_
-#include <Convection_AVX.h>
-#endif
 #if defined(_QPX_) || defined(_QPXEMU_)
 #include <Convection_QPX.h>
 #include <Update_QPX.h>
@@ -403,14 +396,6 @@ public:
 		//now we perform an entire RK step
 		if (parser("-kernels").asString("cpp")=="cpp")
 			LSRKstepMPI<Convection_CPP, Update_CPP>(grid, dt/h, current_time);
-#ifdef _SSE_
-		else if (parser("-kernels").asString("cpp")=="sse")
-			LSRKstepMPI<Convection_SSE, Update_SSE>(grid, dt/h, current_time);
-#endif
-#ifdef _AVX_
-		else if (parser("-kernels").asString("cpp")=="avx")
-			LSRKstepMPI<Convection_AVX, Update_AVX>(grid, dt/h, current_time);
-#endif
 #if defined(_QPX_) || defined(_QPXEMU_)
 		else if (parser("-kernels").asString("cpp")=="qpx")
 			LSRKstepMPI<Convection_QPX, Update_QPX>(grid, dt/h, current_time);

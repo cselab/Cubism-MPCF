@@ -7,10 +7,8 @@
  *
  */
 
-#if defined(_SSE_) && _BLOCKSIZE_%4!=0
-#error BLOCKSIZE NOT GOOD FOR SSE
-#elif defined(_AVX_) && (_BLOCKSIZE_%8!=0 || !defined(_SP_COMP_))
-#error BLOCKSIZE NOT GOOD FOR AVX
+#if defined(_QPXEMU_) && _BLOCKSIZE_%4!=0
+#error BLOCKSIZE NOT GOOD FOR QPX
 #endif
 
 #include <iostream>
@@ -29,9 +27,6 @@ extern "C" void HPM_Stop(char *);
 #define MPI_Finalize()
 #endif
 
-#ifdef _SSE_
-#include <xmmintrin.h>
-#endif
 #include <unistd.h>
 #include <ArgumentParser.h>
 
@@ -50,12 +45,6 @@ extern "C" void HPM_Stop(char *);
 
 #include "Update.h"
 #include "MaxSpeedOfSound.h"
-#ifdef _SSE_
-#include "Convection_SSE.h"
-#endif
-#ifdef _AVX_
-#include "Convection_AVX.h"
-#endif
 
 using namespace std;
 
@@ -116,7 +105,7 @@ int main (int argc, const char ** argv)
 	ArgumentParser parser(argc, argv);
 	parser.loud();	
 	//enable/disable the handling of denormalized numbers
-#ifdef _SSE_
+#ifdef _QPXEMU_
 	if (parser("-f2z").asBool(false))
 #pragma omp parallel
 	{
@@ -208,24 +197,7 @@ int main (int argc, const char ** argv)
 		}
 	}
 #endif
-	
-	//SSE kernels
-#if defined(_SSE_) && _ALIGNBYTES_ % 16 == 0
-	{
-		if (kernel == "Convection_SSE" || kernel == "all")
-			testing(Test_Convection(), Convection_SSE(0, 1), info);
-	}
-#endif
-	
-	//AVX kernels
-#if defined(_AVX_) && _ALIGNBYTES_ % 32 == 0
-	{
-		if (kernel == "Convection_AVX" || kernel == "all")
-			testing(Test_Convection(), Convection_AVX(0, 1, 2.5, 2.1, 1, 0, 0), info);
 		
-	}
-#endif
-	
 #ifdef _USE_HPM_
 	MPI_Finalize();
 #endif

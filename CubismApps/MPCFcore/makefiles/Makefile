@@ -39,17 +39,6 @@ endif
 
 OBJECTS += Convection_CPP_omp.o
 
-ifeq "$(sse)" "1"
-	ifeq "$(ap)" "double"
-		OBJECTS+= Convection_SSEd.o
-	else
-		OBJECTS+= Convection_SSE.o
-	endif
-endif
-ifeq "$(avx)" "1"
-	OBJECTS+= Convection_AVX.o
-endif
-
 VPATH := ../source/
 .DEFAULT_GOAL := mpcf-core
 header_files = $(wildcard ../source/*.h)

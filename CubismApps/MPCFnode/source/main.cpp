@@ -9,13 +9,13 @@
 
 #include <iostream>
 
-#ifdef _SSE_
-#include <xmmintrin.h>
-#endif
-
 #ifdef _USE_NUMA_
 #include <numa.h>
 //#include <omp.h>
+#endif
+
+#ifdef _QPXEMU_
+#include <xmmintrin.h>
 #endif
 
 #include <omp.h>
@@ -108,7 +108,7 @@ int main (int argc, const char ** argv)
 	ArgumentParser parser(argc, argv);	
 	const bool bFlush2Zero = parser("-f2z").asBool(true);
 	
-#ifdef _SSE_
+#ifdef _QPXEMU_
 	if (bFlush2Zero)
 #pragma omp parallel
 	{

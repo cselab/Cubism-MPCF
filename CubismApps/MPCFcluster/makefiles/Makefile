@@ -96,18 +96,6 @@ ifeq "$(qpxemu)" "1"
           OBJECTS += ../../MPCFcore/makefiles/DivSOA2D_QPX.o
 endif
 
-ifeq "$(sse)" "1"
-	ifeq "$(ap)" "double"
-		OBJECTS += ../../MPCFcore/makefiles/Convection_SSEd.o
-	else
-		OBJECTS += ../../MPCFcore/makefiles/Convection_SSE.o
-	endif
-endif
-
-ifeq "$(avx)" "1"
-	OBJECTS += ../../MPCFcore/makefiles/Convection_AVX.o
-endif
-
 all: mpcf-cluster
 
 mpcf-cluster: $(OBJECTS)

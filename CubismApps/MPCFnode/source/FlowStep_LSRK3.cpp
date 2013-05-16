@@ -18,15 +18,6 @@
 #include <Profiler.h>
 #include <Convection_CPP.h>
 
-#ifdef _SSE_
-#include <emmintrin.h>
-#include <Convection_SSE.h>
-#endif
-
-#ifdef _AVX_
-#include <Convection_AVX.h>
-#endif
-
 #if defined(_QPX_) || defined(_QPXEMU_)
 #include <Convection_QPX.h>
 #include <Update_QPX.h>
@@ -503,14 +494,6 @@ Real FlowStep_LSRK3::operator()(const Real max_dt)
     
     if (parser("-kernels").asString("cpp")=="cpp")
         LSRKstep<Convection_CPP, Update_CPP>(grid, dt/h, current_time, bAwk);
-#ifdef _SSE_
-    else if (parser("-kernels").asString("cpp")=="sse")
-        LSRKstep<Convection_SSE, Update_CPP>(grid, dt/h, current_time, bAwk);
-#endif
-#ifdef _AVX_
-    else if (parser("-kernels").asString("cpp")=="avx")
-        LSRKstep<Convection_AVX, Update_AVX>(grid, dt/h, current_time, bAwk);
-#endif
 #if defined(_QPX_) || defined(_QPXEMU_)    
 	else if (parser("-kernels").asString("cpp")=="qpx")
 		LSRKstep<Convection_QPX, Update_QPX>(grid, dt/h, current_time, bAwk);
