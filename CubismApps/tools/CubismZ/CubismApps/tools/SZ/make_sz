@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# File       : make_sz
+# Created    : Fri Jul 21 2017 03:46:12 PM (+0200)
+# Author     : Fabian Wermelinger
+# Description: Build sz library
+# Copyright 2017 ETH Zurich. All Rights Reserved.
+CWD="$(pwd -P)"
+
+# SZ
+if [[ ! -d "./src" ]]; then
+    git clone https://github.com/disheng222/SZ.git src
+fi
+rm -rf build
+mkdir -p build
+cd src
+./configure --prefix=${CWD}/build --disable-shared
+make -j4
+make install
+make clean
